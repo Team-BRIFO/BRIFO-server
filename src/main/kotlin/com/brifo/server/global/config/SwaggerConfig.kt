@@ -10,24 +10,22 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class SwaggerConfig {
-	@Bean
-	fun openAPI(): OpenAPI =
-		OpenAPI()
-			.info(
-				Info()
-					.title("BRIFO BE API")
-					.version("v1")
-					.description("BRIFO backend API documentation"),
-			)
-			.components(
-				Components()
-					.addSecuritySchemes(
-						"bearerAuth",
-						SecurityScheme()
-							.type(SecurityScheme.Type.HTTP)
-							.scheme("bearer")
-							.bearerFormat("JWT"),
-					),
-			)
-			.addSecurityItem(SecurityRequirement().addList("bearerAuth"))
+    @Bean
+    fun openAPI(): OpenAPI =
+        OpenAPI()
+            .info(
+                Info()
+                    .title("BRIFO BE API")
+                    .version("v1")
+                    .description("BRIFO backend API documentation"),
+            ).components(
+                Components()
+                    .addSecuritySchemes(
+                        "bearerAuth",
+                        SecurityScheme()
+                            .type(SecurityScheme.Type.HTTP)
+                            .scheme("bearer")
+                            .bearerFormat("JWT"),
+                    ),
+            ).addSecurityItem(SecurityRequirement().addList("bearerAuth"))
 }
