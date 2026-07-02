@@ -3,6 +3,8 @@ package com.brifo.server.global.error
 import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.common.ApiResponse
 import jakarta.validation.ConstraintViolationException
+import org.springframework.core.env.Environment
+import org.springframework.core.env.Profiles
 import org.springframework.http.ResponseEntity
 import org.springframework.web.HttpRequestMethodNotSupportedException
 import org.springframework.web.bind.MethodArgumentNotValidException
@@ -10,20 +12,30 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
 @RestControllerAdvice
-class GlobalExceptionHandler {
+class GlobalExceptionHandler(
+    private val environment: Environment,
+) {
+    private val suppressErrorDetails: Boolean
+        get() = environment.acceptsProfiles(Profiles.of("prod"))
+
     @ExceptionHandler(BusinessException::class)
     fun handleBusinessException(exception: BusinessException): ResponseEntity<ApiResponse<Nothing>> {
         val errorCode = exception.errorCode
+        val message = if (suppressErrorDetails) errorCode.message else exception.message
 
         return ResponseEntity
             .status(errorCode.status)
-            .body(ApiResponse.error(errorCode, exception.message))
+            .body(ApiResponse.error(errorCode, message))
     }
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
-    fun handleMethodArgumentNotValidException(
-        exception: MethodArgumentNotValidException,
-    ): ResponseEntity<ApiResponse<List<FieldErrorResponse>>> {
+    fun handleMethodArgumentNotValidException(exception: MethodArgumentNotValidException): ResponseEntity<ApiResponse<*>> {
+        if (suppressErrorDetails) {
+            return ResponseEntity
+                .status(ErrorCode.INVALID_REQUEST.status)
+                .body(ApiResponse.error(ErrorCode.INVALID_REQUEST))
+        }
+
         val errors =
             exception.bindingResult.fieldErrors.map {
                 FieldErrorResponse(
@@ -38,7 +50,13 @@ class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ConstraintViolationException::class)
-    fun handleConstraintViolationException(exception: ConstraintViolationException): ResponseEntity<ApiResponse<List<FieldErrorResponse>>> {
+    fun handleConstraintViolationException(exception: ConstraintViolationException): ResponseEntity<ApiResponse<*>> {
+        if (suppressErrorDetails) {
+            return ResponseEntity
+                .status(ErrorCode.INVALID_REQUEST.status)
+                .body(ApiResponse.error(ErrorCode.INVALID_REQUEST))
+        }
+
         val errors =
             exception.constraintViolations.map {
                 FieldErrorResponse(

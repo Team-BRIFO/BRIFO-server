@@ -134,7 +134,7 @@ CREATE TABLE decisions (
                            id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                            public_id     UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
                            user_id       BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                           briefing_id   BIGINT NOT NULL REFERENCES briefings(id),
+                           briefing_id   BIGINT NOT NULL REFERENCES briefings(id) ON DELETE CASCADE,
                            direction     VARCHAR(10) NOT NULL CHECK (direction IN ('UP', 'DOWN', 'NEUTRAL')),
                            confidence    SMALLINT NOT NULL CHECK (confidence BETWEEN 1 AND 5),
                            reasoning     TEXT,

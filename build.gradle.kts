@@ -73,7 +73,7 @@ spotless {
     }
 
     format("misc") {
-        target("*.md", ".gitignore", ".gitattributes", "*.yaml", "*.yml")
+        target("**/*.md", ".gitignore", ".gitattributes", "**/*.yaml", "**/*.yml")
         trimTrailingWhitespace()
         endWithNewline()
     }
