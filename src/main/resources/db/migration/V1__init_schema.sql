@@ -215,8 +215,7 @@ CREATE TABLE briefings (
 CREATE TABLE decisions (
                            id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                            public_id     UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
-                           user_id       BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                           briefing_id   BIGINT NOT NULL REFERENCES briefings(id),
+                           briefing_id   BIGINT NOT NULL REFERENCES briefings(id) ON DELETE CASCADE,
                            direction     VARCHAR(10) NOT NULL CHECK (direction IN ('UP', 'DOWN', 'NEUTRAL')),
                            confidence    SMALLINT NOT NULL CHECK (confidence BETWEEN 1 AND 5),
                            reasoning     TEXT,
@@ -224,20 +223,20 @@ CREATE TABLE decisions (
                            ap_delta      INTEGER NOT NULL DEFAULT 0,
                            created_at    TIMESTAMP NOT NULL DEFAULT NOW(),
                            settled_at    TIMESTAMP,
-                           UNIQUE (user_id, briefing_id),
+                           UNIQUE (briefing_id),
                            CONSTRAINT decisions_valid_settlement CHECK (
                                (settled_at IS NULL AND is_correct IS NULL) OR
                                (settled_at IS NOT NULL AND is_correct IS NOT NULL)
                                )
 );
 
-CREATE INDEX idx_decisions_user_date ON decisions (user_id, created_at DESC);
+CREATE INDEX idx_briefings_agent ON briefings (agent_id);
+CREATE INDEX idx_decisions_created ON decisions (created_at DESC);
 CREATE INDEX idx_decisions_unsettled ON decisions (created_at) WHERE settled_at IS NULL;
 
 CREATE TABLE diary_entries (
                                id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                                public_id   UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
-                               user_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                                decision_id BIGINT NOT NULL UNIQUE REFERENCES decisions(id) ON DELETE CASCADE,
                                memo        TEXT,
                                share_count INTEGER NOT NULL DEFAULT 0 CHECK (share_count >= 0),
@@ -245,8 +244,6 @@ CREATE TABLE diary_entries (
                                share_image_created_at TIMESTAMP,
                                created_at  TIMESTAMP NOT NULL DEFAULT NOW()
 );
-
-CREATE INDEX idx_diary_entries_user_date ON diary_entries (user_id, created_at DESC);
 
 CREATE TABLE attendance_rewards (
                                     id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
