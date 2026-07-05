@@ -2,6 +2,7 @@ package com.brifo.server.global.error
 
 import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.common.ApiResponse
+import com.brifo.server.global.exception.BusinessException
 import jakarta.validation.ConstraintViolationException
 import org.springframework.core.env.Environment
 import org.springframework.core.env.Profiles

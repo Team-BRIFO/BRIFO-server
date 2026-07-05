@@ -1,4 +1,4 @@
-package com.brifo.server.global.error
+package com.brifo.server.global.exception
 
 import com.brifo.server.global.code.ErrorCode
 
