@@ -12,6 +12,8 @@ CREATE TABLE users (
                        total_correct  INTEGER NOT NULL DEFAULT 0 CHECK (total_correct >= 0),
                        total_decision INTEGER NOT NULL DEFAULT 0 CHECK (total_decision >= 0),
                        credit_used    BOOLEAN NOT NULL DEFAULT FALSE,
+                       tutorial_rewarded_at TIMESTAMP,
+                       onboarding_completed_at TIMESTAMP,
                        last_login_at  TIMESTAMP,
                        created_at     TIMESTAMP NOT NULL DEFAULT NOW(),
                        updated_at     TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -19,6 +21,67 @@ CREATE TABLE users (
                        UNIQUE (provider, social_id),
                        CONSTRAINT users_valid_total CHECK (total_correct <= total_decision)
 );
+
+CREATE TABLE notification_types (
+                                    id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                                    code            VARCHAR(40) NOT NULL UNIQUE,
+                                    name            VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE user_notification_settings (
+                                            id                   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                                            user_id              BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                                            notification_type_id BIGINT NOT NULL REFERENCES notification_types(id),
+                                            is_enabled           BOOLEAN NOT NULL DEFAULT FALSE,
+                                            updated_at           TIMESTAMP NOT NULL DEFAULT NOW(),
+                                            UNIQUE (user_id, notification_type_id)
+);
+
+CREATE INDEX idx_user_notification_settings_user
+    ON user_notification_settings (user_id);
+
+CREATE TABLE notifications (
+                               id                   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                               public_id            UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
+                               user_id              BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                               notification_type_id BIGINT NOT NULL REFERENCES notification_types(id),
+                               title                VARCHAR(100) NOT NULL,
+                               body                 VARCHAR(500),
+                               ref_type             VARCHAR(30),
+                               ref_id               BIGINT,
+                               read_at              TIMESTAMP,
+                               created_at           TIMESTAMP NOT NULL DEFAULT NOW(),
+                               CONSTRAINT notifications_ref_pair CHECK (
+                                   (ref_type IS NULL AND ref_id IS NULL) OR
+                                   (ref_type IS NOT NULL AND ref_id IS NOT NULL)
+                                   )
+);
+
+CREATE INDEX idx_notifications_user_created
+    ON notifications (user_id, created_at DESC);
+
+CREATE INDEX idx_notifications_user_unread
+    ON notifications (user_id, created_at DESC)
+    WHERE read_at IS NULL;
+
+CREATE TABLE badges (
+                        id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                        code          VARCHAR(40) NOT NULL UNIQUE,
+                        name          VARCHAR(50) NOT NULL,
+                        description   VARCHAR(255),
+                        created_at    TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE user_badges (
+                             id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                             user_id    BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                             badge_id   BIGINT NOT NULL REFERENCES badges(id),
+                             awarded_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                             UNIQUE (user_id, badge_id)
+);
+
+CREATE INDEX idx_user_badges_user_awarded
+    ON user_badges (user_id, awarded_at DESC);
 
 CREATE TABLE stocks (
                         id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -28,12 +91,27 @@ CREATE TABLE stocks (
                         is_active  BOOLEAN NOT NULL DEFAULT TRUE
 );
 
+CREATE TABLE daily_stock_prices (
+                                    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                                    stock_id    BIGINT NOT NULL REFERENCES stocks(id) ON DELETE CASCADE,
+                                    trade_date  DATE NOT NULL,
+                                    close_price DECIMAL(12,2) NOT NULL,
+                                    change_rate DECIMAL(5,2) NOT NULL,
+                                    created_at  TIMESTAMP NOT NULL DEFAULT NOW(),
+                                    UNIQUE (stock_id, trade_date)
+);
+
+CREATE INDEX idx_daily_stock_prices_stock_date ON daily_stock_prices (stock_id, trade_date DESC);
+CREATE INDEX idx_daily_stock_prices_date ON daily_stock_prices (trade_date DESC);
+
 CREATE TABLE agents (
                         id               BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                         public_id        UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
-                        owner_id         BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        user_id          BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                         agent_type       VARCHAR(10) NOT NULL CHECK (agent_type IN ('ROOKIE', 'PRO', 'TANKER')),
+                        model_name       VARCHAR(100) NOT NULL,
                         nickname         VARCHAR(50),
+                        description      VARCHAR(255),
                         level            INTEGER NOT NULL DEFAULT 1 CHECK (level BETWEEN 1 AND 10),
                         exp              INTEGER NOT NULL DEFAULT 0 CHECK (exp >= 0),
                         daily_salary     INTEGER NOT NULL CHECK (daily_salary > 0),
@@ -43,7 +121,7 @@ CREATE TABLE agents (
                         is_active        BOOLEAN NOT NULL DEFAULT TRUE,
                         created_at       TIMESTAMP NOT NULL DEFAULT NOW(),
                         updated_at       TIMESTAMP NOT NULL DEFAULT NOW(),
-                        UNIQUE (owner_id, agent_type),
+                        UNIQUE (user_id, agent_type),
                         CONSTRAINT agents_valid_accuracy CHECK (correct_analyses <= total_analyses)
 );
 
@@ -84,6 +162,7 @@ CREATE TABLE news_cards (
                             news_id          BIGINT NOT NULL UNIQUE REFERENCES news(id) ON DELETE CASCADE,
                             headline         VARCHAR(80) NOT NULL,
                             points           JSONB NOT NULL,
+                            keywords         JSONB NOT NULL,
                             importance_badge VARCHAR(5) CHECK (importance_badge IN ('HOT', 'MID', 'LOW')),
                             card_date        DATE NOT NULL,
                             created_at       TIMESTAMP NOT NULL DEFAULT NOW()
@@ -93,6 +172,7 @@ CREATE INDEX idx_news_cards_card_date ON news_cards (card_date DESC);
 
 CREATE TABLE glossary_terms (
                                 id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                                public_id      UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
                                 term           VARCHAR(80) NOT NULL UNIQUE,
                                 definition     VARCHAR(200) NOT NULL,
                                 category       VARCHAR(50),
@@ -121,12 +201,14 @@ CREATE TABLE briefings (
                            public_id    UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
                            card_id      BIGINT NOT NULL REFERENCES news_cards(id) ON DELETE CASCADE,
                            agent_id     BIGINT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
-                           content_text TEXT NOT NULL,
+                           content_text TEXT,
                            headline     VARCHAR(200),
                            direction    VARCHAR(10) CHECK (direction IN ('UP', 'DOWN', 'NEUTRAL')),
-                           probability  DECIMAL(3,2) CHECK (probability BETWEEN 0 AND 1),
-                           tokens_used  INTEGER CHECK (tokens_used >= 0),
+                           confidence   DECIMAL(3,2) CHECK (confidence BETWEEN 0 AND 1),
+                           status       VARCHAR(20) NOT NULL DEFAULT 'PENDING'
+                               CHECK (status IN ('PENDING', 'ANALYZING', 'COMPLETED', 'FAILED')),
                            created_at   TIMESTAMP NOT NULL DEFAULT NOW(),
+                           updated_at   TIMESTAMP NOT NULL DEFAULT NOW(),
                            UNIQUE (card_id, agent_id)
 );
 
@@ -134,12 +216,11 @@ CREATE TABLE decisions (
                            id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                            public_id     UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
                            user_id       BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                           briefing_id   BIGINT NOT NULL REFERENCES briefings(id) ON DELETE CASCADE,
+                           briefing_id   BIGINT NOT NULL REFERENCES briefings(id),
                            direction     VARCHAR(10) NOT NULL CHECK (direction IN ('UP', 'DOWN', 'NEUTRAL')),
                            confidence    SMALLINT NOT NULL CHECK (confidence BETWEEN 1 AND 5),
                            reasoning     TEXT,
                            is_correct    BOOLEAN,
-                           actual_change DECIMAL(5,2),
                            ap_delta      INTEGER NOT NULL DEFAULT 0,
                            created_at    TIMESTAMP NOT NULL DEFAULT NOW(),
                            settled_at    TIMESTAMP,
@@ -160,10 +241,26 @@ CREATE TABLE diary_entries (
                                decision_id BIGINT NOT NULL UNIQUE REFERENCES decisions(id) ON DELETE CASCADE,
                                memo        TEXT,
                                share_count INTEGER NOT NULL DEFAULT 0 CHECK (share_count >= 0),
+                               share_image_url TEXT,
+                               share_image_created_at TIMESTAMP,
                                created_at  TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_diary_entries_user_date ON diary_entries (user_id, created_at DESC);
+
+CREATE TABLE attendance_rewards (
+                                    id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                                    public_id      UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
+                                    user_id        BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                                    bonus_rewarded BOOLEAN NOT NULL DEFAULT FALSE,
+                                    consecutive_days INTEGER NOT NULL CHECK (consecutive_days BETWEEN 1 AND 7),
+                                    created_at     TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX idx_attendance_rewards_user_date
+    ON attendance_rewards (user_id, (created_at::date));
+
+CREATE INDEX idx_attendance_rewards_user_created ON attendance_rewards (user_id, created_at DESC);
 
 CREATE TABLE ap_transactions (
                                  id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -175,7 +272,7 @@ CREATE TABLE ap_transactions (
                                                                                    'DECISION_WIN', 'DECISION_LOSE', 'NEUTRAL_HIT',
                                                                                    'SALARY', 'CREDIT_LOAN'
                                      )),
-                                 ref_type   VARCHAR(30) CHECK (ref_type IN ('DECISION', 'SALARY_LOG')),
+                                 ref_type   VARCHAR(30) CHECK (ref_type IN ('DECISION', 'SALARY_LOG', 'ATTENDANCE_REWARD')),
                                  ref_id     BIGINT,
                                  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                                  CONSTRAINT ap_transactions_ref_pair CHECK (
