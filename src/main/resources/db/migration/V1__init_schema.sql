@@ -94,6 +94,26 @@ CREATE TABLE notifications (
                                                 'SALARY_LOG',
                                                 'POLICY'
                                        )
+                                   ),
+                               CONSTRAINT notifications_ref_target CHECK (
+                                   (
+                                       ref_type IN (
+                                                    'ATTENDANCE_REWARD',
+                                                    'USER_BADGE',
+                                                    'SALARY_LOG'
+                                           )
+                                       AND ref_public_id IS NULL
+                                       )
+                                   OR (
+                                       ref_type IN (
+                                                    'DECISION',
+                                                    'AP_TRANSACTION',
+                                                    'BRIEFING',
+                                                    'AGENT',
+                                                    'POLICY'
+                                           )
+                                       AND ref_public_id IS NOT NULL
+                                       )
                                    )
 );
 
