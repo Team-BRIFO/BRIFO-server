@@ -10,6 +10,8 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
+import org.hibernate.annotations.Generated
+import org.hibernate.generator.EventType
 import org.hibernate.annotations.SQLDelete
 import org.hibernate.annotations.SQLRestriction
 import org.springframework.data.annotation.LastModifiedDate
@@ -34,6 +36,7 @@ class User private constructor(
         protected set
 
     @Column(name = "public_id", nullable = false, insertable = false, updatable = false)
+    @Generated(event = [EventType.INSERT])
     var publicId: UUID? = null
         protected set
 

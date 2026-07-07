@@ -14,6 +14,8 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
+import org.hibernate.annotations.Generated
+import org.hibernate.generator.EventType
 import java.util.UUID
 
 @Entity
@@ -23,7 +25,7 @@ class Notification private constructor(
     notificationType: NotificationType,
     title: String,
     body: String?,
-    refType: NotificationRefType?,
+    refType: NotificationRefType,
     refPublicId: UUID?,
 ) : BaseEntity() {
     @Id
@@ -34,6 +36,7 @@ class Notification private constructor(
         protected set
 
     @Column(name = "public_id", nullable = false, insertable = false, updatable = false)
+    @Generated(event = [EventType.INSERT])
     var publicId: UUID? = null
         protected set
 
@@ -56,8 +59,8 @@ class Notification private constructor(
         protected set
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "ref_type", length = 30)
-    var refType: NotificationRefType? = refType
+    @Column(name = "ref_type", nullable = false, length = 30)
+    var refType: NotificationRefType = refType
         protected set
 
     @Column(name = "ref_public_id")
@@ -70,7 +73,7 @@ class Notification private constructor(
             notificationType: NotificationType,
             title: String,
             body: String?,
-            refType: NotificationRefType? = null,
+            refType: NotificationRefType,
             refPublicId: UUID? = null,
         ): Notification {
             return Notification(

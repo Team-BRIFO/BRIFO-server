@@ -14,6 +14,8 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
+import org.hibernate.annotations.Generated
+import org.hibernate.generator.EventType
 import org.springframework.data.annotation.LastModifiedDate
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -37,6 +39,7 @@ class Agent private constructor(
         protected set
 
     @Column(name = "public_id", nullable = false, insertable = false, updatable = false)
+    @Generated(event = [EventType.INSERT])
     var publicId: UUID? = null
         protected set
 

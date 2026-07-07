@@ -80,23 +80,20 @@ CREATE TABLE notifications (
                                notification_type_id BIGINT NOT NULL REFERENCES notification_types(id),
                                title                VARCHAR(100) NOT NULL,
                                body                 VARCHAR(500),
-                               ref_type             VARCHAR(30),
+                               ref_type             VARCHAR(30) NOT NULL,
                                ref_public_id        UUID,
                                created_at           TIMESTAMP NOT NULL DEFAULT NOW(),
                                CONSTRAINT notifications_ref_type CHECK (
-                                   ref_type IS NULL OR ref_type IN (
-                                                                    'DECISION',
-                                                                    'AP_TRANSACTION',
-                                                                    'BRIEFING',
-                                                                    'AGENT',
-                                                                    'ATTENDANCE_REWARD',
-                                                                    'USER_BADGE',
-                                                                    'SALARY_LOG',
-                                                                    'POLICY'
+                                   ref_type IN (
+                                                'DECISION',
+                                                'AP_TRANSACTION',
+                                                'BRIEFING',
+                                                'AGENT',
+                                                'ATTENDANCE_REWARD',
+                                                'USER_BADGE',
+                                                'SALARY_LOG',
+                                                'POLICY'
                                        )
-                                   ),
-                               CONSTRAINT notifications_ref_pair CHECK (
-                                   ref_type IS NOT NULL OR ref_public_id IS NULL
                                    )
 );
 

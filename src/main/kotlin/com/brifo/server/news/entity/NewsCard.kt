@@ -13,7 +13,9 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
+import org.hibernate.annotations.Generated
 import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.generator.EventType
 import org.hibernate.type.SqlTypes
 import java.time.LocalDate
 import java.util.UUID
@@ -36,6 +38,7 @@ class NewsCard private constructor(
         protected set
 
     @Column(name = "public_id", nullable = false, insertable = false, updatable = false)
+    @Generated(event = [EventType.INSERT])
     var publicId: UUID? = null
         protected set
 
