@@ -1,0 +1,12 @@
+INSERT INTO notification_types (code)
+VALUES ('SETTLEMENT_COMPLETED'),
+       ('DECISION_RESULT'),
+       ('AP_CHANGED'),
+       ('BRIEFING_READY'),
+       ('AGENT_LEVEL_UP'),
+       ('ATTENDANCE_REWARDED'),
+       ('BADGE_AWARDED'),
+       ('AP_INSUFFICIENT'),
+       ('POLICY_REAGREEMENT'),
+       ('WEEKLY_STOCK_RESET')
+ON CONFLICT (code) DO NOTHING;
