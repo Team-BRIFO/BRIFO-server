@@ -6,17 +6,6 @@
 
 > DB는 깨진 데이터가 들어오지 못하게 막고, JPA는 정상 도메인 객체를 만든다.
 
-## Responsibility
-
-| 책임 | 담당 | 설명 |
-| --- | --- | --- |
-| 테이블 생성 | Flyway | `src/main/resources/db/migration`의 SQL이 스키마 기준입니다. |
-| 스키마 무결성 | PostgreSQL | FK, unique, check, not null, index를 DB에서 보장합니다. |
-| 도메인 기본값 | Entity | 객체 생성 시점부터 유효한 상태가 되도록 엔티티에서 기본값을 둡니다. |
-| 상태 변경 | Entity | 값 변경은 의미가 분명한 메소드로 처리합니다. |
-| 생성/수정 시각 | JPA Auditing | `created_at`, `updated_at`은 auditing으로 관리합니다. |
-| 식별자 생성 | PostgreSQL | 내부 id sequence와 public id 생성은 DB가 담당합니다. |
-| 입력 검증 | DTO/Service | API 입력값 형식, 필수값, 길이 검증은 DB 도달 전에 처리합니다. |
 
 ## Flyway Rules
 
@@ -31,24 +20,6 @@ Flyway SQL에는 DB가 반드시 보장해야 하는 규칙을 남깁니다.
 - `CHECK`
 - sequence
 - DB 생성 식별자 default
-
-예시:
-
-```sql
-CREATE SEQUENCE users_id_seq START WITH 1 INCREMENT BY 50;
-
-CREATE TABLE users (
-    id BIGINT PRIMARY KEY DEFAULT nextval('users_id_seq'),
-    public_id UUID NOT NULL UNIQUE DEFAULT uuidv7(),
-    provider VARCHAR(20) NOT NULL CHECK (provider IN ('KAKAO', 'NAVER', 'APPLE')),
-    social_id VARCHAR(100) NOT NULL,
-    deleted_at TIMESTAMP
-);
-
-CREATE UNIQUE INDEX idx_users_provider_social_id_active_unique
-    ON users (provider, social_id)
-    WHERE deleted_at IS NULL;
-```
 
 ## JPA Rules
 
@@ -135,6 +106,7 @@ public_id UUID NOT NULL UNIQUE DEFAULT uuidv7()
 
 ```kotlin
 @Column(name = "public_id", nullable = false, insertable = false, updatable = false)
+@Generated(event = [EventType.INSERT])
 var publicId: UUID? = null
     protected set
 ```
@@ -144,6 +116,7 @@ var publicId: UUID? = null
 - `publicId`는 생성자와 팩토리 메소드 인자에서 제외합니다.
 - `publicId`는 애플리케이션에서 생성하지 않습니다.
 - insert 전 엔티티의 `publicId`는 null일 수 있습니다.
+- insert 후 DB 생성값을 엔티티에 반영하기 위해 `@Generated(event = [EventType.INSERT])`를 사용합니다.
 - API cursor에는 내부 id 대신 UUID v7 기반 `publicId`를 사용합니다.
 
 ## Default Value Rules
@@ -307,37 +280,6 @@ var closePrice: BigDecimal
 - 변경은 의미가 명확한 도메인 메소드로 처리합니다.
 - 외부 setter는 열지 않습니다.
 
-예시:
-
-```kotlin
-@Entity
-@Table(name = "users")
-class User private constructor(
-    @Enumerated(EnumType.STRING)
-    @Column(name = "provider", nullable = false, length = 20)
-    var provider: OAuthProvider,
-
-    @Column(name = "social_id", nullable = false, length = 100)
-    var socialId: String,
-) : BaseEntity() {
-    companion object {
-        fun create(
-            provider: OAuthProvider,
-            socialId: String,
-        ): User {
-            return User(
-                provider = provider,
-                socialId = socialId,
-            )
-        }
-    }
-
-    fun changeProvider(provider: OAuthProvider) {
-        this.provider = provider
-    }
-}
-```
-
 생성자와 팩토리 메소드에서 제외하는 값:
 
 - `id`
@@ -362,23 +304,3 @@ interface UserRepository : JpaRepository<User, Long>
 - API 계층에서는 내부 id를 노출하지 않습니다.
 - 외부 조회는 `publicId` 기반 메소드를 사용합니다.
 - soft delete 대상은 Hibernate restriction으로 일반 조회에서 삭제 row를 제외합니다.
-
-## Package Rules
-
-도메인 패키지가 있으면 해당 도메인에 엔티티와 repository를 배치합니다.
-
-예시:
-
-- `users` -> `user`
-- `policies`, `user_policies` -> `policy`
-- `notification_types`, `notifications` -> `notification`
-- `badges`, `user_badges` -> `badge`
-- `stocks`, `daily_stock_prices`, `user_stocks` -> `stock`
-- `agents`, `agent_salary_logs` -> `agent`
-- `briefings` -> `briefing`
-- `decisions` -> `decision`
-- `diary_entries` -> `diary`
-- `glossary_terms`, `news_card_terms`, `user_learned_terms` -> `term`
-- `attendance_rewards`, `ap_transactions` -> `ap`
-
-파일 생성 시 해당 `entity`, `repository` 패키지의 `.gitkeep`은 제거합니다.
