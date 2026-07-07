@@ -27,7 +27,7 @@ class ApTransaction private constructor(
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "apTransactionIdGenerator")
-    @SequenceGenerator(name = "apTransactionIdGenerator", sequenceName = "ap_transactions_id_seq", allocationSize = 1)
+    @SequenceGenerator(name = "apTransactionIdGenerator", sequenceName = "ap_transactions_id_seq", allocationSize = 50)
     @Column(name = "id", nullable = false, updatable = false)
     var id: Long? = null
         protected set

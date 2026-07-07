@@ -28,7 +28,7 @@ class Briefing private constructor(
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "briefingIdGenerator")
-    @SequenceGenerator(name = "briefingIdGenerator", sequenceName = "briefings_id_seq", allocationSize = 1)
+    @SequenceGenerator(name = "briefingIdGenerator", sequenceName = "briefings_id_seq", allocationSize = 50)
     @Column(name = "id", nullable = false, updatable = false)
     var id: Long? = null
         protected set

@@ -28,7 +28,7 @@ class AgentSalaryLog private constructor(
     @SequenceGenerator(
         name = "agentSalaryLogIdGenerator",
         sequenceName = "agent_salary_logs_id_seq",
-        allocationSize = 1,
+        allocationSize = 50,
     )
     @Column(name = "id", nullable = false, updatable = false)
     var id: Long? = null

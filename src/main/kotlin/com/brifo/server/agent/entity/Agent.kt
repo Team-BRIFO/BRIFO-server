@@ -31,7 +31,7 @@ class Agent private constructor(
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "agentIdGenerator")
-    @SequenceGenerator(name = "agentIdGenerator", sequenceName = "agents_id_seq", allocationSize = 1)
+    @SequenceGenerator(name = "agentIdGenerator", sequenceName = "agents_id_seq", allocationSize = 50)
     @Column(name = "id", nullable = false, updatable = false)
     var id: Long? = null
         protected set

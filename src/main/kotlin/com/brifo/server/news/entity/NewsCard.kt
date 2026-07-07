@@ -30,7 +30,7 @@ class NewsCard private constructor(
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "newsCardIdGenerator")
-    @SequenceGenerator(name = "newsCardIdGenerator", sequenceName = "news_cards_id_seq", allocationSize = 1)
+    @SequenceGenerator(name = "newsCardIdGenerator", sequenceName = "news_cards_id_seq", allocationSize = 50)
     @Column(name = "id", nullable = false, updatable = false)
     var id: Long? = null
         protected set

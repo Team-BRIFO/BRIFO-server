@@ -22,7 +22,7 @@ class NewsCardTerm private constructor(
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "newsCardTermIdGenerator")
-    @SequenceGenerator(name = "newsCardTermIdGenerator", sequenceName = "news_card_terms_id_seq", allocationSize = 1)
+    @SequenceGenerator(name = "newsCardTermIdGenerator", sequenceName = "news_card_terms_id_seq", allocationSize = 50)
     @Column(name = "id", nullable = false, updatable = false)
     var id: Long? = null
         protected set

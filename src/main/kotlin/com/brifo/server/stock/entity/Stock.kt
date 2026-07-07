@@ -18,7 +18,7 @@ class Stock private constructor(
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "stockIdGenerator")
-    @SequenceGenerator(name = "stockIdGenerator", sequenceName = "stocks_id_seq", allocationSize = 1)
+    @SequenceGenerator(name = "stockIdGenerator", sequenceName = "stocks_id_seq", allocationSize = 50)
     @Column(name = "id", nullable = false, updatable = false)
     var id: Long? = null
         protected set

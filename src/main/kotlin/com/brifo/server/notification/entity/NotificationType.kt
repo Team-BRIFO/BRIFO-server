@@ -18,7 +18,7 @@ class NotificationType private constructor(
     @SequenceGenerator(
         name = "notificationTypeIdGenerator",
         sequenceName = "notification_types_id_seq",
-        allocationSize = 1,
+        allocationSize = 50,
     )
     @Column(name = "id", nullable = false, updatable = false)
     var id: Long? = null

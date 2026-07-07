@@ -22,7 +22,7 @@ class DiaryEntry private constructor(
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "diaryEntryIdGenerator")
-    @SequenceGenerator(name = "diaryEntryIdGenerator", sequenceName = "diary_entries_id_seq", allocationSize = 1)
+    @SequenceGenerator(name = "diaryEntryIdGenerator", sequenceName = "diary_entries_id_seq", allocationSize = 50)
     @Column(name = "id", nullable = false, updatable = false)
     var id: Long? = null
         protected set

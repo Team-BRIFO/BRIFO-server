@@ -27,7 +27,7 @@ class DailyStockPrice private constructor(
     @SequenceGenerator(
         name = "dailyStockPriceIdGenerator",
         sequenceName = "daily_stock_prices_id_seq",
-        allocationSize = 1,
+        allocationSize = 50,
     )
     @Column(name = "id", nullable = false, updatable = false)
     var id: Long? = null

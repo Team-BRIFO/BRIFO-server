@@ -28,7 +28,7 @@ class Notification private constructor(
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "notificationIdGenerator")
-    @SequenceGenerator(name = "notificationIdGenerator", sequenceName = "notifications_id_seq", allocationSize = 1)
+    @SequenceGenerator(name = "notificationIdGenerator", sequenceName = "notifications_id_seq", allocationSize = 50)
     @Column(name = "id", nullable = false, updatable = false)
     var id: Long? = null
         protected set

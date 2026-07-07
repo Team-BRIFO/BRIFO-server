@@ -21,7 +21,7 @@ class Policy private constructor(
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "policyIdGenerator")
-    @SequenceGenerator(name = "policyIdGenerator", sequenceName = "policies_id_seq", allocationSize = 1)
+    @SequenceGenerator(name = "policyIdGenerator", sequenceName = "policies_id_seq", allocationSize = 50)
     @Column(name = "id", nullable = false, updatable = false)
     var id: Long? = null
         protected set

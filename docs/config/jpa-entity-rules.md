@@ -35,7 +35,7 @@ Flyway SQL에는 DB가 반드시 보장해야 하는 규칙을 남깁니다.
 예시:
 
 ```sql
-CREATE SEQUENCE users_id_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE users_id_seq START WITH 1 INCREMENT BY 50;
 
 CREATE TABLE users (
     id BIGINT PRIMARY KEY DEFAULT nextval('users_id_seq'),
@@ -106,7 +106,7 @@ abstract class BaseEntity {
 @SequenceGenerator(
     name = "usersIdGenerator",
     sequenceName = "users_id_seq",
-    allocationSize = 1,
+    allocationSize = 50,
 )
 @Column(name = "id", nullable = false, updatable = false)
 var id: Long? = null
@@ -117,7 +117,7 @@ var id: Long? = null
 
 - sequence 이름은 `{table_name}_id_seq`로 작성합니다.
 - generator 이름은 `{EntityName}IdGenerator`로 작성합니다.
-- `allocationSize = 1`을 사용합니다.
+- `allocationSize = 50`을 사용합니다.
 - id는 생성자와 팩토리 메소드 인자에서 제외합니다.
 - id는 API 응답, 요청, cursor에 사용하지 않습니다.
 
