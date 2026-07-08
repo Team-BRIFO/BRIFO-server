@@ -1,0 +1,103 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "ko-KR"
+
+tone_instructions: >
+  항상 한국어로 리뷰를 작성해줘. 존댓말을 사용하되 장황하지 않고 간결하게,
+  요점만 명확히 짚어줘. 코드 스니펫이나 diff, 식별자(클래스/함수/프로퍼티명)는
+  원문 그대로(영어) 유지하고 설명만 한국어로 작성해줘.
+
+early_access: false
+
+reviews:
+  profile: "chill"
+  high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  sequence_diagrams: false
+  request_changes_workflow: false
+  auto_review:
+    enabled: true
+    drafts: false
+
+  path_instructions:
+    - path: "**/*"
+      instructions: >
+        이 프로젝트의 스택 버전: Kotlin 2.2.21, JDK 21, Spring Boot 4.0.7(Web MVC),
+        Gradle Kotlin DSL, Spring Data JPA(Hibernate), Flyway, Spring Batch,
+        Spring Security, Spring Validation, springdoc-openapi, PostgreSQL,
+        jackson-module-kotlin(Jackson 3.x), Spotless+ktlint, Testcontainers. 이
+        버전들을 기준으로 리뷰하고, 구버전 API/관례(예: Spring Boot 2.x의
+        WebSecurityConfigurerAdapter, javax.* 패키지, Java 스타일 관례 등)를 최신
+        표준이라 착각해 지적하지 않도록 주의해줘. 자바가 아니라 Kotlin 관용구(널
+        안전성, data class, val 우선, 확장 함수, when 표현식)를 기준으로 봐줘.
+        패키지는 com/brifo/server/{도메인}(auth·user·policy·agent·stock·news·term·
+        briefing·decision·diary·ap·badge·notification) + global 하위(code·common·
+        config·error·exception·log)로 구성되며, 도메인마다 controller·dto·entity·
+        repository·service 레이어로 나뉜다.
+
+    - path: "**/*.kt"
+      instructions: >
+        - Kotlin 널 안전성을 살려라. `!!`(non-null assertion) 남용, 불필요한
+          플랫폼 타입 노출이 있으면 지적해줘.
+        - 불변을 우선한다. 재할당이 없는데 `var`를 쓰면 `val`을 제안해줘.
+        - 클래스는 PascalCase, 함수/프로퍼티는 camelCase, 상수는 UPPER_SNAKE_CASE(const val)
+          를 따라야 한다.
+        - 시크릿(DB 비밀번호, JWT 시크릿, OAuth/KIS 키)이 코드나 설정에 하드코딩되어
+          있으면 반드시 지적하고, 환경 변수/프로파일 주입을 제안해줘.
+
+    - path: "src/main/kotlin/com/brifo/server/**/*.kt"
+      instructions: >
+        도메인 코드는 com/brifo/server/{도메인}/{controller|dto|entity|repository|service}
+        구조를 따른다. 레이어 규칙 Controller → Service → Repository 단방향을 지키는지
+        확인해줘. Controller가 Repository를 직접 호출하거나 Service를 건너뛰면, 또는
+        비즈니스 로직이 Controller에 들어가 있으면 Service로 옮기도록 제안해줘. 공통
+        응답은 global/common/ApiResponse, 예외는 global/exception/BusinessException +
+        global/error/GlobalExceptionHandler 흐름을 따르는지, 에러코드는 global/code의
+        ErrorCode/SuccessCode를 쓰는지 확인해줘.
+
+    - path: "**/*Controller.kt"
+      instructions: >
+        Controller는 요청/응답에 Entity를 그대로 노출하지 말고 DTO(request/response)를
+        사용해야 한다. Entity가 @RequestBody/@ResponseBody로 직접 오가면 지적해줘.
+        입력값 검증은 @Valid + Bean Validation 애너테이션으로 처리하는지, 인증이 필요한
+        엔드포인트에 보안 설정이 누락되지 않았는지 확인해줘.
+
+    - path: "src/main/kotlin/com/brifo/server/**/entity/*.kt"
+      instructions: >
+        JPA 엔티티에는 allOpen 플러그인이 적용된다(Entity/MappedSuperclass/Embeddable).
+        엔티티는 docs/config/jpa-entity-rules.md 규칙을 따라야 한다. 무분별한 setter
+        노출 대신 의미 있는 도메인 메서드를 쓰는지, 연관관계 기본 FetchType이 불필요하게
+        EAGER는 아닌지, 양방향 연관관계에서 N+1이 우려되는 패턴이 없는지 확인해줘.
+        엔티티에 data class 사용은 지양(equals/hashCode 함정). 공통 컬럼은
+        global/common/BaseEntity를 상속하는지 봐줘.
+
+    - path: "**/resources/db/migration/**"
+      instructions: >
+        스키마 변경은 반드시 Flyway 마이그레이션(V{n}__{설명}.sql)으로 관리한다.
+        이미 배포/머지된 마이그레이션 파일을 수정하려는 diff가 있으면(체크섬 깨짐)
+        반드시 지적하고, 새 버전 파일 추가로 유도해줘. 명세 10장 PK 전략(외부 노출
+        비즈니스 테이블=UUID, 로그/인박스성 테이블=BIGINT IDENTITY)을 벗어나면 확인해줘.
+
+    - path: "**/*Test.kt"
+      instructions: >
+        테스트는 JUnit5 + kotlin-test, DB 통합 테스트는 Testcontainers(PostgreSQL)를
+        사용한다. 실제 외부 API(KIS/뉴스/AI 서비스)를 테스트에서 직접 호출하는 코드가
+        있으면 목/스텁 처리를 제안해줘. 테스트 이름은 무엇을 검증하는지 드러나게 작성.
+
+    - path: "build.gradle.kts"
+      instructions: >
+        의존성 추가/버전 변경 시 Spring Boot 4.0.7 BOM과의 호환성을 확인해줘.
+        BOM이 관리하는 의존성에 불필요하게 버전을 직접 고정하는 코드가 있으면 지적해줘.
+        코드 포맷은 Spotless(ktlint)로 관리하므로 포맷 관련 스타일은 과하게 지적하지 마.
+
+  auto_title_placeholder: "@coderabbitai"
+  auto_title_instructions: ""
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  learnings:
+    scope: "auto"
