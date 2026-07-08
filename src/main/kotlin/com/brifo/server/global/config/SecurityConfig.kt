@@ -14,7 +14,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties(CorsProperties::class)
+@EnableConfigurationProperties(CorsProperties::class, JwtProperties::class, KakaoProperties::class)
 class SecurityConfig(
     private val corsProperties: CorsProperties,
 ) {
@@ -35,6 +35,7 @@ class SecurityConfig(
                         "/v3/api-docs/**",
                         "/actuator/health",
                         "/actuator/info",
+                        "/api/auth/login/**",
                     ).permitAll()
                 it.anyRequest().permitAll()
             }.build()

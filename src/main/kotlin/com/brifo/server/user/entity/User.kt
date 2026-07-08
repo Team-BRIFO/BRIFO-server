@@ -11,9 +11,9 @@ import jakarta.persistence.Id
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
 import org.hibernate.annotations.Generated
-import org.hibernate.generator.EventType
 import org.hibernate.annotations.SQLDelete
 import org.hibernate.annotations.SQLRestriction
+import org.hibernate.generator.EventType
 import org.springframework.data.annotation.LastModifiedDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -90,6 +90,10 @@ class User private constructor(
     var deletedAt: LocalDateTime? = null
         protected set
 
+    fun markLoggedIn(at: LocalDateTime) {
+        lastLoginAt = at
+    }
+
     companion object {
         private const val DEFAULT_COMPANY_NAME = "내 투자회사"
         private const val DEFAULT_BALANCE_AP = 500
@@ -99,13 +103,12 @@ class User private constructor(
             socialId: String,
             nickname: String,
             email: String?,
-        ): User {
-            return User(
+        ): User =
+            User(
                 provider = provider,
                 socialId = socialId,
                 nickname = nickname,
                 email = email,
             )
-        }
     }
 }

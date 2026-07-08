@@ -4,6 +4,15 @@ spring:
       hibernate:
         format_sql: false
 
+app:
+  auth:
+    jwt:
+      secret-base64: dGVzdC1qd3Qtc2VjcmV0LWtleS1tdXN0LWJlLWF0LWxlYXN0LTMyLWJ5dGVz
+    kakao:
+      client-id: test-client-id
+      redirect-uris:
+        - http://localhost:3000/oauth/callback/kakao
+
 springdoc:
   api-docs:
     enabled: false

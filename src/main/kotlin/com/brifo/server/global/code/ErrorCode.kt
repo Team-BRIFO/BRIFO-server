@@ -14,4 +14,8 @@ enum class ErrorCode(
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "COMMON_405", "지원하지 않는 HTTP 메서드입니다."),
     CONFLICT(HttpStatus.CONFLICT, "COMMON_409", "요청이 현재 상태와 충돌합니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON_500", "서버 내부 오류가 발생했습니다."),
+    KAKAO_REDIRECT_URI_MISMATCH(HttpStatus.BAD_REQUEST, "AUTH4001", "Redirect URI가 일치하지 않습니다."),
+    KAKAO_INVALID_AUTHORIZATION_CODE(HttpStatus.UNAUTHORIZED, "AUTH4011", "유효하지 않은 인증 코드입니다."),
+    KAKAO_INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH4013", "유효하지 않은 토큰입니다."),
+    KAKAO_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AUTH5021", "카카오 서버 오류가 발생했습니다."),
 }
