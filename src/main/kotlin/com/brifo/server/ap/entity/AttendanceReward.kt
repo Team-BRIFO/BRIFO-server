@@ -49,11 +49,10 @@ class AttendanceReward private constructor(
         fun create(
             user: User,
             consecutiveDays: Int,
-        ): AttendanceReward {
-            return AttendanceReward(
+        ): AttendanceReward =
+            AttendanceReward(
                 user = user,
                 consecutiveDays = consecutiveDays,
             )
-        }
     }
 }

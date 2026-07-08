@@ -81,14 +81,13 @@ class Decision private constructor(
             briefing: Briefing,
             direction: DecisionDirection,
             confidence: Short,
-        ): Decision {
-            return Decision(
+        ): Decision =
+            Decision(
                 user = user,
                 newsCard = newsCard,
                 briefing = briefing,
                 direction = direction,
                 confidence = confidence,
             )
-        }
     }
 }

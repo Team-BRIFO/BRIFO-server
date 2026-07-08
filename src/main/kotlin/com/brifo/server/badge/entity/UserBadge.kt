@@ -44,11 +44,10 @@ class UserBadge private constructor(
         fun create(
             user: User,
             badge: Badge,
-        ): UserBadge {
-            return UserBadge(
+        ): UserBadge =
+            UserBadge(
                 user = user,
                 badge = badge,
             )
-        }
     }
 }

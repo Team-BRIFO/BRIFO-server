@@ -49,11 +49,10 @@ class UserPolicy private constructor(
         fun create(
             user: User,
             policy: Policy,
-        ): UserPolicy {
-            return UserPolicy(
+        ): UserPolicy =
+            UserPolicy(
                 user = user,
                 policy = policy,
             )
-        }
     }
 }

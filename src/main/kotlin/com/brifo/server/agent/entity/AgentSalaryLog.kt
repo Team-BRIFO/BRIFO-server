@@ -58,13 +58,12 @@ class AgentSalaryLog private constructor(
             salaryAmount: Int,
             salaryDate: LocalDate,
             status: AgentSalaryLogStatus,
-        ): AgentSalaryLog {
-            return AgentSalaryLog(
+        ): AgentSalaryLog =
+            AgentSalaryLog(
                 agent = agent,
                 salaryAmount = salaryAmount,
                 salaryDate = salaryDate,
                 status = status,
             )
-        }
     }
 }

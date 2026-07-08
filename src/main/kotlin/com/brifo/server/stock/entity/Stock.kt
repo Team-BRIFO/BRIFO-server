@@ -51,12 +51,11 @@ class Stock private constructor(
             code: String,
             name: String,
             sector: String,
-        ): Stock {
-            return Stock(
+        ): Stock =
+            Stock(
                 code = code,
                 name = name,
                 sector = sector,
             )
-        }
     }
 }

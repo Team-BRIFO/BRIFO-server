@@ -78,8 +78,8 @@ class NewsCard private constructor(
             keywords: List<String>,
             importanceBadge: ImportanceBadge?,
             cardDate: LocalDate,
-        ): NewsCard {
-            return NewsCard(
+        ): NewsCard =
+            NewsCard(
                 news = news,
                 headline = headline,
                 points = points,
@@ -87,6 +87,5 @@ class NewsCard private constructor(
                 importanceBadge = importanceBadge,
                 cardDate = cardDate,
             )
-        }
     }
 }

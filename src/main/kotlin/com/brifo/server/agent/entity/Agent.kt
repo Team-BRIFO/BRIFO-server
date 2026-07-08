@@ -106,8 +106,8 @@ class Agent private constructor(
             nickname: String?,
             description: String?,
             dailySalary: Int,
-        ): Agent {
-            return Agent(
+        ): Agent =
+            Agent(
                 user = user,
                 agentType = agentType,
                 modelName = modelName,
@@ -115,6 +115,5 @@ class Agent private constructor(
                 description = description,
                 dailySalary = dailySalary,
             )
-        }
     }
 }

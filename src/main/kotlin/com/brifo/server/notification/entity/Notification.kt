@@ -75,8 +75,8 @@ class Notification private constructor(
             body: String?,
             refType: NotificationRefType,
             refPublicId: UUID? = null,
-        ): Notification {
-            return Notification(
+        ): Notification =
+            Notification(
                 user = user,
                 notificationType = notificationType,
                 title = title,
@@ -84,6 +84,5 @@ class Notification private constructor(
                 refType = refType,
                 refPublicId = refPublicId,
             )
-        }
     }
 }

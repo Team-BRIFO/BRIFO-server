@@ -55,11 +55,10 @@ class UserStock private constructor(
         fun create(
             user: User,
             stock: Stock,
-        ): UserStock {
-            return UserStock(
+        ): UserStock =
+            UserStock(
                 user = user,
                 stock = stock,
             )
-        }
     }
 }

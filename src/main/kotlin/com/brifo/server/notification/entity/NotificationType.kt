@@ -29,8 +29,6 @@ class NotificationType private constructor(
         protected set
 
     companion object {
-        fun create(code: String): NotificationType {
-            return NotificationType(code = code)
-        }
+        fun create(code: String): NotificationType = NotificationType(code = code)
     }
 }

@@ -52,12 +52,9 @@ class DiaryEntry private constructor(
         protected set
 
     companion object {
-        fun create(
-            decision: Decision,
-        ): DiaryEntry {
-            return DiaryEntry(
+        fun create(decision: Decision): DiaryEntry =
+            DiaryEntry(
                 decision = decision,
             )
-        }
     }
 }

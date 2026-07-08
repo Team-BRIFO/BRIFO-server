@@ -51,13 +51,12 @@ class NewsCardTerm private constructor(
             term: GlossaryTerm,
             surface: String?,
             displayOrder: Int,
-        ): NewsCardTerm {
-            return NewsCardTerm(
+        ): NewsCardTerm =
+            NewsCardTerm(
                 newsCard = newsCard,
                 term = term,
                 surface = surface,
                 displayOrder = displayOrder,
             )
-        }
     }
 }

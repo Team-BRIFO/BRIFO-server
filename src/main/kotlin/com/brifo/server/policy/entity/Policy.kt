@@ -63,12 +63,11 @@ class Policy private constructor(
             title: String,
             content: String,
             isRequired: Boolean,
-        ): Policy {
-            return Policy(
+        ): Policy =
+            Policy(
                 title = title,
                 content = content,
                 isRequired = isRequired,
             )
-        }
     }
 }
