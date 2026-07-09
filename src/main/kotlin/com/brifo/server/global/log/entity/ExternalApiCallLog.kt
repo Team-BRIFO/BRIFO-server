@@ -75,6 +75,10 @@ class ExternalApiCallLog private constructor(
     var calledAt: LocalDateTime? = null
         protected set
 
+    fun increaseRetryCount() {
+        retryCount += 1
+    }
+
     companion object {
         fun create(
             apiName: String,
