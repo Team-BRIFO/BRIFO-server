@@ -9,9 +9,9 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
+import com.fasterxml.jackson.databind.JsonNode
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.type.SqlTypes
-import tools.jackson.databind.JsonNode
 import java.time.LocalDateTime
 
 @Entity
@@ -23,6 +23,7 @@ class ExternalApiCallLog private constructor(
     responsePayload: JsonNode?,
     status: ExternalApiCallStatus?,
     httpStatusCode: Int?,
+    retryCount: Int,
     latencyMs: Int?,
 ) {
     @Id
@@ -64,7 +65,7 @@ class ExternalApiCallLog private constructor(
         protected set
 
     @Column(name = "retry_count", nullable = false)
-    var retryCount: Int = 0
+    var retryCount: Int = retryCount
         protected set
 
     @Column(name = "latency_ms")
@@ -75,10 +76,6 @@ class ExternalApiCallLog private constructor(
     var calledAt: LocalDateTime? = null
         protected set
 
-    fun increaseRetryCount() {
-        retryCount += 1
-    }
-
     companion object {
         fun create(
             apiName: String,
@@ -87,6 +84,7 @@ class ExternalApiCallLog private constructor(
             responsePayload: JsonNode?,
             status: ExternalApiCallStatus?,
             httpStatusCode: Int?,
+            retryCount: Int = 0,
             latencyMs: Int?,
         ): ExternalApiCallLog {
             return ExternalApiCallLog(
@@ -96,6 +94,7 @@ class ExternalApiCallLog private constructor(
                 responsePayload = responsePayload,
                 status = status,
                 httpStatusCode = httpStatusCode,
+                retryCount = retryCount,
                 latencyMs = latencyMs,
             )
         }

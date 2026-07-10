@@ -3,23 +3,23 @@ package com.brifo.server.global.log.service
 import com.brifo.server.global.log.entity.ExternalApiCallLog
 import com.brifo.server.global.log.entity.ExternalApiCallStatus
 import com.brifo.server.global.log.repository.ExternalApiCallLogRepository
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ArrayNode
+import com.fasterxml.jackson.databind.node.ObjectNode
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
-import tools.jackson.databind.JsonNode
-import tools.jackson.databind.ObjectMapper
-import tools.jackson.databind.node.ArrayNode
-import tools.jackson.databind.node.ObjectNode
 import java.time.Duration
 import java.time.Instant
 
 @Service
 class ExternalApiCallLogService(
     private val externalApiCallLogRepository: ExternalApiCallLogRepository,
-    private val objectMapper: ObjectMapper,
 ) {
     private val log = LoggerFactory.getLogger(ExternalApiCallLogService::class.java)
+    private val objectMapper = ObjectMapper()
 
     private val sensitiveFieldNames = setOf(
         "authorization",
@@ -75,6 +75,7 @@ class ExternalApiCallLogService(
         requestPayload: JsonNode?,
         responsePayload: JsonNode?,
         httpStatusCode: Int?,
+        retryCount: Int = 0,
         latencyMs: Int?,
     ) {
         save(
@@ -84,6 +85,7 @@ class ExternalApiCallLogService(
             responsePayload = responsePayload,
             status = ExternalApiCallStatus.SUCCESS,
             httpStatusCode = httpStatusCode,
+            retryCount = retryCount,
             latencyMs = latencyMs,
         )
     }
@@ -95,6 +97,7 @@ class ExternalApiCallLogService(
         requestPayload: JsonNode?,
         responsePayload: JsonNode?,
         httpStatusCode: Int?,
+        retryCount: Int = 0,
         latencyMs: Int?,
     ) {
         save(
@@ -104,6 +107,7 @@ class ExternalApiCallLogService(
             responsePayload = responsePayload,
             status = ExternalApiCallStatus.FAIL,
             httpStatusCode = httpStatusCode,
+            retryCount = retryCount,
             latencyMs = latencyMs,
         )
     }
@@ -113,6 +117,7 @@ class ExternalApiCallLogService(
         apiName: String,
         provider: String?,
         requestPayload: JsonNode?,
+        retryCount: Int = 0,
         latencyMs: Int?,
     ) {
         save(
@@ -122,18 +127,9 @@ class ExternalApiCallLogService(
             responsePayload = null,
             status = ExternalApiCallStatus.TIMEOUT,
             httpStatusCode = null,
+            retryCount = retryCount,
             latencyMs = latencyMs,
         )
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    fun increaseRetryCount(apiCallLog: ExternalApiCallLog) {
-        runCatching {
-            apiCallLog.increaseRetryCount()
-            externalApiCallLogRepository.save(apiCallLog)
-        }.onFailure { e ->
-            log.warn("Failed to increase external API retry count. logId={}", apiCallLog.id, e)
-        }
     }
 
     private fun save(
@@ -143,6 +139,7 @@ class ExternalApiCallLogService(
         responsePayload: JsonNode?,
         status: ExternalApiCallStatus,
         httpStatusCode: Int?,
+        retryCount: Int,
         latencyMs: Int?,
     ) {
         runCatching {
@@ -153,6 +150,7 @@ class ExternalApiCallLogService(
                 responsePayload = responsePayload,
                 status = status,
                 httpStatusCode = httpStatusCode,
+                retryCount = retryCount,
                 latencyMs = latencyMs,
             )
 
