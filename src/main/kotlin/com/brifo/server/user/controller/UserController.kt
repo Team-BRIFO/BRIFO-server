@@ -8,6 +8,7 @@ import com.brifo.server.user.dto.response.GetMyPageResponse
 import com.brifo.server.user.dto.response.GetUserHomeResponse
 import com.brifo.server.user.dto.response.GetUserProfileResponse
 import com.brifo.server.user.service.UserService
+import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -23,7 +24,7 @@ class UserController(
 ) {
     @PatchMapping("/onboarding/profile")
     fun updateOnboardingProfile(
-        @RequestBody request: UpdateOnboardingProfileRequest,
+        @Valid @RequestBody request: UpdateOnboardingProfileRequest,
     ): ApiResponse<Nothing> = TODO("온보딩 프로필 저장 서비스 구현 필요")
 
     @PostMapping("/onboarding/complete")
@@ -38,7 +39,7 @@ class UserController(
 
     @PatchMapping("/users/me/profile")
     fun updateUserProfile(
-        @RequestBody request: UpdateUserProfileRequest,
+        @Valid @RequestBody request: UpdateUserProfileRequest,
     ): ApiResponse<Nothing> = TODO("사용자 프로필 수정 서비스 구현 필요")
 
     @DeleteMapping("/users/me")

@@ -5,11 +5,13 @@ import com.brifo.server.stock.entity.DailyStockPrice
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
-import jakarta.persistence.MapsId
 import jakarta.persistence.OneToOne
+import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
 
 @Entity
@@ -20,13 +22,18 @@ class DecisionResult private constructor(
     isCorrect: Boolean,
 ) : BaseEntity() {
     @Id
-    @Column(name = "decision_id", nullable = false, updatable = false)
-    var decisionId: Long? = null
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "decisionResultIdGenerator")
+    @SequenceGenerator(
+        name = "decisionResultIdGenerator",
+        sequenceName = "decision_results_id_seq",
+        allocationSize = 50,
+    )
+    @Column(name = "id", nullable = false, updatable = false)
+    var id: Long? = null
         protected set
 
-    @MapsId
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "decision_id", nullable = false, updatable = false)
+    @JoinColumn(name = "decision_id", nullable = false, updatable = false, unique = true)
     var decision: Decision = decision
         protected set
 

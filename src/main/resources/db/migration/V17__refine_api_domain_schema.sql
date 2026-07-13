@@ -37,8 +37,11 @@ ALTER TABLE user_stocks
     DROP COLUMN deleted_at,
     ADD CONSTRAINT user_stocks_user_stock_unique UNIQUE (user_id, stock_id);
 
+CREATE SEQUENCE decision_results_id_seq START WITH 1 INCREMENT BY 50;
+
 CREATE TABLE decision_results (
-    decision_id         BIGINT PRIMARY KEY REFERENCES decisions(id) ON DELETE RESTRICT,
+    id                   BIGINT PRIMARY KEY DEFAULT nextval('decision_results_id_seq'),
+    decision_id          BIGINT NOT NULL UNIQUE REFERENCES decisions(id) ON DELETE RESTRICT,
     daily_stock_price_id BIGINT NOT NULL REFERENCES daily_stock_prices(id) ON DELETE RESTRICT,
     is_correct          BOOLEAN NOT NULL,
     created_at          TIMESTAMP NOT NULL DEFAULT NOW()
