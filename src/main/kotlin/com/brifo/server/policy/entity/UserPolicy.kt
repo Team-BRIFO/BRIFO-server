@@ -45,6 +45,14 @@ class UserPolicy private constructor(
     var agreedAt: LocalDateTime? = null
         protected set
 
+    @Column(name = "revoked_at")
+    var revokedAt: LocalDateTime? = null
+        protected set
+
+    fun revoke(revokedAt: LocalDateTime) {
+        this.revokedAt = revokedAt
+    }
+
     companion object {
         fun create(
             user: User,

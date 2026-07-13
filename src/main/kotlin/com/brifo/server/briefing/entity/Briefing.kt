@@ -18,7 +18,6 @@ import jakarta.persistence.Table
 import org.hibernate.annotations.Generated
 import org.hibernate.generator.EventType
 import org.springframework.data.annotation.LastModifiedDate
-import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -67,8 +66,8 @@ class Briefing private constructor(
     var direction: BriefingDirection? = null
         protected set
 
-    @Column(name = "confidence", precision = 3, scale = 2)
-    var confidence: BigDecimal? = null
+    @Column(name = "confidence_rate")
+    var confidenceRate: Short? = null
         protected set
 
     @Enumerated(EnumType.STRING)
@@ -80,6 +79,38 @@ class Briefing private constructor(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime? = null
         protected set
+
+    fun startAnalysis() {
+        require(status == BriefingStatus.PENDING) { "Only pending briefings can start analysis" }
+        status = BriefingStatus.ANALYZING
+    }
+
+    fun complete(
+        direction: BriefingDirection,
+        confidenceRate: Short,
+        contentText: String,
+        oneLiner: String,
+        headline: String? = null,
+    ) {
+        require(status == BriefingStatus.ANALYZING) { "Only analyzing briefings can be completed" }
+        require(confidenceRate.toInt() in 0..100) {
+            "confidenceRate must be between 0 and 100"
+        }
+        require(contentText.isNotBlank()) { "contentText must not be blank" }
+        require(oneLiner.isNotBlank()) { "oneLiner must not be blank" }
+
+        this.direction = direction
+        this.confidenceRate = confidenceRate
+        this.contentText = contentText
+        this.oneLiner = oneLiner
+        this.headline = headline
+        status = BriefingStatus.COMPLETED
+    }
+
+    fun fail() {
+        require(status == BriefingStatus.ANALYZING) { "Only analyzing briefings can fail" }
+        status = BriefingStatus.FAILED
+    }
 
     companion object {
         fun create(

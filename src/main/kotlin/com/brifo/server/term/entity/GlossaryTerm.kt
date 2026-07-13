@@ -17,7 +17,7 @@ import java.util.UUID
 class GlossaryTerm private constructor(
     term: String,
     definition: String,
-    category: String?,
+    category: String,
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "glossaryTermIdGenerator")
@@ -39,15 +39,15 @@ class GlossaryTerm private constructor(
     var definition: String = definition
         protected set
 
-    @Column(name = "category", length = 50)
-    var category: String? = category
+    @Column(name = "category", nullable = false, length = 50)
+    var category: String = category
         protected set
 
     companion object {
         fun create(
             term: String,
             definition: String,
-            category: String?,
+            category: String,
         ): GlossaryTerm {
             return GlossaryTerm(
                 term = term,

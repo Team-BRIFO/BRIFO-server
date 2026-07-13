@@ -2,8 +2,6 @@ package com.brifo.server.decision.entity
 
 import com.brifo.server.briefing.entity.Briefing
 import com.brifo.server.global.common.BaseEntity
-import com.brifo.server.news.entity.NewsCard
-import com.brifo.server.user.entity.User
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -13,22 +11,19 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
-import jakarta.persistence.ManyToOne
+import jakarta.persistence.OneToOne
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
 import org.hibernate.annotations.Generated
 import org.hibernate.generator.EventType
-import java.time.LocalDateTime
 import java.util.UUID
 
 @Entity
 @Table(name = "decisions")
 class Decision private constructor(
-    user: User,
-    newsCard: NewsCard,
     briefing: Briefing,
     direction: DecisionDirection,
-    confidence: Short,
+    confidenceLevel: Short,
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "decisionIdGenerator")
@@ -42,17 +37,7 @@ class Decision private constructor(
     var publicId: UUID? = null
         protected set
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    var user: User = user
-        protected set
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "card_id", nullable = false)
-    var newsCard: NewsCard = newsCard
-        protected set
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "briefing_id", nullable = false)
     var briefing: Briefing = briefing
         protected set
@@ -62,32 +47,24 @@ class Decision private constructor(
     var direction: DecisionDirection = direction
         protected set
 
-    @Column(name = "confidence", nullable = false)
-    var confidence: Short = confidence
-        protected set
-
-    @Column(name = "is_correct")
-    var isCorrect: Boolean? = null
-        protected set
-
-    @Column(name = "settled_at")
-    var settledAt: LocalDateTime? = null
+    @Column(name = "confidence_level", nullable = false)
+    var confidenceLevel: Short = confidenceLevel
         protected set
 
     companion object {
         fun create(
-            user: User,
-            newsCard: NewsCard,
             briefing: Briefing,
             direction: DecisionDirection,
-            confidence: Short,
+            confidenceLevel: Short,
         ): Decision {
+            require(confidenceLevel.toInt() in 1..5) {
+                "confidenceLevel must be between 1 and 5"
+            }
+
             return Decision(
-                user = user,
-                newsCard = newsCard,
                 briefing = briefing,
                 direction = direction,
-                confidence = confidence,
+                confidenceLevel = confidenceLevel,
             )
         }
     }

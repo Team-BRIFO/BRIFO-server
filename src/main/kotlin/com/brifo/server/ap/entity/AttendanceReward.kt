@@ -35,21 +35,21 @@ class AttendanceReward private constructor(
     var user: User = user
         protected set
 
-    @Column(name = "bonus_rewarded", nullable = false)
-    var bonusRewarded: Boolean = consecutiveDays == BONUS_REWARD_DAYS
-        protected set
-
     @Column(name = "consecutive_days", nullable = false)
     var consecutiveDays: Int = consecutiveDays
         protected set
 
     companion object {
-        private const val BONUS_REWARD_DAYS = 7
+        private const val REWARD_CYCLE_DAYS = 7
 
         fun create(
             user: User,
             consecutiveDays: Int,
         ): AttendanceReward {
+            require(consecutiveDays in 1..REWARD_CYCLE_DAYS) {
+                "consecutiveDays must be between 1 and $REWARD_CYCLE_DAYS"
+            }
+
             return AttendanceReward(
                 user = user,
                 consecutiveDays = consecutiveDays,

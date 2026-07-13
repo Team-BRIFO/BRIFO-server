@@ -1,8 +1,8 @@
 package com.brifo.server.ap.entity
 
-enum class ApTransactionRefType {
+enum class ApTransactionTargetType {
     DECISION,
-    SALARY_LOG,
+    BRIEFING,
     ATTENDANCE_REWARD,
     USER_BADGE,
 }

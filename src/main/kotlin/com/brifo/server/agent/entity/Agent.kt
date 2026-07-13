@@ -17,7 +17,6 @@ import jakarta.persistence.Table
 import org.hibernate.annotations.Generated
 import org.hibernate.generator.EventType
 import org.springframework.data.annotation.LastModifiedDate
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -27,8 +26,8 @@ class Agent private constructor(
     user: User,
     agentType: AgentType,
     modelName: String,
-    nickname: String?,
-    description: String?,
+    nickname: String,
+    description: String,
     dailySalary: Int,
 ) : BaseEntity() {
     @Id
@@ -57,12 +56,12 @@ class Agent private constructor(
     var modelName: String = modelName
         protected set
 
-    @Column(name = "nickname", length = 50)
-    var nickname: String? = nickname
+    @Column(name = "nickname", nullable = false, length = 50)
+    var nickname: String = nickname
         protected set
 
-    @Column(name = "description", length = 255)
-    var description: String? = description
+    @Column(name = "description", nullable = false, length = 255)
+    var description: String = description
         protected set
 
     @Column(name = "level", nullable = false)
@@ -77,22 +76,6 @@ class Agent private constructor(
     var dailySalary: Int = dailySalary
         protected set
 
-    @Column(name = "total_analyses", nullable = false)
-    var totalAnalyses: Int = 0
-        protected set
-
-    @Column(name = "correct_analyses", nullable = false)
-    var correctAnalyses: Int = 0
-        protected set
-
-    @Column(name = "last_work_date")
-    var lastWorkDate: LocalDate? = null
-        protected set
-
-    @Column(name = "is_active", nullable = false)
-    var isActive: Boolean = true
-        protected set
-
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime? = null
@@ -103,8 +86,8 @@ class Agent private constructor(
             user: User,
             agentType: AgentType,
             modelName: String,
-            nickname: String?,
-            description: String?,
+            nickname: String,
+            description: String,
             dailySalary: Int,
         ): Agent {
             return Agent(
