@@ -1,11 +1,13 @@
 package com.brifo.server.global.common
 
 import com.brifo.server.global.code.BaseCode
+import com.fasterxml.jackson.annotation.JsonInclude
 
 data class ApiResponse<out T>(
     val success: Boolean,
     val code: String,
     val message: String,
+    @field:JsonInclude(JsonInclude.Include.NON_NULL)
     val result: T? = null,
 ) {
     companion object {
