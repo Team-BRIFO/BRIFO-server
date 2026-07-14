@@ -24,28 +24,47 @@ class ExternalApiCallLogServiceTest @Autowired constructor(
     }
 
     @Test
-    fun `payloadOf는 중첩된 민감 필드를 마스킹한다`() {
+    fun `payloadOf는 모든 민감 필드를 재귀적으로 마스킹한다`() {
         val payload = externalApiCallLogService.payloadOf(
             mapOf(
-                "headers" to mapOf(
-                    "authorization" to "Bearer token",
-                ),
-                "body" to mapOf(
-                    "stockCode" to "005930",
-                    "user" to mapOf(
-                        "password" to "1234",
-                    ),
-                    "items" to listOf(
-                        mapOf("apiKey" to "secret-key"),
+                "authorization" to "Bearer token",
+                "apiKey" to "api-key",
+                "user" to mapOf(
+                    "accessToken" to "access-token",
+                    "password" to "password-1234",
+                    "profile" to mapOf(
+                        "appSecret" to "app-secret",
                     ),
                 ),
+                "news" to listOf(
+                    mapOf(
+                        "title" to "삼성전자 뉴스",
+                        "newsContent" to "민감한 뉴스 원문",
+                        "2중" to mapOf(
+                            "password" to "지워지나보자",
+                        ),
+                    ),
+                ),
+                "stockCode" to "005930",
             ),
         )
 
-        assertThat(payload!!.get("headers").get("authorization").asText()).isEqualTo("******")
-        assertThat(payload.get("body").get("user").get("password").asText()).isEqualTo("******")
-        assertThat(payload.get("body").get("items").get(0).get("apiKey").asText()).isEqualTo("******")
-        assertThat(payload.get("body").get("stockCode").asText()).isEqualTo("005930")
+        println(
+            """
+            [payloadOf 테스트 결과]
+            마스킹된 페이로드: $payload
+            """.trimIndent() + "\n\n",
+        )
+
+        assertThat(payload!!["authorization"].asText()).isEqualTo("******")
+        assertThat(payload["apiKey"].asText()).isEqualTo("******")
+        assertThat(payload["user"]["accessToken"].asText()).isEqualTo("******")
+        assertThat(payload["user"]["password"].asText()).isEqualTo("******")
+        assertThat(payload["user"]["profile"]["appSecret"].asText()).isEqualTo("******")
+        assertThat(payload["news"][0]["newsContent"].asText()).isEqualTo("******")
+        assertThat(payload["news"][0]["2중"]["password"].asText()).isEqualTo("******")
+        assertThat(payload["stockCode"].asText()).isEqualTo("005930")
+        assertThat(payload["news"][0]["title"].asText()).isEqualTo("삼성전자 뉴스")
     }
 
     @Test
@@ -69,10 +88,27 @@ class ExternalApiCallLogServiceTest @Autowired constructor(
 
         val savedLog = externalApiCallLogRepository.findAll().single()
 
+        println(
+            """
+            [saveSuccess 테스트 결과]
+            ID: ${savedLog.id}
+            API 이름: ${savedLog.apiName}
+            제공자: ${savedLog.provider}
+            상태: ${savedLog.status}
+            HTTP 상태코드: ${savedLog.httpStatusCode}
+            재시도 횟수: ${savedLog.retryCount}
+            응답시간: ${savedLog.latencyMs}ms
+            요청값: ${savedLog.requestPayload}
+            응답값: ${savedLog.responsePayload}
+            호출시간: ${savedLog.calledAt}
+            """.trimIndent() + "\n\n",
+        )
+
         assertThat(savedLog.status).isEqualTo(ExternalApiCallStatus.SUCCESS)
         assertThat(savedLog.apiName).isEqualTo("KIS_STOCK_PRICE")
         assertThat(savedLog.provider).isEqualTo("KIS")
         assertThat(savedLog.httpStatusCode).isEqualTo(200)
+        // TODO: 실제 외부 API 재시도 로직 구현 후 retry count 증가를 통합 테스트로 검증한다.
         assertThat(savedLog.retryCount).isEqualTo(2)
         assertThat(savedLog.latencyMs).isEqualTo(123)
         assertThat(savedLog.requestPayload!!.get("stockCode").asText()).isEqualTo("005930")
@@ -100,6 +136,22 @@ class ExternalApiCallLogServiceTest @Autowired constructor(
 
         val savedLog = externalApiCallLogRepository.findAll().single()
 
+        println(
+            """
+            [saveFail 테스트 결과]
+            ID: ${savedLog.id}
+            API 이름: ${savedLog.apiName}
+            제공자: ${savedLog.provider}
+            상태: ${savedLog.status}
+            HTTP 상태코드: ${savedLog.httpStatusCode}
+            재시도 횟수: ${savedLog.retryCount}
+            응답시간: ${savedLog.latencyMs}ms
+            요청값: ${savedLog.requestPayload}
+            응답값: ${savedLog.responsePayload}
+            호출시간: ${savedLog.calledAt}
+            """.trimIndent() + "\n\n",
+        )
+
         assertThat(savedLog.status).isEqualTo(ExternalApiCallStatus.FAIL)
         assertThat(savedLog.apiName).isEqualTo("NEWS_SEARCH")
         assertThat(savedLog.provider).isEqualTo("NAVER")
@@ -125,6 +177,22 @@ class ExternalApiCallLogServiceTest @Autowired constructor(
 
         val savedLog = externalApiCallLogRepository.findAll().single()
 
+        println(
+            """
+            [saveTimeout 테스트 결과]
+            ID: ${savedLog.id}
+            API 이름: ${savedLog.apiName}
+            제공자: ${savedLog.provider}
+            상태: ${savedLog.status}
+            HTTP 상태코드: ${savedLog.httpStatusCode}
+            재시도 횟수: ${savedLog.retryCount}
+            응답시간: ${savedLog.latencyMs}ms
+            요청값: ${savedLog.requestPayload}
+            응답값: ${savedLog.responsePayload}
+            호출시간: ${savedLog.calledAt}
+            """.trimIndent() + "\n\n",
+        )
+
         assertThat(savedLog.status).isEqualTo(ExternalApiCallStatus.TIMEOUT)
         assertThat(savedLog.apiName).isEqualTo("FAST_API_BRIEFING")
         assertThat(savedLog.provider).isEqualTo("FAST_API")
@@ -141,6 +209,14 @@ class ExternalApiCallLogServiceTest @Autowired constructor(
         Thread.sleep(10)
 
         val latencyMs = externalApiCallLogService.calculateLatencyMs(startedAt)
+
+        println(
+            """
+            [calculateLatencyMs 테스트 결과]
+            시작시간: $startedAt
+            측정된 응답시간: ${latencyMs}ms
+            """.trimIndent() + "\n\n",
+        )
 
         assertThat(latencyMs).isGreaterThanOrEqualTo(10)
     }
