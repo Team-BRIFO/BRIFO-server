@@ -1,4 +1,4 @@
-package com.brifo.server.global.log.entity
+package com.brifo.server.log.entity
 
 import jakarta.persistence.Column
 import jakarta.persistence.Entity

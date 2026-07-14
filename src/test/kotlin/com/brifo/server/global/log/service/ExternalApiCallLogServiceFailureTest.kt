@@ -1,7 +1,8 @@
 package com.brifo.server.global.log.service
 
-import com.brifo.server.global.log.entity.ExternalApiCallLog
-import com.brifo.server.global.log.repository.ExternalApiCallLogRepository
+import com.brifo.server.log.entity.ExternalApiCallLog
+import com.brifo.server.log.repository.ExternalApiCallLogRepository
+import com.brifo.server.log.service.ExternalApiCallLogService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.any

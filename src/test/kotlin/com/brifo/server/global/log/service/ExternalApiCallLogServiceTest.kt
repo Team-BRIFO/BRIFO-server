@@ -1,8 +1,9 @@
 package com.brifo.server.global.log.service
 
 import com.brifo.server.TestcontainersConfiguration
-import com.brifo.server.global.log.entity.ExternalApiCallStatus
-import com.brifo.server.global.log.repository.ExternalApiCallLogRepository
+import com.brifo.server.log.entity.ExternalApiCallStatus
+import com.brifo.server.log.repository.ExternalApiCallLogRepository
+import com.brifo.server.log.service.ExternalApiCallLogService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

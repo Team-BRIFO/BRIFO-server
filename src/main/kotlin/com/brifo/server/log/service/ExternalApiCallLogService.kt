@@ -1,8 +1,8 @@
-package com.brifo.server.global.log.service
+package com.brifo.server.log.service
 
-import com.brifo.server.global.log.entity.ExternalApiCallLog
-import com.brifo.server.global.log.entity.ExternalApiCallStatus
-import com.brifo.server.global.log.repository.ExternalApiCallLogRepository
+import com.brifo.server.log.entity.ExternalApiCallLog
+import com.brifo.server.log.entity.ExternalApiCallStatus
+import com.brifo.server.log.repository.ExternalApiCallLogRepository
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ArrayNode

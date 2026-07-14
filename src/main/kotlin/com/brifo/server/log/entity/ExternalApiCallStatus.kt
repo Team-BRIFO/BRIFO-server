@@ -1,4 +1,4 @@
-package com.brifo.server.global.log.entity
+package com.brifo.server.log.entity
 
 enum class ExternalApiCallStatus {
     SUCCESS,
