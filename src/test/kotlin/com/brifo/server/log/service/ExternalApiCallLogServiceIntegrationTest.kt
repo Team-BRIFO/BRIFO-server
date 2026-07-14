@@ -1,10 +1,8 @@
-package com.brifo.server.global.log.service
+package com.brifo.server.log.service
 
 import com.brifo.server.TestcontainersConfiguration
 import com.brifo.server.log.entity.ExternalApiCallStatus
 import com.brifo.server.log.repository.ExternalApiCallLogRepository
-import com.brifo.server.log.service.ExternalApiCallLogCommand
-import com.brifo.server.log.service.ExternalApiCallLogService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -18,46 +16,13 @@ import java.time.LocalDateTime
 @Import(TestcontainersConfiguration::class)
 @ActiveProfiles("test")
 @SpringBootTest
-class ExternalApiCallLogServiceTest @Autowired constructor(
+class ExternalApiCallLogServiceIntegrationTest @Autowired constructor(
     private val externalApiCallLogService: ExternalApiCallLogService,
     private val externalApiCallLogRepository: ExternalApiCallLogRepository,
 ) {
     @BeforeEach
     fun setUp() {
         externalApiCallLogRepository.deleteAll()
-    }
-
-    @Test
-    fun `redactPayload는 모든 민감 필드를 재귀적으로 마스킹한다`() {
-        val payload = externalApiCallLogService.redactPayload(
-            mapOf(
-                "authorization" to "Bearer token",
-                "apiKey" to "api-key",
-                "user" to mapOf(
-                    "accessToken" to "access-token",
-                    "password" to "password-1234",
-                    "profile" to mapOf(
-                        "appSecret" to "app-secret",
-                    ),
-                ),
-                "news" to listOf(
-                    mapOf(
-                        "title" to "삼성전자 뉴스",
-                        "newsContent" to "민감한 뉴스 원문",
-                    ),
-                ),
-                "stockCode" to "005930",
-            ),
-        )
-
-        assertThat(payload!!["authorization"].asText()).isEqualTo("******")
-        assertThat(payload["apiKey"].asText()).isEqualTo("******")
-        assertThat(payload["user"]["accessToken"].asText()).isEqualTo("******")
-        assertThat(payload["user"]["password"].asText()).isEqualTo("******")
-        assertThat(payload["user"]["profile"]["appSecret"].asText()).isEqualTo("******")
-        assertThat(payload["news"][0]["newsContent"].asText()).isEqualTo("******")
-        assertThat(payload["stockCode"].asText()).isEqualTo("005930")
-        assertThat(payload["news"][0]["title"].asText()).isEqualTo("삼성전자 뉴스")
     }
 
     @Test
@@ -78,6 +43,7 @@ class ExternalApiCallLogServiceTest @Autowired constructor(
                 requestPayloadRedacted = requestPayload,
                 responsePayloadRedacted = responsePayload,
                 responseStatusCode = 200,
+                errorMessage = "저장되면 안 되는 오류",
                 retryCount = 2,
                 durationMs = 123L,
                 totalTokens = 100,
@@ -98,6 +64,7 @@ class ExternalApiCallLogServiceTest @Autowired constructor(
         assertThat(savedLog.requestPayloadRedacted!!["stockCode"].asText()).isEqualTo("005930")
         assertThat(savedLog.responsePayloadRedacted!!["price"].asInt()).isEqualTo(72500)
         assertThat(savedLog.responseStatusCode).isEqualTo(200)
+        assertThat(savedLog.errorMessage).isNull()
         assertThat(savedLog.retryCount).isEqualTo(2)
         assertThat(savedLog.durationMs).isEqualTo(123L)
         assertThat(savedLog.totalTokens).isEqualTo(100)
@@ -151,6 +118,8 @@ class ExternalApiCallLogServiceTest @Autowired constructor(
                 status = ExternalApiCallStatus.TIMEOUT,
                 briefingId = 4L,
                 requestPayloadRedacted = externalApiCallLogService.redactPayload(mapOf("newsId" to 1L)),
+                responsePayloadRedacted = externalApiCallLogService.redactPayload(mapOf("result" to "invalid")),
+                responseStatusCode = 200,
                 errorMessage = "응답 시간 초과",
                 retryCount = 3,
                 durationMs = 3000L,
@@ -168,16 +137,5 @@ class ExternalApiCallLogServiceTest @Autowired constructor(
         assertThat(savedLog.errorMessage).isEqualTo("응답 시간 초과")
         assertThat(savedLog.retryCount).isEqualTo(3)
         assertThat(savedLog.durationMs).isEqualTo(3000L)
-    }
-
-    @Test
-    fun `calculateDurationMs는 시작 시간 이후 경과 시간을 반환한다`() {
-        val startedAt = externalApiCallLogService.startTimer()
-
-        Thread.sleep(10)
-
-        val durationMs = externalApiCallLogService.calculateDurationMs(startedAt)
-
-        assertThat(durationMs).isGreaterThanOrEqualTo(10L)
     }
 }

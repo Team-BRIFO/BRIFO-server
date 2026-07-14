@@ -1,6 +1,7 @@
 package com.brifo.server.log.service
 
 import com.brifo.server.log.entity.ExternalApiCallLog
+import com.brifo.server.log.entity.ExternalApiCallStatus
 import com.brifo.server.log.repository.ExternalApiCallLogRepository
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -16,9 +17,9 @@ import java.time.Instant
 @Service
 class ExternalApiCallLogService(
     private val externalApiCallLogRepository: ExternalApiCallLogRepository,
+    private val objectMapper: ObjectMapper,
 ) {
     private val log = LoggerFactory.getLogger(ExternalApiCallLogService::class.java)
-    private val objectMapper = ObjectMapper()
 
     private val sensitiveFieldNames = setOf(
         "authorization",
@@ -33,8 +34,11 @@ class ExternalApiCallLogService(
         return Instant.now()
     }
 
-    fun calculateDurationMs(startedAt: Instant): Long {
-        return Duration.between(startedAt, Instant.now()).toMillis()
+    fun calculateDurationMs(
+        startedAt: Instant,
+        endedAt: Instant = Instant.now(),
+    ): Long {
+        return Duration.between(startedAt, endedAt).toMillis()
     }
 
     fun redactPayload(payload: Any?): JsonNode? {
@@ -70,28 +74,7 @@ class ExternalApiCallLogService(
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun save(command: ExternalApiCallLogCommand) {
         runCatching {
-            val externalApiCallLog = ExternalApiCallLog.create(
-                provider = command.provider,
-                apiName = command.apiName,
-                status = command.status,
-                userId = command.userId,
-                stockId = command.stockId,
-                newsId = command.newsId,
-                briefingId = command.briefingId,
-                idempotencyKey = command.idempotencyKey,
-                requestPayloadRedacted = command.requestPayloadRedacted,
-                responsePayloadRedacted = command.responsePayloadRedacted,
-                responseStatusCode = command.responseStatusCode,
-                errorMessage = command.errorMessage,
-                retryCount = command.retryCount,
-                durationMs = command.durationMs,
-                totalTokens = command.totalTokens,
-                estimatedCostKrw = command.estimatedCostKrw,
-                requestedAt = command.requestedAt,
-                respondedAt = command.respondedAt,
-            )
-
-            externalApiCallLogRepository.save(externalApiCallLog)
+            externalApiCallLogRepository.save(command.toEntity())
         }.onFailure { exception ->
             log.warn(
                 "Failed to save external API call log. apiName={}, provider={}, status={}",
@@ -102,4 +85,55 @@ class ExternalApiCallLogService(
             )
         }
     }
+
+    // '가변 부분'만 StatusFields로 변경 (이후 아래에서 'statusFields.responsePayload, statusFields.responseStatusCode, statusFields.errorMessage' 처럼 사용 예정)
+    private fun ExternalApiCallLogCommand.toEntity(): ExternalApiCallLog {
+        val statusFields = when (status) {
+            ExternalApiCallStatus.SUCCESS -> StatusFields(
+                responsePayload = responsePayloadRedacted,
+                responseStatusCode = responseStatusCode,
+                errorMessage = null,
+            )
+
+            ExternalApiCallStatus.FAIL -> StatusFields(
+                responsePayload = responsePayloadRedacted,
+                responseStatusCode = responseStatusCode,
+                errorMessage = errorMessage,
+            )
+
+            ExternalApiCallStatus.TIMEOUT -> StatusFields(
+                responsePayload = null,
+                responseStatusCode = null,
+                errorMessage = errorMessage,
+            )
+        }
+
+        // 위의 statusFields로 가변 부분 data 전달
+        return ExternalApiCallLog.create(
+            provider = provider,
+            apiName = apiName,
+            status = status,
+            userId = userId,
+            stockId = stockId,
+            newsId = newsId,
+            briefingId = briefingId,
+            idempotencyKey = idempotencyKey,
+            requestPayloadRedacted = requestPayloadRedacted,
+            responsePayloadRedacted = statusFields.responsePayload,
+            responseStatusCode = statusFields.responseStatusCode,
+            errorMessage = statusFields.errorMessage,
+            retryCount = retryCount,
+            durationMs = durationMs,
+            totalTokens = totalTokens,
+            estimatedCostKrw = estimatedCostKrw,
+            requestedAt = requestedAt,
+            respondedAt = respondedAt,
+        )
+    }
+
+    private data class StatusFields(
+        val responsePayload: JsonNode?, // '외부 API'가 보내준 응답 본문
+        val responseStatusCode: Int?, // '외부 서버' 응답 (우리 로그 상태 ExternalAPiCallStatus.TIMEOUT 아님 주의)
+        val errorMessage: String?, // '우리 서버'가 기록할 오류 설명
+    )
 }
