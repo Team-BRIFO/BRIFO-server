@@ -25,7 +25,7 @@ import java.util.UUID
 class User private constructor(
     provider: OAuthProvider,
     socialId: String,
-    nickname: String,
+    nickname: String?,
     email: String?,
 ) : BaseEntity() {
     @Id
@@ -49,8 +49,8 @@ class User private constructor(
     var socialId: String = socialId
         protected set
 
-    @Column(name = "nickname", nullable = false, length = 50)
-    var nickname: String = nickname
+    @Column(name = "nickname", length = 50)
+    var nickname: String? = nickname
         protected set
 
     @Column(name = "email", length = 255)
@@ -63,14 +63,6 @@ class User private constructor(
 
     @Column(name = "balance_ap", nullable = false)
     var balanceAp: Int = DEFAULT_BALANCE_AP
-        protected set
-
-    @Column(name = "total_correct", nullable = false)
-    var totalCorrect: Int = 0
-        protected set
-
-    @Column(name = "total_decision", nullable = false)
-    var totalDecision: Int = 0
         protected set
 
     @Column(name = "onboarding_completed_at")
@@ -92,13 +84,13 @@ class User private constructor(
 
     companion object {
         private const val DEFAULT_COMPANY_NAME = "내 투자회사"
-        private const val DEFAULT_BALANCE_AP = 500
+        private const val DEFAULT_BALANCE_AP = 0
 
         fun create(
             provider: OAuthProvider,
             socialId: String,
-            nickname: String,
             email: String?,
+            nickname: String? = null,
         ): User {
             return User(
                 provider = provider,

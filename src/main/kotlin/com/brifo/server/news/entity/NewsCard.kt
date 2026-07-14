@@ -10,14 +10,13 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
-import jakarta.persistence.ManyToOne
+import jakarta.persistence.OneToOne
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
 import org.hibernate.annotations.Generated
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.generator.EventType
 import org.hibernate.type.SqlTypes
-import java.time.LocalDate
 import java.util.UUID
 
 @Entity
@@ -27,8 +26,7 @@ class NewsCard private constructor(
     headline: String,
     points: List<String>,
     keywords: List<String>,
-    importanceBadge: ImportanceBadge?,
-    cardDate: LocalDate,
+    importanceBadge: ImportanceBadge,
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "newsCardIdGenerator")
@@ -42,7 +40,7 @@ class NewsCard private constructor(
     var publicId: UUID? = null
         protected set
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "news_id", nullable = false)
     var news: News = news
         protected set
@@ -62,12 +60,8 @@ class NewsCard private constructor(
         protected set
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "importance_badge", length = 5)
-    var importanceBadge: ImportanceBadge? = importanceBadge
-        protected set
-
-    @Column(name = "card_date", nullable = false)
-    var cardDate: LocalDate = cardDate
+    @Column(name = "importance_badge", nullable = false, length = 5)
+    var importanceBadge: ImportanceBadge = importanceBadge
         protected set
 
     companion object {
@@ -76,8 +70,7 @@ class NewsCard private constructor(
             headline: String,
             points: List<String>,
             keywords: List<String>,
-            importanceBadge: ImportanceBadge?,
-            cardDate: LocalDate,
+            importanceBadge: ImportanceBadge,
         ): NewsCard {
             return NewsCard(
                 news = news,
@@ -85,7 +78,6 @@ class NewsCard private constructor(
                 points = points,
                 keywords = keywords,
                 importanceBadge = importanceBadge,
-                cardDate = cardDate,
             )
         }
     }

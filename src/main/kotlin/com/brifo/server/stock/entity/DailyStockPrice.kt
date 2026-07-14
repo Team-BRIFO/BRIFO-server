@@ -19,7 +19,7 @@ import java.time.LocalDateTime
 class DailyStockPrice private constructor(
     stock: Stock,
     tradeDate: LocalDate,
-    closePrice: BigDecimal,
+    price: BigDecimal,
     changeRate: BigDecimal,
 ) {
     @Id
@@ -42,8 +42,8 @@ class DailyStockPrice private constructor(
     var tradeDate: LocalDate = tradeDate
         protected set
 
-    @Column(name = "close_price", nullable = false, precision = 12, scale = 2)
-    var closePrice: BigDecimal = closePrice
+    @Column(name = "price", nullable = false, precision = 12, scale = 2)
+    var price: BigDecimal = price
         protected set
 
     @Column(name = "change_rate", nullable = false, precision = 5, scale = 2)
@@ -58,13 +58,13 @@ class DailyStockPrice private constructor(
         fun create(
             stock: Stock,
             tradeDate: LocalDate,
-            closePrice: BigDecimal,
+            price: BigDecimal,
             changeRate: BigDecimal,
         ): DailyStockPrice {
             return DailyStockPrice(
                 stock = stock,
                 tradeDate = tradeDate,
-                closePrice = closePrice,
+                price = price,
                 changeRate = changeRate,
             )
         }

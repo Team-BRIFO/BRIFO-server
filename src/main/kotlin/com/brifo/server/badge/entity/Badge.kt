@@ -18,7 +18,7 @@ class Badge private constructor(
     code: String,
     name: String,
     description: String?,
-    ap: Int,
+    rewardAp: Int,
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "badgeIdGenerator")
@@ -44,8 +44,8 @@ class Badge private constructor(
     var description: String? = description
         protected set
 
-    @Column(name = "ap", nullable = false)
-    var ap: Int = ap
+    @Column(name = "reward_ap", nullable = false)
+    var rewardAp: Int = rewardAp
         protected set
 
     companion object {
@@ -53,13 +53,13 @@ class Badge private constructor(
             code: String,
             name: String,
             description: String?,
-            ap: Int,
+            rewardAp: Int,
         ): Badge {
             return Badge(
                 code = code,
                 name = name,
                 description = description,
-                ap = ap,
+                rewardAp = rewardAp,
             )
         }
     }

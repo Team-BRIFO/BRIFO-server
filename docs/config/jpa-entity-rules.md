@@ -173,7 +173,6 @@ var updatedAt: LocalDateTime? = null
 - `agreed_at`
 - `awarded_at`
 - `learned_at`
-- `settled_at`
 
 이 값들은 `createdAt`으로 통일하지 않습니다.
 
@@ -256,8 +255,8 @@ var points: List<String>
 DB의 `DECIMAL` 타입은 `BigDecimal`로 매핑합니다.
 
 ```kotlin
-@Column(name = "close_price", nullable = false, precision = 12, scale = 2)
-var closePrice: BigDecimal
+@Column(name = "price", nullable = false, precision = 12, scale = 2)
+var price: BigDecimal
     protected set
 ```
 

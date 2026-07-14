@@ -7,10 +7,14 @@ import jakarta.validation.ConstraintViolationException
 import org.springframework.core.env.Environment
 import org.springframework.core.env.Profiles
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
+import org.springframework.validation.BindException
 import org.springframework.web.HttpRequestMethodNotSupportedException
+import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 
 @RestControllerAdvice
 class GlobalExceptionHandler(
@@ -70,6 +74,17 @@ class GlobalExceptionHandler(
             .status(ErrorCode.INVALID_REQUEST.status)
             .body(ApiResponse.error(ErrorCode.INVALID_REQUEST, errors))
     }
+
+    @ExceptionHandler(
+        MethodArgumentTypeMismatchException::class,
+        HttpMessageNotReadableException::class,
+        MissingServletRequestParameterException::class,
+        BindException::class,
+    )
+    fun handleInvalidRequestException(exception: Exception): ResponseEntity<ApiResponse<Nothing>> =
+        ResponseEntity
+            .status(ErrorCode.INVALID_REQUEST.status)
+            .body(ApiResponse.error(ErrorCode.INVALID_REQUEST))
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException::class)
     fun handleHttpRequestMethodNotSupportedException(

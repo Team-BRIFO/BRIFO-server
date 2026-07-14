@@ -25,8 +25,8 @@ class Notification private constructor(
     notificationType: NotificationType,
     title: String,
     body: String?,
-    refType: NotificationRefType,
-    refPublicId: UUID?,
+    targetType: NotificationTargetType,
+    targetPublicId: UUID?,
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "notificationIdGenerator")
@@ -59,12 +59,12 @@ class Notification private constructor(
         protected set
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "ref_type", nullable = false, length = 30)
-    var refType: NotificationRefType = refType
+    @Column(name = "target_type", nullable = false, length = 30)
+    var targetType: NotificationTargetType = targetType
         protected set
 
-    @Column(name = "ref_public_id")
-    var refPublicId: UUID? = refPublicId
+    @Column(name = "target_public_id")
+    var targetPublicId: UUID? = targetPublicId
         protected set
 
     companion object {
@@ -73,17 +73,30 @@ class Notification private constructor(
             notificationType: NotificationType,
             title: String,
             body: String?,
-            refType: NotificationRefType,
-            refPublicId: UUID? = null,
+            targetType: NotificationTargetType,
+            targetPublicId: UUID? = null,
         ): Notification {
+            val targetRequired = targetType in TARGET_REQUIRED_TYPES
+            require(targetRequired == (targetPublicId != null)) {
+                "targetPublicId presence is not valid for targetType $targetType"
+            }
+
             return Notification(
                 user = user,
                 notificationType = notificationType,
                 title = title,
                 body = body,
-                refType = refType,
-                refPublicId = refPublicId,
+                targetType = targetType,
+                targetPublicId = targetPublicId,
             )
         }
+
+        private val TARGET_REQUIRED_TYPES = setOf(
+            NotificationTargetType.DECISION,
+            NotificationTargetType.AP_TRANSACTION,
+            NotificationTargetType.BRIEFING,
+            NotificationTargetType.AGENT,
+            NotificationTargetType.POLICY,
+        )
     }
 }

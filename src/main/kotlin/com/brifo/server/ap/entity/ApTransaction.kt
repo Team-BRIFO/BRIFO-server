@@ -24,8 +24,8 @@ class ApTransaction private constructor(
     user: User,
     amount: Int,
     reason: ApTransactionReason,
-    refType: ApTransactionRefType?,
-    refId: Long?,
+    targetType: ApTransactionTargetType?,
+    targetId: Long?,
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "apTransactionIdGenerator")
@@ -54,12 +54,12 @@ class ApTransaction private constructor(
         protected set
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "ref_type", length = 30)
-    var refType: ApTransactionRefType? = refType
+    @Column(name = "target_type", length = 30)
+    var targetType: ApTransactionTargetType? = targetType
         protected set
 
-    @Column(name = "ref_id")
-    var refId: Long? = refId
+    @Column(name = "target_id")
+    var targetId: Long? = targetId
         protected set
 
     companion object {
@@ -67,20 +67,62 @@ class ApTransaction private constructor(
             user: User,
             amount: Int,
             reason: ApTransactionReason,
-            refType: ApTransactionRefType? = null,
-            refId: Long? = null,
+            targetType: ApTransactionTargetType? = null,
+            targetId: Long? = null,
         ): ApTransaction {
-            require((refType == null) == (refId == null)) {
-                "refType and refId must both be set or both be null"
+            require((targetType == null) == (targetId == null)) {
+                "targetType and targetId must both be set or both be null"
             }
+            validateTarget(reason, targetType)
+            validateAmountSign(reason, amount)
 
             return ApTransaction(
                 user = user,
                 amount = amount,
                 reason = reason,
-                refType = refType,
-                refId = refId,
+                targetType = targetType,
+                targetId = targetId,
             )
+        }
+
+        private fun validateTarget(
+            reason: ApTransactionReason,
+            targetType: ApTransactionTargetType?,
+        ) {
+            val expectedTargetType = when (reason) {
+                ApTransactionReason.ATTENDANCE -> ApTransactionTargetType.ATTENDANCE_REWARD
+                ApTransactionReason.BADGE -> ApTransactionTargetType.USER_BADGE
+                ApTransactionReason.DECISION_WIN,
+                ApTransactionReason.DECISION_LOSE,
+                ApTransactionReason.NEUTRAL_HIT,
+                ApTransactionReason.NEUTRAL_MISS -> ApTransactionTargetType.DECISION
+                ApTransactionReason.SALARY,
+                ApTransactionReason.SALARY_REFUND -> ApTransactionTargetType.BRIEFING
+                ApTransactionReason.TUTORIAL,
+                ApTransactionReason.CREDIT_LOAN,
+                ApTransactionReason.INITIAL_GRANT -> null
+            }
+
+            require(targetType == expectedTargetType) {
+                "targetType $targetType is not valid for reason $reason"
+            }
+        }
+
+        private fun validateAmountSign(
+            reason: ApTransactionReason,
+            amount: Int,
+        ) {
+            if (reason == ApTransactionReason.NEUTRAL_MISS) {
+                require(amount == 0) { "amount must be zero for reason $reason" }
+                return
+            }
+
+            val mustBeNegative = reason == ApTransactionReason.DECISION_LOSE ||
+                reason == ApTransactionReason.SALARY
+
+            require(if (mustBeNegative) amount < 0 else amount > 0) {
+                "amount sign is not valid for reason $reason"
+            }
         }
     }
 }
