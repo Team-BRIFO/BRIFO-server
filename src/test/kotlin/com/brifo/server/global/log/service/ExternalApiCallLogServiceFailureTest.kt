@@ -1,13 +1,16 @@
 package com.brifo.server.global.log.service
 
 import com.brifo.server.log.entity.ExternalApiCallLog
+import com.brifo.server.log.entity.ExternalApiCallStatus
 import com.brifo.server.log.repository.ExternalApiCallLogRepository
+import com.brifo.server.log.service.ExternalApiCallLogCommand
 import com.brifo.server.log.service.ExternalApiCallLogService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.doThrow
 import org.mockito.Mockito.mock
+import java.time.LocalDateTime
 
 class ExternalApiCallLogServiceFailureTest {
     // 실제 DB를 사용하지 않고 가짜 repository 생성
@@ -27,20 +30,19 @@ class ExternalApiCallLogServiceFailureTest {
         // 성공하면 Result.success(반환값), 실패하면 Result.failure(예외)
         val result =
             runCatching {
-                service.saveSuccess(
-                    apiName = "KIS_STOCK_PRICE",
-                    provider = "KIS",
-                    requestPayload =
-                        service.payloadOf(
-                            mapOf("stockCode" to "005930"),
-                        ),
-                    responsePayload =
-                        service.payloadOf(
-                            mapOf("price" to 72500),
-                        ),
-                    httpStatusCode = 200,
-                    retryCount = 0,
-                    latencyMs = 123,
+                service.save(
+                    ExternalApiCallLogCommand(
+                        provider = "KIS",
+                        apiName = "KIS_STOCK_PRICE",
+                        status = ExternalApiCallStatus.SUCCESS,
+                        requestPayloadRedacted = service.redactPayload(mapOf("stockCode" to "005930")),
+                        responsePayloadRedacted = service.redactPayload(mapOf("price" to 72500)),
+                        responseStatusCode = 200,
+                        retryCount = 0,
+                        durationMs = 123L,
+                        requestedAt = LocalDateTime.of(2026, 7, 15, 10, 0),
+                        respondedAt = LocalDateTime.of(2026, 7, 15, 10, 0, 0, 123_000_000),
+                    ),
                 )
             }
 

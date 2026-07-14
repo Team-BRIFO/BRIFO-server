@@ -1,7 +1,6 @@
 package com.brifo.server.log.service
 
 import com.brifo.server.log.entity.ExternalApiCallLog
-import com.brifo.server.log.entity.ExternalApiCallStatus
 import com.brifo.server.log.repository.ExternalApiCallLogRepository
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -34,11 +33,11 @@ class ExternalApiCallLogService(
         return Instant.now()
     }
 
-    fun calculateLatencyMs(startedAt: Instant): Int {
-        return Duration.between(startedAt, Instant.now()).toMillis().toInt()
+    fun calculateDurationMs(startedAt: Instant): Long {
+        return Duration.between(startedAt, Instant.now()).toMillis()
     }
 
-    fun payloadOf(payload: Any?): JsonNode? {
+    fun redactPayload(payload: Any?): JsonNode? {
         return payload
             ?.let { objectMapper.valueToTree<JsonNode>(it) }
             ?.maskSensitiveFields()
@@ -69,94 +68,38 @@ class ExternalApiCallLogService(
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    fun saveSuccess(
-        apiName: String,
-        provider: String?,
-        requestPayload: JsonNode?,
-        responsePayload: JsonNode?,
-        httpStatusCode: Int?,
-        retryCount: Int = 0,
-        latencyMs: Int?,
-    ) {
-        save(
-            apiName = apiName,
-            provider = provider,
-            requestPayload = requestPayload,
-            responsePayload = responsePayload,
-            status = ExternalApiCallStatus.SUCCESS,
-            httpStatusCode = httpStatusCode,
-            retryCount = retryCount,
-            latencyMs = latencyMs,
-        )
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    fun saveFail(
-        apiName: String,
-        provider: String?,
-        requestPayload: JsonNode?,
-        responsePayload: JsonNode?,
-        httpStatusCode: Int?,
-        retryCount: Int = 0,
-        latencyMs: Int?,
-    ) {
-        save(
-            apiName = apiName,
-            provider = provider,
-            requestPayload = requestPayload,
-            responsePayload = responsePayload,
-            status = ExternalApiCallStatus.FAIL,
-            httpStatusCode = httpStatusCode,
-            retryCount = retryCount,
-            latencyMs = latencyMs,
-        )
-    }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    fun saveTimeout(
-        apiName: String,
-        provider: String?,
-        requestPayload: JsonNode?,
-        retryCount: Int = 0,
-        latencyMs: Int?,
-    ) {
-        save(
-            apiName = apiName,
-            provider = provider,
-            requestPayload = requestPayload,
-            responsePayload = null,
-            status = ExternalApiCallStatus.TIMEOUT,
-            httpStatusCode = null,
-            retryCount = retryCount,
-            latencyMs = latencyMs,
-        )
-    }
-
-    private fun save(
-        apiName: String,
-        provider: String?,
-        requestPayload: JsonNode?,
-        responsePayload: JsonNode?,
-        status: ExternalApiCallStatus,
-        httpStatusCode: Int?,
-        retryCount: Int,
-        latencyMs: Int?,
-    ) {
+    fun save(command: ExternalApiCallLogCommand) {
         runCatching {
-            val log = ExternalApiCallLog.create(
-                apiName = apiName,
-                provider = provider,
-                requestPayload = requestPayload,
-                responsePayload = responsePayload,
-                status = status,
-                httpStatusCode = httpStatusCode,
-                retryCount = retryCount,
-                latencyMs = latencyMs,
+            val externalApiCallLog = ExternalApiCallLog.create(
+                provider = command.provider,
+                apiName = command.apiName,
+                status = command.status,
+                userId = command.userId,
+                stockId = command.stockId,
+                newsId = command.newsId,
+                briefingId = command.briefingId,
+                idempotencyKey = command.idempotencyKey,
+                requestPayloadRedacted = command.requestPayloadRedacted,
+                responsePayloadRedacted = command.responsePayloadRedacted,
+                responseStatusCode = command.responseStatusCode,
+                errorMessage = command.errorMessage,
+                retryCount = command.retryCount,
+                durationMs = command.durationMs,
+                totalTokens = command.totalTokens,
+                estimatedCostKrw = command.estimatedCostKrw,
+                requestedAt = command.requestedAt,
+                respondedAt = command.respondedAt,
             )
 
-            externalApiCallLogRepository.save(log)
-        }.onFailure { e ->
-            log.warn("Failed to save external API call log. apiName={}, provider={}, status={}", apiName, provider, status, e)
+            externalApiCallLogRepository.save(externalApiCallLog)
+        }.onFailure { exception ->
+            log.warn(
+                "Failed to save external API call log. apiName={}, provider={}, status={}",
+                command.apiName,
+                command.provider,
+                command.status,
+                exception,
+            )
         }
     }
 }

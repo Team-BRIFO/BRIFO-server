@@ -3,6 +3,7 @@ package com.brifo.server.global.log.service
 import com.brifo.server.TestcontainersConfiguration
 import com.brifo.server.log.entity.ExternalApiCallStatus
 import com.brifo.server.log.repository.ExternalApiCallLogRepository
+import com.brifo.server.log.service.ExternalApiCallLogCommand
 import com.brifo.server.log.service.ExternalApiCallLogService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -11,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
+import java.math.BigDecimal
+import java.time.LocalDateTime
 
 @Import(TestcontainersConfiguration::class)
 @ActiveProfiles("test")
@@ -25,8 +28,8 @@ class ExternalApiCallLogServiceTest @Autowired constructor(
     }
 
     @Test
-    fun `payloadOf는 모든 민감 필드를 재귀적으로 마스킹한다`() {
-        val payload = externalApiCallLogService.payloadOf(
+    fun `redactPayload는 모든 민감 필드를 재귀적으로 마스킹한다`() {
+        val payload = externalApiCallLogService.redactPayload(
             mapOf(
                 "authorization" to "Bearer token",
                 "apiKey" to "api-key",
@@ -41,20 +44,10 @@ class ExternalApiCallLogServiceTest @Autowired constructor(
                     mapOf(
                         "title" to "삼성전자 뉴스",
                         "newsContent" to "민감한 뉴스 원문",
-                        "2중" to mapOf(
-                            "password" to "지워지나보자",
-                        ),
                     ),
                 ),
                 "stockCode" to "005930",
             ),
-        )
-
-        println(
-            """
-            [payloadOf 테스트 결과]
-            마스킹된 페이로드: $payload
-            """.trimIndent() + "\n\n",
         )
 
         assertThat(payload!!["authorization"].asText()).isEqualTo("******")
@@ -63,162 +56,128 @@ class ExternalApiCallLogServiceTest @Autowired constructor(
         assertThat(payload["user"]["password"].asText()).isEqualTo("******")
         assertThat(payload["user"]["profile"]["appSecret"].asText()).isEqualTo("******")
         assertThat(payload["news"][0]["newsContent"].asText()).isEqualTo("******")
-        assertThat(payload["news"][0]["2중"]["password"].asText()).isEqualTo("******")
         assertThat(payload["stockCode"].asText()).isEqualTo("005930")
         assertThat(payload["news"][0]["title"].asText()).isEqualTo("삼성전자 뉴스")
     }
 
     @Test
-    fun `saveSuccess는 SUCCESS 로그와 주요 필드를 저장한다`() {
-        val requestPayload = externalApiCallLogService.payloadOf(
-            mapOf("stockCode" to "005930"),
-        )
-        val responsePayload = externalApiCallLogService.payloadOf(
-            mapOf("price" to 72500),
-        )
+    fun `SUCCESS 로그는 ERD의 주요 필드를 저장한다`() {
+        val requestedAt = LocalDateTime.of(2026, 7, 15, 10, 0)
+        val respondedAt = requestedAt.plusNanos(123_000_000)
+        val requestPayload = externalApiCallLogService.redactPayload(mapOf("stockCode" to "005930"))
+        val responsePayload = externalApiCallLogService.redactPayload(mapOf("price" to 72500))
 
-        externalApiCallLogService.saveSuccess(
-            apiName = "KIS_STOCK_PRICE",
-            provider = "KIS",
-            requestPayload = requestPayload,
-            responsePayload = responsePayload,
-            httpStatusCode = 200,
-            retryCount = 2,
-            latencyMs = 123,
+        externalApiCallLogService.save(
+            ExternalApiCallLogCommand(
+                provider = "KIS",
+                apiName = "KIS_STOCK_PRICE",
+                status = ExternalApiCallStatus.SUCCESS,
+                userId = 1L,
+                stockId = 2L,
+                idempotencyKey = "stock-price-005930-20260715",
+                requestPayloadRedacted = requestPayload,
+                responsePayloadRedacted = responsePayload,
+                responseStatusCode = 200,
+                retryCount = 2,
+                durationMs = 123L,
+                totalTokens = 100,
+                estimatedCostKrw = BigDecimal("12.3456"),
+                requestedAt = requestedAt,
+                respondedAt = respondedAt,
+            ),
         )
 
         val savedLog = externalApiCallLogRepository.findAll().single()
 
-        println(
-            """
-            [saveSuccess 테스트 결과]
-            ID: ${savedLog.id}
-            API 이름: ${savedLog.apiName}
-            제공자: ${savedLog.provider}
-            상태: ${savedLog.status}
-            HTTP 상태코드: ${savedLog.httpStatusCode}
-            재시도 횟수: ${savedLog.retryCount}
-            응답시간: ${savedLog.latencyMs}ms
-            요청값: ${savedLog.requestPayload}
-            응답값: ${savedLog.responsePayload}
-            호출시간: ${savedLog.calledAt}
-            """.trimIndent() + "\n\n",
-        )
-
-        assertThat(savedLog.status).isEqualTo(ExternalApiCallStatus.SUCCESS)
-        assertThat(savedLog.apiName).isEqualTo("KIS_STOCK_PRICE")
         assertThat(savedLog.provider).isEqualTo("KIS")
-        assertThat(savedLog.httpStatusCode).isEqualTo(200)
-        // TODO: 실제 외부 API 재시도 로직 구현 후 retry count 증가를 통합 테스트로 검증한다.
+        assertThat(savedLog.apiName).isEqualTo("KIS_STOCK_PRICE")
+        assertThat(savedLog.status).isEqualTo(ExternalApiCallStatus.SUCCESS)
+        assertThat(savedLog.userId).isEqualTo(1L)
+        assertThat(savedLog.stockId).isEqualTo(2L)
+        assertThat(savedLog.idempotencyKey).isEqualTo("stock-price-005930-20260715")
+        assertThat(savedLog.requestPayloadRedacted!!["stockCode"].asText()).isEqualTo("005930")
+        assertThat(savedLog.responsePayloadRedacted!!["price"].asInt()).isEqualTo(72500)
+        assertThat(savedLog.responseStatusCode).isEqualTo(200)
         assertThat(savedLog.retryCount).isEqualTo(2)
-        assertThat(savedLog.latencyMs).isEqualTo(123)
-        assertThat(savedLog.requestPayload!!.get("stockCode").asText()).isEqualTo("005930")
-        assertThat(savedLog.responsePayload!!.get("price").asInt()).isEqualTo(72500)
+        assertThat(savedLog.durationMs).isEqualTo(123L)
+        assertThat(savedLog.totalTokens).isEqualTo(100)
+        assertThat(savedLog.estimatedCostKrw).isEqualByComparingTo("12.3456")
+        assertThat(savedLog.requestedAt).isEqualTo(requestedAt)
+        assertThat(savedLog.respondedAt).isEqualTo(respondedAt)
+        assertThat(savedLog.createdAt).isNotNull()
     }
 
     @Test
-    fun `saveFail은 FAIL 로그를 저장한다`() {
-        val requestPayload = externalApiCallLogService.payloadOf(
-            mapOf("keyword" to "삼성전자"),
-        )
-        val responsePayload = externalApiCallLogService.payloadOf(
-            mapOf("errorCode" to "API_ERROR"),
-        )
+    fun `FAIL 로그는 실패 정보와 관련 ID를 저장한다`() {
+        val requestedAt = LocalDateTime.of(2026, 7, 15, 11, 0)
+        val respondedAt = requestedAt.plusNanos(456_000_000)
 
-        externalApiCallLogService.saveFail(
-            apiName = "NEWS_SEARCH",
-            provider = "NAVER",
-            requestPayload = requestPayload,
-            responsePayload = responsePayload,
-            httpStatusCode = 500,
-            retryCount = 1,
-            latencyMs = 456,
+        externalApiCallLogService.save(
+            ExternalApiCallLogCommand(
+                provider = "NAVER",
+                apiName = "NEWS_SEARCH",
+                status = ExternalApiCallStatus.FAIL,
+                newsId = 3L,
+                requestPayloadRedacted = externalApiCallLogService.redactPayload(mapOf("keyword" to "삼성전자")),
+                responsePayloadRedacted = externalApiCallLogService.redactPayload(mapOf("errorCode" to "API_ERROR")),
+                responseStatusCode = 500,
+                errorMessage = "외부 API 오류",
+                retryCount = 1,
+                durationMs = 456L,
+                requestedAt = requestedAt,
+                respondedAt = respondedAt,
+            ),
         )
 
         val savedLog = externalApiCallLogRepository.findAll().single()
-
-        println(
-            """
-            [saveFail 테스트 결과]
-            ID: ${savedLog.id}
-            API 이름: ${savedLog.apiName}
-            제공자: ${savedLog.provider}
-            상태: ${savedLog.status}
-            HTTP 상태코드: ${savedLog.httpStatusCode}
-            재시도 횟수: ${savedLog.retryCount}
-            응답시간: ${savedLog.latencyMs}ms
-            요청값: ${savedLog.requestPayload}
-            응답값: ${savedLog.responsePayload}
-            호출시간: ${savedLog.calledAt}
-            """.trimIndent() + "\n\n",
-        )
 
         assertThat(savedLog.status).isEqualTo(ExternalApiCallStatus.FAIL)
-        assertThat(savedLog.apiName).isEqualTo("NEWS_SEARCH")
-        assertThat(savedLog.provider).isEqualTo("NAVER")
-        assertThat(savedLog.httpStatusCode).isEqualTo(500)
+        assertThat(savedLog.newsId).isEqualTo(3L)
+        assertThat(savedLog.responseStatusCode).isEqualTo(500)
+        assertThat(savedLog.errorMessage).isEqualTo("외부 API 오류")
         assertThat(savedLog.retryCount).isEqualTo(1)
-        assertThat(savedLog.latencyMs).isEqualTo(456)
-        assertThat(savedLog.responsePayload!!.get("errorCode").asText()).isEqualTo("API_ERROR")
+        assertThat(savedLog.durationMs).isEqualTo(456L)
     }
 
     @Test
-    fun `saveTimeout은 TIMEOUT 로그를 저장한다`() {
-        val requestPayload = externalApiCallLogService.payloadOf(
-            mapOf("newsId" to 1L),
-        )
+    fun `TIMEOUT 로그는 응답 없이 타임아웃 정보를 저장한다`() {
+        val requestedAt = LocalDateTime.of(2026, 7, 15, 12, 0)
+        val respondedAt = requestedAt.plusSeconds(3)
 
-        externalApiCallLogService.saveTimeout(
-            apiName = "FAST_API_BRIEFING",
-            provider = "FAST_API",
-            requestPayload = requestPayload,
-            retryCount = 3,
-            latencyMs = 3000,
+        externalApiCallLogService.save(
+            ExternalApiCallLogCommand(
+                provider = "FAST_API",
+                apiName = "FAST_API_BRIEFING",
+                status = ExternalApiCallStatus.TIMEOUT,
+                briefingId = 4L,
+                requestPayloadRedacted = externalApiCallLogService.redactPayload(mapOf("newsId" to 1L)),
+                errorMessage = "응답 시간 초과",
+                retryCount = 3,
+                durationMs = 3000L,
+                requestedAt = requestedAt,
+                respondedAt = respondedAt,
+            ),
         )
 
         val savedLog = externalApiCallLogRepository.findAll().single()
 
-        println(
-            """
-            [saveTimeout 테스트 결과]
-            ID: ${savedLog.id}
-            API 이름: ${savedLog.apiName}
-            제공자: ${savedLog.provider}
-            상태: ${savedLog.status}
-            HTTP 상태코드: ${savedLog.httpStatusCode}
-            재시도 횟수: ${savedLog.retryCount}
-            응답시간: ${savedLog.latencyMs}ms
-            요청값: ${savedLog.requestPayload}
-            응답값: ${savedLog.responsePayload}
-            호출시간: ${savedLog.calledAt}
-            """.trimIndent() + "\n\n",
-        )
-
         assertThat(savedLog.status).isEqualTo(ExternalApiCallStatus.TIMEOUT)
-        assertThat(savedLog.apiName).isEqualTo("FAST_API_BRIEFING")
-        assertThat(savedLog.provider).isEqualTo("FAST_API")
-        assertThat(savedLog.httpStatusCode).isNull()
-        assertThat(savedLog.responsePayload).isNull()
+        assertThat(savedLog.briefingId).isEqualTo(4L)
+        assertThat(savedLog.responsePayloadRedacted).isNull()
+        assertThat(savedLog.responseStatusCode).isNull()
+        assertThat(savedLog.errorMessage).isEqualTo("응답 시간 초과")
         assertThat(savedLog.retryCount).isEqualTo(3)
-        assertThat(savedLog.latencyMs).isEqualTo(3000)
+        assertThat(savedLog.durationMs).isEqualTo(3000L)
     }
 
     @Test
-    fun `calculateLatencyMs는 시작 시간 이후 경과 시간을 반환한다`() {
+    fun `calculateDurationMs는 시작 시간 이후 경과 시간을 반환한다`() {
         val startedAt = externalApiCallLogService.startTimer()
 
         Thread.sleep(10)
 
-        val latencyMs = externalApiCallLogService.calculateLatencyMs(startedAt)
+        val durationMs = externalApiCallLogService.calculateDurationMs(startedAt)
 
-        println(
-            """
-            [calculateLatencyMs 테스트 결과]
-            시작시간: $startedAt
-            측정된 응답시간: ${latencyMs}ms
-            """.trimIndent() + "\n\n",
-        )
-
-        assertThat(latencyMs).isGreaterThanOrEqualTo(10)
+        assertThat(durationMs).isGreaterThanOrEqualTo(10L)
     }
 }

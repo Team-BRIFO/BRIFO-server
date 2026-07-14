@@ -1,5 +1,6 @@
 package com.brifo.server.log.entity
 
+import com.fasterxml.jackson.databind.JsonNode
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -9,22 +10,32 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
-import com.fasterxml.jackson.databind.JsonNode
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.type.SqlTypes
+import java.math.BigDecimal
 import java.time.LocalDateTime
 
 @Entity
 @Table(name = "external_api_call_logs")
 class ExternalApiCallLog private constructor(
+    provider: String,
     apiName: String,
-    provider: String?,
-    requestPayload: JsonNode?,
-    responsePayload: JsonNode?,
-    status: ExternalApiCallStatus?,
-    httpStatusCode: Int?,
+    status: ExternalApiCallStatus,
+    userId: Long?,
+    stockId: Long?,
+    newsId: Long?,
+    briefingId: Long?,
+    idempotencyKey: String?,
+    requestPayloadRedacted: JsonNode?,
+    responsePayloadRedacted: JsonNode?,
+    responseStatusCode: Int?,
+    errorMessage: String?,
     retryCount: Int,
-    latencyMs: Int?,
+    durationMs: Long?,
+    totalTokens: Int?,
+    estimatedCostKrw: BigDecimal?,
+    requestedAt: LocalDateTime,
+    respondedAt: LocalDateTime?,
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "externalApiCallLogIdGenerator")
@@ -37,65 +48,125 @@ class ExternalApiCallLog private constructor(
     var id: Long? = null
         protected set
 
+    @Column(name = "provider", nullable = false, length = 50)
+    var provider: String = provider
+        protected set
+
     @Column(name = "api_name", nullable = false, length = 100)
     var apiName: String = apiName
         protected set
 
-    @Column(name = "provider", length = 100)
-    var provider: String? = provider
-        protected set
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "request_payload", columnDefinition = "jsonb")
-    var requestPayload: JsonNode? = requestPayload
-        protected set
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "response_payload", columnDefinition = "jsonb")
-    var responsePayload: JsonNode? = responsePayload
-        protected set
-
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", length = 20)
-    var status: ExternalApiCallStatus? = status
+    @Column(name = "status", nullable = false, length = 30)
+    var status: ExternalApiCallStatus = status
         protected set
 
-    @Column(name = "http_status_code")
-    var httpStatusCode: Int? = httpStatusCode
+    @Column(name = "user_id")
+    var userId: Long? = userId
+        protected set
+
+    @Column(name = "stock_id")
+    var stockId: Long? = stockId
+        protected set
+
+    @Column(name = "news_id")
+    var newsId: Long? = newsId
+        protected set
+
+    @Column(name = "briefing_id")
+    var briefingId: Long? = briefingId
+        protected set
+
+    @Column(name = "idempotency_key", length = 150)
+    var idempotencyKey: String? = idempotencyKey
+        protected set
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "request_payload_redacted", columnDefinition = "jsonb")
+    var requestPayloadRedacted: JsonNode? = requestPayloadRedacted
+        protected set
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "response_payload_redacted", columnDefinition = "jsonb")
+    var responsePayloadRedacted: JsonNode? = responsePayloadRedacted
+        protected set
+
+    @Column(name = "response_status_code")
+    var responseStatusCode: Int? = responseStatusCode
+        protected set
+
+    @Column(name = "error_message", columnDefinition = "text")
+    var errorMessage: String? = errorMessage
         protected set
 
     @Column(name = "retry_count", nullable = false)
     var retryCount: Int = retryCount
         protected set
 
-    @Column(name = "latency_ms")
-    var latencyMs: Int? = latencyMs
+    @Column(name = "duration_ms")
+    var durationMs: Long? = durationMs
         protected set
 
-    @Column(name = "called_at", nullable = false, insertable = false, updatable = false)
-    var calledAt: LocalDateTime? = null
+    @Column(name = "total_tokens")
+    var totalTokens: Int? = totalTokens
+        protected set
+
+    @Column(name = "estimated_cost_krw", precision = 12, scale = 4)
+    var estimatedCostKrw: BigDecimal? = estimatedCostKrw
+        protected set
+
+    @Column(name = "requested_at", nullable = false)
+    var requestedAt: LocalDateTime = requestedAt
+        protected set
+
+    @Column(name = "responded_at")
+    var respondedAt: LocalDateTime? = respondedAt
+        protected set
+
+    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    var createdAt: LocalDateTime? = null
         protected set
 
     companion object {
         fun create(
+            provider: String,
             apiName: String,
-            provider: String?,
-            requestPayload: JsonNode?,
-            responsePayload: JsonNode?,
-            status: ExternalApiCallStatus?,
-            httpStatusCode: Int?,
+            status: ExternalApiCallStatus,
+            userId: Long? = null,
+            stockId: Long? = null,
+            newsId: Long? = null,
+            briefingId: Long? = null,
+            idempotencyKey: String? = null,
+            requestPayloadRedacted: JsonNode? = null,
+            responsePayloadRedacted: JsonNode? = null,
+            responseStatusCode: Int? = null,
+            errorMessage: String? = null,
             retryCount: Int = 0,
-            latencyMs: Int?,
+            durationMs: Long? = null,
+            totalTokens: Int? = null,
+            estimatedCostKrw: BigDecimal? = null,
+            requestedAt: LocalDateTime,
+            respondedAt: LocalDateTime? = null,
         ): ExternalApiCallLog {
             return ExternalApiCallLog(
-                apiName = apiName,
                 provider = provider,
-                requestPayload = requestPayload,
-                responsePayload = responsePayload,
+                apiName = apiName,
                 status = status,
-                httpStatusCode = httpStatusCode,
+                userId = userId,
+                stockId = stockId,
+                newsId = newsId,
+                briefingId = briefingId,
+                idempotencyKey = idempotencyKey,
+                requestPayloadRedacted = requestPayloadRedacted,
+                responsePayloadRedacted = responsePayloadRedacted,
+                responseStatusCode = responseStatusCode,
+                errorMessage = errorMessage,
                 retryCount = retryCount,
-                latencyMs = latencyMs,
+                durationMs = durationMs,
+                totalTokens = totalTokens,
+                estimatedCostKrw = estimatedCostKrw,
+                requestedAt = requestedAt,
+                respondedAt = respondedAt,
             )
         }
     }
