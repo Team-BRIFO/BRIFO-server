@@ -1,5 +1,6 @@
 package com.brifo.server.log.entity
 
+import com.brifo.server.global.common.BaseEntity
 import com.fasterxml.jackson.databind.JsonNode
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -36,7 +37,7 @@ class ExternalApiCallLog private constructor(
     estimatedCostKrw: BigDecimal?,
     requestedAt: LocalDateTime,
     respondedAt: LocalDateTime?,
-) {
+) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "externalApiCallLogIdGenerator")
     @SequenceGenerator(
@@ -121,10 +122,6 @@ class ExternalApiCallLog private constructor(
 
     @Column(name = "responded_at")
     var respondedAt: LocalDateTime? = respondedAt
-        protected set
-
-    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
-    var createdAt: LocalDateTime? = null
         protected set
 
     companion object {
