@@ -70,9 +70,9 @@ class ExternalApiCallLogService(
     }
 
     fun save(data: ExternalApiCallLogSaveData) {
-        runCatching {
+        try {
             externalApiCallLogWriter.save(data.toEntity())
-        }.onFailure { exception ->
+        } catch (exception: Exception) {
             log.warn(
                 "Failed to save external API call log. apiName={}, provider={}, status={}",
                 data.apiName,
