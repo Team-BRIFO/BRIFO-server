@@ -1,4 +1,10 @@
 ALTER TABLE external_api_call_logs
+    RENAME COLUMN latency_ms TO duration_ms;
+
+ALTER TABLE external_api_call_logs
+    ALTER COLUMN duration_ms TYPE BIGINT;
+
+ALTER TABLE external_api_call_logs
     RENAME COLUMN request_payload TO request_payload_redacted;
 
 ALTER TABLE external_api_call_logs
@@ -11,7 +17,7 @@ ALTER TABLE external_api_call_logs
     RENAME COLUMN called_at TO created_at;
 
 ALTER TABLE external_api_call_logs
-    ALTER COLUMN provider TYPE VARCHAR(50),
+ALTER COLUMN provider TYPE VARCHAR(50),
     ALTER COLUMN provider SET NOT NULL,
     ALTER COLUMN status TYPE VARCHAR(30),
     ALTER COLUMN status SET NOT NULL,
