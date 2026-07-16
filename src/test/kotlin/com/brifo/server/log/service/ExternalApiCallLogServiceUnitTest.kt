@@ -1,15 +1,16 @@
 package com.brifo.server.log.service
 
-import com.brifo.server.log.repository.ExternalApiCallLogRepository
+import com.brifo.server.log.entity.ExternalApiCallLog
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.mock
 import java.time.Instant
 
 class ExternalApiCallLogServiceUnitTest {
-    private val repository = mock(ExternalApiCallLogRepository::class.java)
-    private val service = ExternalApiCallLogService(repository, ObjectMapper())
+    private val writer = object : ExternalApiCallLogWriter {
+        override fun save(externalApiCallLog: ExternalApiCallLog) = Unit
+    }
+    private val service = ExternalApiCallLogService(writer, ObjectMapper())
 
     @Test
     fun `redactPayload는 모든 민감 필드를 재귀적으로 마스킹한다`() {

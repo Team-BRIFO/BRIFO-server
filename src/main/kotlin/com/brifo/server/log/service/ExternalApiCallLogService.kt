@@ -2,21 +2,18 @@ package com.brifo.server.log.service
 
 import com.brifo.server.log.entity.ExternalApiCallLog
 import com.brifo.server.log.entity.ExternalApiCallStatus
-import com.brifo.server.log.repository.ExternalApiCallLogRepository
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Propagation
-import org.springframework.transaction.annotation.Transactional
 import java.time.Duration
 import java.time.Instant
 
 @Service
 class ExternalApiCallLogService(
-    private val externalApiCallLogRepository: ExternalApiCallLogRepository,
+    private val externalApiCallLogWriter: ExternalApiCallLogWriter,
     private val objectMapper: ObjectMapper,
 ) {
     private val log = LoggerFactory.getLogger(ExternalApiCallLogService::class.java)
@@ -71,10 +68,9 @@ class ExternalApiCallLogService(
         }
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun save(command: ExternalApiCallLogCommand) {
         runCatching {
-            externalApiCallLogRepository.save(command.toEntity())
+            externalApiCallLogWriter.save(command.toEntity())
         }.onFailure { exception ->
             log.warn(
                 "Failed to save external API call log. apiName={}, provider={}, status={}",
