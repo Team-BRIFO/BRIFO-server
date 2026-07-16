@@ -139,4 +139,26 @@ class ExternalApiCallLogServiceIntegrationTest @Autowired constructor(
         assertThat(savedLog.retryCount).isEqualTo(3)
         assertThat(savedLog.durationMs).isEqualTo(3000L)
     }
+
+    @Test
+    fun `DB 제약조건 위반으로 saveAndFlush가 실패하면 새 트랜잭션은 롤백되고 예외는 호출자에게 전파되지 않는다`() {
+        val saveData = ExternalApiCallLogSaveData(
+            provider = "KIS",
+            apiName = "KIS_STOCK_PRICE",
+            status = ExternalApiCallStatus.SUCCESS,
+            requestedAt = LocalDateTime.of(2026, 7, 15, 10, 0),
+        )
+
+        val result = runCatching {
+            externalApiCallLogService.save(
+                saveData.copy(provider = "A".repeat(51)),
+            )
+        }
+
+        // DB 저장에 실패해도 호출한 쪽에는 예외가 전달되지 않음
+        assertThat(result.isSuccess).isTrue()
+
+        // 저장에 실패한 로그는 롤백되어 DB에 남지 않음
+        assertThat(externalApiCallLogRepository.count()).isZero()
+    }
 }
