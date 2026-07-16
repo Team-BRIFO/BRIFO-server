@@ -1,5 +1,6 @@
 package com.brifo.server.log.service
 
+import com.brifo.server.log.dto.ExternalApiCallLogSaveData
 import com.brifo.server.log.entity.ExternalApiCallLog
 import com.brifo.server.log.entity.ExternalApiCallStatus
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -25,7 +26,7 @@ class ExternalApiCallLogServiceFailureTest {
         val result =
             runCatching {
                 service.save(
-                    ExternalApiCallLogCommand(
+                    ExternalApiCallLogSaveData(
                         provider = "KIS",
                         apiName = "KIS_STOCK_PRICE",
                         status = ExternalApiCallStatus.SUCCESS,

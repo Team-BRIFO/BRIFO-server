@@ -1,5 +1,6 @@
 package com.brifo.server.log.service
 
+import com.brifo.server.log.dto.ExternalApiCallLogSaveData
 import com.brifo.server.log.entity.ExternalApiCallLog
 import com.brifo.server.log.entity.ExternalApiCallStatus
 import com.fasterxml.jackson.databind.JsonNode
@@ -68,22 +69,22 @@ class ExternalApiCallLogService(
         }
     }
 
-    fun save(command: ExternalApiCallLogCommand) {
+    fun save(data: ExternalApiCallLogSaveData) {
         runCatching {
-            externalApiCallLogWriter.save(command.toEntity())
+            externalApiCallLogWriter.save(data.toEntity())
         }.onFailure { exception ->
             log.warn(
                 "Failed to save external API call log. apiName={}, provider={}, status={}",
-                command.apiName,
-                command.provider,
-                command.status,
+                data.apiName,
+                data.provider,
+                data.status,
                 exception,
             )
         }
     }
 
     // '가변 부분'만 StatusFields로 변경 (이후 아래에서 'statusFields.responsePayload, statusFields.responseStatusCode, statusFields.errorMessage' 처럼 사용 예정)
-    private fun ExternalApiCallLogCommand.toEntity(): ExternalApiCallLog {
+    private fun ExternalApiCallLogSaveData.toEntity(): ExternalApiCallLog {
         val statusFields = when (status) {
             ExternalApiCallStatus.SUCCESS -> StatusFields(
                 responsePayload = responsePayloadRedacted,

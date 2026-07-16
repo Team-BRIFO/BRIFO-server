@@ -1,6 +1,7 @@
 package com.brifo.server.log.service
 
 import com.brifo.server.TestcontainersConfiguration
+import com.brifo.server.log.dto.ExternalApiCallLogSaveData
 import com.brifo.server.log.entity.ExternalApiCallStatus
 import com.brifo.server.log.repository.ExternalApiCallLogRepository
 import org.assertj.core.api.Assertions.assertThat
@@ -33,7 +34,7 @@ class ExternalApiCallLogServiceIntegrationTest @Autowired constructor(
         val responsePayload = externalApiCallLogService.redactPayload(mapOf("price" to 72500))
 
         externalApiCallLogService.save(
-            ExternalApiCallLogCommand(
+            ExternalApiCallLogSaveData(
                 provider = "KIS",
                 apiName = "KIS_STOCK_PRICE",
                 status = ExternalApiCallStatus.SUCCESS,
@@ -80,7 +81,7 @@ class ExternalApiCallLogServiceIntegrationTest @Autowired constructor(
         val respondedAt = requestedAt.plusNanos(456_000_000)
 
         externalApiCallLogService.save(
-            ExternalApiCallLogCommand(
+            ExternalApiCallLogSaveData(
                 provider = "NAVER",
                 apiName = "NEWS_SEARCH",
                 status = ExternalApiCallStatus.FAIL,
@@ -112,7 +113,7 @@ class ExternalApiCallLogServiceIntegrationTest @Autowired constructor(
         val respondedAt = requestedAt.plusSeconds(3)
 
         externalApiCallLogService.save(
-            ExternalApiCallLogCommand(
+            ExternalApiCallLogSaveData(
                 provider = "FAST_API",
                 apiName = "FAST_API_BRIEFING",
                 status = ExternalApiCallStatus.TIMEOUT,
