@@ -121,8 +121,6 @@ class ExternalApiCallLogService(
             errorMessage = statusFields.errorMessage,
             retryCount = retryCount,
             durationMs = durationMs,
-            totalTokens = totalTokens,
-            estimatedCostKrw = estimatedCostKrw,
             requestedAt = requestedAt,
             respondedAt = respondedAt,
         )

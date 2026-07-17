@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
-import java.math.BigDecimal
 import java.time.LocalDateTime
 
 @Import(TestcontainersConfiguration::class)
@@ -47,8 +46,6 @@ class ExternalApiCallLogServiceIntegrationTest @Autowired constructor(
                 errorMessage = "저장되면 안 되는 오류",
                 retryCount = 2,
                 durationMs = 123L,
-                totalTokens = 100,
-                estimatedCostKrw = BigDecimal("12.3456"),
                 requestedAt = requestedAt,
                 respondedAt = respondedAt,
             ),
@@ -68,8 +65,6 @@ class ExternalApiCallLogServiceIntegrationTest @Autowired constructor(
         assertThat(savedLog.errorMessage).isNull()
         assertThat(savedLog.retryCount).isEqualTo(2)
         assertThat(savedLog.durationMs).isEqualTo(123L)
-        assertThat(savedLog.totalTokens).isEqualTo(100)
-        assertThat(savedLog.estimatedCostKrw).isEqualByComparingTo("12.3456")
         assertThat(savedLog.requestedAt).isEqualTo(requestedAt)
         assertThat(savedLog.respondedAt).isEqualTo(respondedAt)
         assertThat(savedLog.createdAt).isNotNull()

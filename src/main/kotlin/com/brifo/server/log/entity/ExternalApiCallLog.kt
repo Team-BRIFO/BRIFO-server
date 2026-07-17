@@ -13,7 +13,6 @@ import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.type.SqlTypes
-import java.math.BigDecimal
 import java.time.LocalDateTime
 
 @Entity
@@ -33,8 +32,6 @@ class ExternalApiCallLog private constructor(
     errorMessage: String?,
     retryCount: Int,
     durationMs: Long?,
-    totalTokens: Int?,
-    estimatedCostKrw: BigDecimal?,
     requestedAt: LocalDateTime,
     respondedAt: LocalDateTime?,
 ) : BaseEntity() {
@@ -108,14 +105,6 @@ class ExternalApiCallLog private constructor(
     var durationMs: Long? = durationMs
         protected set
 
-    @Column(name = "total_tokens")
-    var totalTokens: Int? = totalTokens
-        protected set
-
-    @Column(name = "estimated_cost_krw", precision = 12, scale = 4)
-    var estimatedCostKrw: BigDecimal? = estimatedCostKrw
-        protected set
-
     @Column(name = "requested_at", nullable = false)
     var requestedAt: LocalDateTime = requestedAt
         protected set
@@ -140,8 +129,6 @@ class ExternalApiCallLog private constructor(
             errorMessage: String? = null,
             retryCount: Int = 0,
             durationMs: Long? = null,
-            totalTokens: Int? = null,
-            estimatedCostKrw: BigDecimal? = null,
             requestedAt: LocalDateTime,
             respondedAt: LocalDateTime? = null,
         ): ExternalApiCallLog {
@@ -160,8 +147,6 @@ class ExternalApiCallLog private constructor(
                 errorMessage = errorMessage,
                 retryCount = retryCount,
                 durationMs = durationMs,
-                totalTokens = totalTokens,
-                estimatedCostKrw = estimatedCostKrw,
                 requestedAt = requestedAt,
                 respondedAt = respondedAt,
             )
