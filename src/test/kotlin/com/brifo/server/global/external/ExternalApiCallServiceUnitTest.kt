@@ -84,6 +84,30 @@ class ExternalApiCallServiceUnitTest {
     }
 
     @Test
+    fun `501은 retry 대상인 500 502 503 504에 해당하지 않아 최종 FAIL로 처리된다`() {
+
+        var attempts = 0
+
+        assertThatThrownBy {
+            execute {
+                attempts++
+
+                throw serverException(
+                    HttpStatus.NOT_IMPLEMENTED.value(),
+                )
+            }
+        }.isInstanceOf(HttpServerErrorException::class.java)
+
+        assertThat(attempts).isEqualTo(1)
+
+        assertLog(
+            status = ExternalApiCallStatus.FAIL,
+            statusCode = 501,
+            retryCount = 0,
+        )
+    }
+
+    @Test
     fun `timeout은 한 번 재시도하고 TIMEOUT으로 기록한다`() {
         var attempts = 0
 
