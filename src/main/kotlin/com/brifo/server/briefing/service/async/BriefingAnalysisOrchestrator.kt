@@ -4,6 +4,7 @@ import com.brifo.server.briefing.client.BriefingAnalysisClient
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
+import java.util.UUID
 
 /** 접수된 브리핑의 외부 분석 호출과 성공·실패 처리를 비동기로 조율한다. */
 @Service
@@ -26,7 +27,7 @@ class BriefingAnalysisOrchestrator(
                 command.briefingPublicIds,
                 exception,
             )
-            command.briefingPublicIds.forEach(transactionService::failAndRefund)
+            command.briefingPublicIds.forEach(::failAndRefundSafely)
             return
         }
 
@@ -39,7 +40,7 @@ class BriefingAnalysisOrchestrator(
                 validationResult.failedBriefingPublicIds,
             )
         }
-        validationResult.failedBriefingPublicIds.forEach(transactionService::failAndRefund)
+        validationResult.failedBriefingPublicIds.forEach(::failAndRefundSafely)
 
         // 검증을 통과한 결과는 개별 완료하고, 저장 실패 시 해당 브리핑만 실패 처리하고 환불한다.
         validationResult.completions.forEach { completion ->
@@ -51,8 +52,20 @@ class BriefingAnalysisOrchestrator(
                     completion.briefingPublicId,
                     exception,
                 )
-                transactionService.failAndRefund(completion.briefingPublicId)
+                failAndRefundSafely(completion.briefingPublicId)
             }
+        }
+    }
+
+    private fun failAndRefundSafely(briefingPublicId: UUID) {
+        try {
+            transactionService.failAndRefund(briefingPublicId)
+        } catch (exception: Exception) {
+            logger.error(
+                "Briefing refund failed: {}",
+                briefingPublicId,
+                exception,
+            )
         }
     }
 

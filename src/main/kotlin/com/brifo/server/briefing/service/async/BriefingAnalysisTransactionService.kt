@@ -46,11 +46,17 @@ class BriefingAnalysisTransactionService(
 
         return BriefingAnalysisTask.Context(
             userPublicId = command.userPublicId,
-            newsCardPublicIds = newsCards.map { it.publicId!! },
+            newsCardPublicIds = newsCards.map { newsCard ->
+                checkNotNull(newsCard.publicId) { "Persisted news card must have a publicId" }
+            },
             targets = briefings.map { briefing ->
                 BriefingAnalysisTask.Context.Target(
-                    briefingPublicId = briefing.publicId!!,
-                    agentPublicId = briefing.agent.publicId!!,
+                    briefingPublicId = checkNotNull(briefing.publicId) {
+                        "Persisted briefing must have a publicId"
+                    },
+                    agentPublicId = checkNotNull(briefing.agent.publicId) {
+                        "Persisted agent must have a publicId"
+                    },
                     agentType = briefing.agent.agentType,
                     modelName = briefing.agent.modelName,
                 )
@@ -103,7 +109,7 @@ class BriefingAnalysisTransactionService(
             return
         }
 
-        val briefingId = briefing.id!!
+        val briefingId = checkNotNull(briefing.id) { "Persisted briefing must have an id" }
         val salaryBalance = apTransactionRepository.sumBriefingSalaryBalance(briefingId)
         // 최초 요청이나 재시도에서 기록한 환불 대상 급여 거래가 남아 있는지 검증한다.
         check(salaryBalance < 0) { "Salary transaction is missing for briefing $briefingPublicId" }
