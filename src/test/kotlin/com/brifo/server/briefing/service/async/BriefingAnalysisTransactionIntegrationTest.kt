@@ -7,8 +7,6 @@ import com.brifo.server.briefing.entity.Briefing
 import com.brifo.server.briefing.entity.BriefingDirection
 import com.brifo.server.briefing.entity.BriefingStatus
 import com.brifo.server.briefing.repository.BriefingRepository
-import com.brifo.server.briefing.service.async.BriefingAnalysisTask
-import com.brifo.server.briefing.service.async.BriefingAnalysisTransactionService
 import com.brifo.server.briefing.support.BriefingDatabaseFixture
 import com.brifo.server.user.repository.UserRepository
 import jakarta.persistence.EntityManager

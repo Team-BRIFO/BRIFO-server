@@ -159,9 +159,10 @@ class BriefingQueryRepositoryImpl(
     ): Briefing? =
         queryFactory
             .select(briefing)
-            .from(briefingNewsCard)
-            .join(briefingNewsCard.briefing, briefing)
+            .from(briefing)
             .join(briefing.agent, agent)
+            .fetchJoin()
+            .join(briefing.briefingNewsCards, briefingNewsCard)
             .fetchJoin()
             .where(
                 briefing.agent.user.publicId.eq(userPublicId),

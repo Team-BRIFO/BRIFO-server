@@ -23,15 +23,13 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean
 import java.math.BigDecimal
-import java.security.Principal
 import java.time.LocalDate
 import java.util.UUID
 
 class BriefingControllerTest {
     private val queryService = mock(BriefingQueryService::class.java)
     private val requestOrchestrator = mock(BriefingRequestOrchestrator::class.java)
-    private val principalId = UUID.randomUUID()
-    private val principal = Principal { principalId.toString() }
+    private val userId = UUID.randomUUID()
     private val mockMvc: MockMvc = run {
         val validator = LocalValidatorFactoryBean().also { it.afterPropertiesSet() }
         MockMvcBuilders
@@ -46,7 +44,7 @@ class BriefingControllerTest {
         val stockId = UUID.randomUUID()
         val agentId = UUID.randomUUID()
         val briefingId = UUID.randomUUID()
-        `when`(requestOrchestrator.request(principalId, stockId, listOf(agentId))).thenReturn(
+        `when`(requestOrchestrator.request(userId, stockId, listOf(agentId))).thenReturn(
             CreateBriefingResponse(
                 requestedCount = 1,
                 totalSalaryCost = 10,
@@ -58,7 +56,7 @@ class BriefingControllerTest {
 
         mockMvc.perform(
             post("/api/stocks/{stockId}/briefings", stockId)
-                .principal(principal)
+                .param("userId", userId.toString())
                 .contentType("application/json")
                 .content("""{"agentIds":["$agentId"]}"""),
         )
@@ -73,7 +71,7 @@ class BriefingControllerTest {
     fun `사원 목록이 비어 있으면 서비스 호출 전에 400을 반환한다`() {
         mockMvc.perform(
             post("/api/stocks/{stockId}/briefings", UUID.randomUUID())
-                .principal(principal)
+                .param("userId", userId.toString())
                 .contentType("application/json")
                 .content("""{"agentIds":[]}"""),
         )
@@ -85,12 +83,12 @@ class BriefingControllerTest {
     fun `재의뢰 쿨다운은 429와 Retry-After를 반환한다`() {
         val stockId = UUID.randomUUID()
         val agentId = UUID.randomUUID()
-        `when`(requestOrchestrator.request(principalId, stockId, listOf(agentId)))
+        `when`(requestOrchestrator.request(userId, stockId, listOf(agentId)))
             .thenThrow(BriefingRetryCooldownException(17))
 
         mockMvc.perform(
             post("/api/stocks/{stockId}/briefings", stockId)
-                .principal(principal)
+                .param("userId", userId.toString())
                 .contentType("application/json")
                 .content("""{"agentIds":["$agentId"]}"""),
         )
@@ -113,7 +111,7 @@ class BriefingControllerTest {
                 agentType = AgentType.ROOKIE,
             )
         }
-        `when`(queryService.getStockBriefings(principalId, stockId)).thenReturn(
+        `when`(queryService.getStockBriefings(userId, stockId)).thenReturn(
             GetStockBriefingsResponse(
                 stock = BriefingStockResponse(
                     stockId,
@@ -126,7 +124,10 @@ class BriefingControllerTest {
             ),
         )
 
-        mockMvc.perform(get("/api/stocks/{stockId}/briefing", stockId).principal(principal))
+        mockMvc.perform(
+            get("/api/stocks/{stockId}/briefing", stockId)
+                .param("userId", userId.toString()),
+        )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.result.items.length()").value(4))
             .andExpect(jsonPath("$.result.items[0].status").value("PENDING"))
