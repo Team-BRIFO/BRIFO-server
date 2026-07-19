@@ -2,7 +2,6 @@ package com.brifo.server.log.dto
 
 import com.brifo.server.log.entity.ExternalApiCallStatus
 import com.fasterxml.jackson.databind.JsonNode
-import java.math.BigDecimal
 import java.time.LocalDateTime
 
 data class ExternalApiCallLogSaveData(
@@ -20,8 +19,6 @@ data class ExternalApiCallLogSaveData(
     val errorMessage: String? = null,
     val retryCount: Int = 0,
     val durationMs: Long? = null,
-    val totalTokens: Int? = null,
-    val estimatedCostKrw: BigDecimal? = null,
     val requestedAt: LocalDateTime,
     val respondedAt: LocalDateTime? = null,
 )
