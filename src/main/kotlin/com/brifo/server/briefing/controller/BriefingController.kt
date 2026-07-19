@@ -16,11 +16,12 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
-import java.security.Principal
 import java.util.UUID
 
+// TODO: Spring Security 적용 후 개발용 userId 요청 파라미터를 인증 사용자 정보로 대체
 @RestController
 @RequestMapping("/api")
 class BriefingController(
@@ -32,12 +33,12 @@ class BriefingController(
     fun createBriefing(
         @PathVariable stockId: UUID,
         @Valid @RequestBody request: CreateBriefingRequest,
-        principal: Principal,
+        @RequestParam userId: UUID,
     ): ApiResponse<CreateBriefingResponse> =
         ApiResponse.success(
             SuccessCode.CREATED,
             briefingRequestOrchestrator.request(
-                userPublicId = UUID.fromString(principal.name),
+                userPublicId = userId,
                 stockPublicId = stockId,
                 agentPublicIds = request.agentIds,
             ),
@@ -46,32 +47,32 @@ class BriefingController(
     @GetMapping("/stocks/{stockId}/briefing")
     fun getStockBriefings(
         @PathVariable stockId: UUID,
-        principal: Principal,
+        @RequestParam userId: UUID,
     ): ApiResponse<GetStockBriefingsResponse> =
         ApiResponse.success(
             SuccessCode.OK,
             briefingQueryService.getStockBriefings(
-                userPublicId = UUID.fromString(principal.name),
+                userPublicId = userId,
                 stockPublicId = stockId,
             ),
         )
 
     @GetMapping("/briefings/office")
-    fun getOfficeBriefings(principal: Principal): ApiResponse<GetOfficeBriefingsResponse> =
+    fun getOfficeBriefings(@RequestParam userId: UUID): ApiResponse<GetOfficeBriefingsResponse> =
         ApiResponse.success(
             SuccessCode.OK,
-            briefingQueryService.getOfficeBriefings(UUID.fromString(principal.name)),
+            briefingQueryService.getOfficeBriefings(userId),
         )
 
     @GetMapping("/briefings/{briefingId}")
     fun getBriefingDetail(
         @PathVariable briefingId: UUID,
-        principal: Principal,
+        @RequestParam userId: UUID,
     ): ApiResponse<GetBriefingDetailResponse> =
         ApiResponse.success(
             SuccessCode.OK,
             briefingQueryService.getBriefingDetail(
-                userPublicId = UUID.fromString(principal.name),
+                userPublicId = userId,
                 briefingPublicId = briefingId,
             ),
         )
