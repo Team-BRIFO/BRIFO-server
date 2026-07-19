@@ -26,7 +26,8 @@ class ExternalApiCallService(
     ): T {
         val startedAt = logService.startTimer()
         val requestedAt = LocalDateTime.now()
-        var retryCount = 0
+        var totalRetryCount = 0
+        var networkRetryCount = 0
         var tokenRefreshed = false
 
         while (true) {
@@ -42,19 +43,19 @@ class ExternalApiCallService(
                     requestPayload = requestPayload,
                     responsePayload = responseBody,
                     responseStatusCode = response.statusCode.value(),
-                    retryCount = retryCount,
+                    retryCount = totalRetryCount,
                     requestedAt = requestedAt,
                     startedAt = startedAt,
                 )
 
                 return responseBody
             } catch (exception: Exception) {
-                // 401이면 토큰 갱신 후 원 요청을 한 번 다시 실행한다.
+                // 멱등 요청만 토큰 갱신 후 원 요청을 한 번 다시 실행한다.
                 if (
+                    idempotent &&
                     exception.isUnauthorized() &&
                     refreshToken != null &&
-                    !tokenRefreshed &&
-                    retryCount < policy.maxRetries
+                    !tokenRefreshed
                 ) {
                     try {
                         refreshToken()
@@ -65,7 +66,7 @@ class ExternalApiCallService(
                             requestPayload = requestPayload,
                             exception = refreshException,
                             responseStatusCode = 401,
-                            retryCount = retryCount,
+                            retryCount = totalRetryCount,
                             requestedAt = requestedAt,
                             startedAt = startedAt,
                         )
@@ -74,17 +75,18 @@ class ExternalApiCallService(
                     }
 
                     tokenRefreshed = true
-                    retryCount++
+                    totalRetryCount++
                     continue
                 }
 
-                // 멱등 요청의 일시적인 실패만 retry한다.
+                // 멱등 요청의 네트워크·5xx 오류만 정책 범위에서 재시도한다.
                 if (
                     idempotent &&
                     exception.isRetryable() &&
-                    retryCount < policy.maxRetries
+                    networkRetryCount < policy.maxRetries
                 ) {
-                    retryCount++
+                    networkRetryCount++
+                    totalRetryCount++
                     continue
                 }
 
@@ -94,7 +96,7 @@ class ExternalApiCallService(
                     requestPayload = requestPayload,
                     exception = exception,
                     responseStatusCode = exception.responseStatusCode(),
-                    retryCount = retryCount,
+                    retryCount = totalRetryCount,
                     requestedAt = requestedAt,
                     startedAt = startedAt,
                 )
