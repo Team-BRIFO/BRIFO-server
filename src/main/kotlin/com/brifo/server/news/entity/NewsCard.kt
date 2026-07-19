@@ -17,6 +17,7 @@ import org.hibernate.annotations.Generated
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.generator.EventType
 import org.hibernate.type.SqlTypes
+import java.time.LocalDate
 import java.util.UUID
 
 @Entity
@@ -27,6 +28,7 @@ class NewsCard private constructor(
     points: List<String>,
     keywords: List<String>,
     importanceBadge: ImportanceBadge,
+    displayDate: LocalDate,
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "newsCardIdGenerator")
@@ -64,6 +66,10 @@ class NewsCard private constructor(
     var importanceBadge: ImportanceBadge = importanceBadge
         protected set
 
+    @Column(name = "display_date", nullable = false)
+    var displayDate: LocalDate = displayDate
+        protected set
+
     companion object {
         fun create(
             news: News,
@@ -71,6 +77,7 @@ class NewsCard private constructor(
             points: List<String>,
             keywords: List<String>,
             importanceBadge: ImportanceBadge,
+            displayDate: LocalDate,
         ): NewsCard {
             return NewsCard(
                 news = news,
@@ -78,6 +85,7 @@ class NewsCard private constructor(
                 points = points,
                 keywords = keywords,
                 importanceBadge = importanceBadge,
+                displayDate = displayDate,
             )
         }
     }
