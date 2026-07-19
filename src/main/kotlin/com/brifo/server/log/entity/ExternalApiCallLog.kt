@@ -1,7 +1,6 @@
 package com.brifo.server.log.entity
 
 import com.brifo.server.global.common.BaseEntity
-import com.fasterxml.jackson.databind.JsonNode
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -13,6 +12,7 @@ import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.type.SqlTypes
+import tools.jackson.databind.JsonNode
 import java.time.LocalDateTime
 
 @Entity
