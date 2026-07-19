@@ -63,6 +63,32 @@ class ApTransaction private constructor(
         protected set
 
     companion object {
+        fun salary(
+            user: User,
+            briefingId: Long,
+            salaryCost: Int,
+        ): ApTransaction =
+            create(
+                user = user,
+                amount = -salaryCost,
+                reason = ApTransactionReason.SALARY,
+                targetType = ApTransactionTargetType.BRIEFING,
+                targetId = briefingId,
+            )
+
+        fun salaryRefund(
+            user: User,
+            briefingId: Long,
+            refundAmount: Int,
+        ): ApTransaction =
+            create(
+                user = user,
+                amount = refundAmount,
+                reason = ApTransactionReason.SALARY_REFUND,
+                targetType = ApTransactionTargetType.BRIEFING,
+                targetId = briefingId,
+            )
+
         fun create(
             user: User,
             amount: Int,
