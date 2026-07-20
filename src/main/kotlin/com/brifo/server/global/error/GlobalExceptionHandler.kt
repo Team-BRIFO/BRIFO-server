@@ -1,11 +1,13 @@
 package com.brifo.server.global.error
 
+import com.brifo.server.briefing.exception.BriefingRetryCooldownException
 import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.common.ApiResponse
 import com.brifo.server.global.exception.BusinessException
 import jakarta.validation.ConstraintViolationException
 import org.springframework.core.env.Environment
 import org.springframework.core.env.Profiles
+import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.validation.BindException
@@ -22,6 +24,15 @@ class GlobalExceptionHandler(
 ) {
     private val suppressErrorDetails: Boolean
         get() = environment.acceptsProfiles(Profiles.of("prod"))
+
+    @ExceptionHandler(BriefingRetryCooldownException::class)
+    fun handleBriefingRetryCooldownException(
+        exception: BriefingRetryCooldownException,
+    ): ResponseEntity<ApiResponse<Nothing>> =
+        ResponseEntity
+            .status(exception.errorCode.status)
+            .header(HttpHeaders.RETRY_AFTER, exception.retryAfterSeconds.toString())
+            .body(ApiResponse.error(exception.errorCode))
 
     @ExceptionHandler(BusinessException::class)
     fun handleBusinessException(exception: BusinessException): ResponseEntity<ApiResponse<Nothing>> {
