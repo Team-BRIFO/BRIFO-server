@@ -60,11 +60,8 @@ class ExternalApiCallLogService(
         requestedAt: LocalDateTime,
         startedAt: Instant,
     ) {
-        val status = when {
-            exception == null -> ExternalApiCallStatus.SUCCESS
-            exception.isTimeout() -> ExternalApiCallStatus.TIMEOUT
-            else -> ExternalApiCallStatus.FAIL
-        }
+        val status = exception?.toCallStatus()
+            ?: ExternalApiCallStatus.SUCCESS
 
         save(
             ExternalApiCallLogSaveData(
@@ -130,6 +127,14 @@ class ExternalApiCallLogService(
             it is SocketTimeoutException ||
                 it is HttpTimeoutException ||
                 it is TimeoutException
+        }
+    }
+
+    private fun Throwable.toCallStatus(): ExternalApiCallStatus {
+        return if (isTimeout()) {
+            ExternalApiCallStatus.TIMEOUT
+        } else {
+            ExternalApiCallStatus.FAIL
         }
     }
 

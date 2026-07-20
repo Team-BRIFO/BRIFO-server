@@ -3,7 +3,6 @@ package com.brifo.server.global.external
 import com.brifo.server.log.service.ExternalApiCallLogService
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
-import java.time.Instant
 import java.time.LocalDateTime
 
 @Service
@@ -22,7 +21,7 @@ class ExternalApiCallService(
         // 실제 외부 API 요청
         request: () -> ResponseEntity<T>,
     ): T {
-        val startedAt = Instant.now()
+        val startedAt = logService.startTimer()
         val requestedAt = LocalDateTime.now()
         var totalRetryCount = 0
         var networkRetryCount = 0
