@@ -41,3 +41,9 @@ app:
       redirect-uris: ${KAKAO_REDIRECT_URIS}
       connect-timeout: 3s
       read-timeout: 5s
+    naver:
+      client-id: ${NAVER_CLIENT_ID}
+      client-secret: ${NAVER_CLIENT_SECRET}
+      redirect-uris: ${NAVER_REDIRECT_URIS}
+      connect-timeout: 3s
+      read-timeout: 5s

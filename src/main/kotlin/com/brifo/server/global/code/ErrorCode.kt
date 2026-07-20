@@ -18,4 +18,5 @@ enum class ErrorCode(
     OAUTH_INVALID_AUTHORIZATION_CODE(HttpStatus.UNAUTHORIZED, "AUTH_401_01", "유효하지 않은 인증 코드입니다."),
     OAUTH_INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_401_03", "유효하지 않은 토큰입니다."),
     KAKAO_SERVER_ERROR(HttpStatus.BAD_GATEWAY, "AUTH_502", "OAuth 서버 오류가 발생했습니다."),
+    NAVER_SERVER_ERROR(HttpStatus.BAD_GATEWAY, "AUTH_502", "OAuth 서버 오류가 발생했습니다."),
 }

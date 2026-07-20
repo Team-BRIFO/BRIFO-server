@@ -12,6 +12,11 @@ app:
       client-id: test-client-id
       redirect-uris:
         - http://localhost:3000/oauth/callback/kakao
+    naver:
+      client-id: test-client-id
+      client-secret: test-client-secret
+      redirect-uris:
+        - http://localhost:3000/oauth/callback/naver
 
 springdoc:
   api-docs:

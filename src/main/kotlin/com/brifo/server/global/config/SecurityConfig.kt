@@ -14,7 +14,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties(CorsProperties::class, JwtProperties::class, KakaoProperties::class)
+@EnableConfigurationProperties(CorsProperties::class, JwtProperties::class, KakaoProperties::class, NaverProperties::class)
 class SecurityConfig(
     private val corsProperties: CorsProperties,
 ) {

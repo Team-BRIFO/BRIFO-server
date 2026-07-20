@@ -1,0 +1,129 @@
+package com.brifo.server.auth.service
+
+import com.brifo.server.ap.entity.ApTransaction
+import com.brifo.server.ap.entity.ApTransactionReason
+import com.brifo.server.ap.repository.ApTransactionRepository
+import com.brifo.server.auth.dto.NaverLoginRequest
+import com.brifo.server.auth.dto.NaverLoginResponse
+import com.brifo.server.auth.dto.NaverUserResponse
+import com.brifo.server.auth.dto.TokenInfo
+import com.brifo.server.user.entity.OAuthProvider
+import com.brifo.server.user.entity.User
+import com.brifo.server.user.repository.UserRepository
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.Mock
+import org.mockito.Mockito.any
+import org.mockito.Mockito.never
+import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
+import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.test.util.ReflectionTestUtils
+import java.time.Clock
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.util.UUID
+
+@ExtendWith(MockitoExtension::class)
+class NaverLoginServiceTest {
+    @Mock
+    private lateinit var naverApiClient: NaverApiClient
+
+    @Mock
+    private lateinit var userRepository: UserRepository
+
+    @Mock
+    private lateinit var apTransactionRepository: ApTransactionRepository
+
+    @Mock
+    private lateinit var jwtTokenProvider: JwtTokenProvider
+
+    private val clock = Clock.fixed(Instant.parse("2026-07-09T00:00:00Z"), ZoneOffset.UTC)
+    private lateinit var service: NaverLoginService
+
+    @BeforeEach
+    fun setUp() {
+        service = NaverLoginService(naverApiClient, userRepository, apTransactionRepository, jwtTokenProvider, clock)
+    }
+
+    @Test
+    fun `기존 네이버 회원은 사용자 정보와 서비스 토큰을 받는다`() {
+        val publicId = UUID.randomUUID()
+        val user = User.create(OAuthProvider.NAVER, SOCIAL_ID, "brifo", "user@naver.com")
+        ReflectionTestUtils.setField(user, "publicId", publicId)
+        ReflectionTestUtils.setField(user, "onboardingCompletedAt", LocalDateTime.of(2026, 7, 8, 0, 0))
+        val tokenInfo = TokenInfo("access-token", "refresh-token", 3600, 604800)
+        `when`(naverApiClient.getUser(AUTHORIZATION_CODE, STATE, REDIRECT_URI)).thenReturn(naverUser())
+        `when`(userRepository.findByProviderAndSocialId(OAuthProvider.NAVER, SOCIAL_ID)).thenReturn(user)
+        `when`(jwtTokenProvider.issueLoginTokens(publicId)).thenReturn(tokenInfo)
+
+        val response = service.login(request()) as NaverLoginResponse.Login
+
+        assertEquals(publicId, response.user.userId)
+        assertEquals("brifo", response.user.nickname)
+        assertEquals(tokenInfo, response.token)
+        assertEquals(LocalDateTime.of(2026, 7, 9, 0, 0), user.lastLoginAt)
+        verify(jwtTokenProvider).issueLoginTokens(publicId)
+    }
+
+    @Test
+    fun `온보딩 미완료 네이버 회원은 새 행 없이 회원가입용 임시 토큰을 다시 받는다`() {
+        val user = User.create(OAuthProvider.NAVER, SOCIAL_ID, "brifo", "user@naver.com")
+        `when`(naverApiClient.getUser(AUTHORIZATION_CODE, STATE, REDIRECT_URI)).thenReturn(naverUser())
+        `when`(userRepository.findByProviderAndSocialId(OAuthProvider.NAVER, SOCIAL_ID)).thenReturn(user)
+        `when`(jwtTokenProvider.issueSignupToken(OAuthProvider.NAVER, SOCIAL_ID, "user@naver.com"))
+            .thenReturn("signup-token")
+
+        val response = service.login(request()) as NaverLoginResponse.SignupRequired
+
+        assertEquals("signup-token", response.signupToken)
+        verify(userRepository, never()).save(any(User::class.java))
+        verify(apTransactionRepository, never()).save(any(ApTransaction::class.java))
+    }
+
+    @Test
+    fun `신규 네이버 회원은 사용자와 초기 AP 거래를 만들고 회원가입용 임시 토큰을 받는다`() {
+        `when`(naverApiClient.getUser(AUTHORIZATION_CODE, STATE, REDIRECT_URI)).thenReturn(naverUser())
+        `when`(userRepository.findByProviderAndSocialId(OAuthProvider.NAVER, SOCIAL_ID)).thenReturn(null)
+        `when`(userRepository.save(any(User::class.java))).thenAnswer { it.getArgument(0) }
+        `when`(jwtTokenProvider.issueSignupToken(OAuthProvider.NAVER, SOCIAL_ID, "user@naver.com"))
+            .thenReturn("signup-token")
+
+        val response = service.login(request()) as NaverLoginResponse.SignupRequired
+
+        assertEquals("signup-token", response.signupToken)
+        val savedUser = org.mockito.ArgumentCaptor.forClass(User::class.java)
+        verify(userRepository).save(savedUser.capture())
+        assertEquals(OAuthProvider.NAVER, savedUser.value.provider)
+        assertEquals(SOCIAL_ID, savedUser.value.socialId)
+        assertEquals("네이버닉네임", savedUser.value.nickname)
+        assertEquals("user@naver.com", savedUser.value.email)
+        assertEquals(500, savedUser.value.balanceAp)
+        assertEquals(null, savedUser.value.onboardingCompletedAt)
+
+        val savedTransaction = org.mockito.ArgumentCaptor.forClass(ApTransaction::class.java)
+        verify(apTransactionRepository).save(savedTransaction.capture())
+        assertEquals(savedUser.value, savedTransaction.value.user)
+        assertEquals(500, savedTransaction.value.amount)
+        assertEquals(ApTransactionReason.INITIAL_GRANT, savedTransaction.value.reason)
+    }
+
+    private fun request() = NaverLoginRequest(AUTHORIZATION_CODE, STATE, REDIRECT_URI)
+
+    private fun naverUser() =
+        NaverUserResponse.Profile(
+            id = SOCIAL_ID,
+            email = "user@naver.com",
+            nickname = "네이버닉네임",
+        )
+
+    companion object {
+        private const val SOCIAL_ID = "naver-social-id"
+        private const val AUTHORIZATION_CODE = "authorization-code"
+        private const val STATE = "state-value"
+        private const val REDIRECT_URI = "http://localhost:3000/oauth/callback/naver"
+    }
+}

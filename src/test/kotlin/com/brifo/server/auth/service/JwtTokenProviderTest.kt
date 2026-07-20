@@ -62,6 +62,17 @@ class JwtTokenProviderTest {
     }
 
     @Test
+    fun `회원가입 토큰은 네이버 공급자 정보를 보존한다`() {
+        val token = provider.issueSignupToken(OAuthProvider.NAVER, "naver-social-id", "user@naver.com")
+
+        val claims = provider.parseSignupToken(token)
+
+        assertEquals("naver-social-id", claims.socialId)
+        assertEquals("NAVER", claims.provider)
+        assertEquals("user@naver.com", claims.email)
+    }
+
+    @Test
     fun `위조된 회원가입 토큰은 거부한다`() {
         val token = provider.issueSignupToken(OAuthProvider.KAKAO, "1234567890", null)
         val parts = token.split(".").toMutableList()

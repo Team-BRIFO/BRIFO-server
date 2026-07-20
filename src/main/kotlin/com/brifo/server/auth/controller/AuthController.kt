@@ -2,7 +2,10 @@ package com.brifo.server.auth.controller
 
 import com.brifo.server.auth.dto.KakaoLoginRequest
 import com.brifo.server.auth.dto.KakaoLoginResponse
+import com.brifo.server.auth.dto.NaverLoginRequest
+import com.brifo.server.auth.dto.NaverLoginResponse
 import com.brifo.server.auth.service.KakaoLoginService
+import com.brifo.server.auth.service.NaverLoginService
 import com.brifo.server.global.code.SuccessCode
 import com.brifo.server.global.common.ApiResponse
 import jakarta.validation.Valid
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/auth")
 class AuthController(
     private val kakaoLoginService: KakaoLoginService,
+    private val naverLoginService: NaverLoginService,
 ) {
     @PostMapping("/login/kakao")
     fun loginWithKakao(
@@ -26,6 +30,20 @@ class AuthController(
             when (result) {
                 is KakaoLoginResponse.Login -> SuccessCode.LOGIN
                 is KakaoLoginResponse.SignupRequired -> SuccessCode.SIGNUP_REQUIRED
+            }
+
+        return ResponseEntity.ok(ApiResponse.success(successCode, result))
+    }
+
+    @PostMapping("/login/naver")
+    fun loginWithNaver(
+        @Valid @RequestBody request: NaverLoginRequest,
+    ): ResponseEntity<ApiResponse<NaverLoginResponse>> {
+        val result = naverLoginService.login(request)
+        val successCode =
+            when (result) {
+                is NaverLoginResponse.Login -> SuccessCode.LOGIN
+                is NaverLoginResponse.SignupRequired -> SuccessCode.SIGNUP_REQUIRED
             }
 
         return ResponseEntity.ok(ApiResponse.success(successCode, result))
