@@ -26,11 +26,26 @@ enum class BriefingErrorCode(
     BRIEFING_LIMIT_EXCEEDED(
         HttpStatus.CONFLICT,
         "BRIEFING_409_03",
-        "카드뉴스당 브리핑 요청 한도를 초과했습니다.",
+        "종목당 브리핑 요청 한도를 초과했습니다.",
     ),
     BRIEFING_PROCESSING_FAILED(
         HttpStatus.CONFLICT,
         "BRIEFING_409_04",
         "브리핑 처리에 실패했습니다.",
+    ),
+    BRIEFING_AGENT_NOT_IN_INITIAL_REQUEST(
+        HttpStatus.CONFLICT,
+        "BRIEFING_409_05",
+        "최초 의뢰에 포함되지 않은 사원은 추가할 수 없습니다.",
+    ),
+    BRIEFING_REQUEST_CLOSED(
+        HttpStatus.CONFLICT,
+        "BRIEFING_409_06",
+        "오늘의 브리핑 의뢰 시간이 마감되었습니다.",
+    ),
+    BRIEFING_RETRY_COOLDOWN(
+        HttpStatus.TOO_MANY_REQUESTS,
+        "BRIEFING_429_01",
+        "브리핑을 다시 의뢰하기 전에 잠시 기다려 주세요.",
     ),
 }
