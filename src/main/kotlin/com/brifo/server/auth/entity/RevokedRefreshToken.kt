@@ -29,7 +29,7 @@ class RevokedRefreshToken private constructor(
     var id: Long? = null
         protected set
 
-    @Column(name = "token_id", nullable = false, updatable = false, unique = true, length = 36)
+    @Column(name = "token_id", nullable = false, updatable = false, length = 36)
     var tokenId: String = tokenId
         protected set
 
