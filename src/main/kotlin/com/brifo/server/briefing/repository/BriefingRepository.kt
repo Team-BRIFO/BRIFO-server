@@ -1,13 +1,16 @@
 package com.brifo.server.briefing.repository
 
 import com.brifo.server.briefing.entity.Briefing
-import org.springframework.data.jpa.repository.EntityGraph
+import jakarta.persistence.LockModeType
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Lock
 import java.util.UUID
 
-interface BriefingRepository : JpaRepository<Briefing, Long> {
+interface BriefingRepository :
+    JpaRepository<Briefing, Long>,
+    BriefingQueryRepository {
     fun findByPublicId(publicId: UUID): Briefing?
 
-    @EntityGraph(attributePaths = ["agent", "newsCard", "newsCard.news", "newsCard.news.stock"])
-    fun findAllByOrderByCreatedAtDesc(): List<Briefing>
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    fun findForUpdateByPublicId(publicId: UUID): Briefing?
 }

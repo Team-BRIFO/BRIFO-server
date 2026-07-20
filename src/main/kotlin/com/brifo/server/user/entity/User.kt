@@ -91,6 +91,17 @@ class User private constructor(
         balanceAp += amount
     }
 
+    fun spendAp(amount: Int) {
+        require(amount > 0) { "amount must be positive" }
+        require(balanceAp >= amount) { "insufficient AP balance" }
+        balanceAp -= amount
+    }
+
+    fun refundAp(amount: Int) {
+        require(amount > 0) { "amount must be positive" }
+        balanceAp += amount
+    }
+
     companion object {
         private const val DEFAULT_COMPANY_NAME = "내 투자회사"
         private const val DEFAULT_BALANCE_AP = 0

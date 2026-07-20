@@ -28,4 +28,9 @@ enum class ApErrorCode(
         "AP_409_04",
         "신용대출 조건을 충족하지 않습니다.",
     ),
+    INSUFFICIENT_AP_BALANCE(
+        HttpStatus.CONFLICT,
+        "AP_409_05",
+        "AP가 부족합니다.",
+    ),
 }

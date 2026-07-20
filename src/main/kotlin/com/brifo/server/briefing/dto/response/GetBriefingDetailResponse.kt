@@ -7,7 +7,7 @@ import java.util.UUID
 data class GetBriefingDetailResponse(
     val stock: BriefingStockResponse,
     val agent: Agent,
-    val newsCard: NewsCard,
+    val newsCards: List<NewsCard>,
     val briefing: Briefing,
 ) {
     data class Agent(
@@ -26,6 +26,8 @@ data class GetBriefingDetailResponse(
         val briefingId: UUID,
         val direction: BriefingDirection,
         val confidenceRate: Int,
+        val summary: String,
+        val personalComment: String?,
         val contentText: String,
         val oneLiner: String,
     )
