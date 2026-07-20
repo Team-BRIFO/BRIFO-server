@@ -5,6 +5,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     kotlin("plugin.jpa") version "2.2.21"
     id("com.diffplug.spotless") version "8.8.0"
+    id("com.google.devtools.ksp") version "2.3.10"
 }
 
 group = "com.brifo"
@@ -50,6 +51,9 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    implementation("io.github.openfeign.querydsl:querydsl-jpa:7.4.0")
+    ksp("io.github.openfeign.querydsl:querydsl-ksp-codegen:7.4.0")
 }
 
 kotlin {

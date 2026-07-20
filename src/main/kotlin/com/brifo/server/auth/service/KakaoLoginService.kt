@@ -36,7 +36,7 @@ class KakaoLoginService(
         val publicId = requireNotNull(user.publicId) { "Persisted user must have a publicId." }
         user.markLoggedIn(LocalDateTime.now(clock))
         return KakaoLoginResponse.Login(
-            user = UserInfo(userId = publicId, nickname = user.nickname, email = user.email),
+            user = UserInfo(userId = publicId, nickname = requireNotNull(user.nickname), email = user.email),
             token = jwtTokenProvider.issueLoginTokens(publicId),
         )
     }
@@ -47,14 +47,14 @@ class KakaoLoginService(
         nickname: String?,
     ): User {
         val user =
-            userRepository.save(
-                User.create(
-                    provider = OAuthProvider.KAKAO,
-                    socialId = socialId,
-                    nickname = nickname?.takeIf { it.isNotBlank() } ?: DEFAULT_NICKNAME,
-                    email = email,
-                ),
+            User.create(
+                provider = OAuthProvider.KAKAO,
+                socialId = socialId,
+                nickname = nickname?.takeIf { it.isNotBlank() } ?: DEFAULT_NICKNAME,
+                email = email,
             )
+        user.grantAp(INITIAL_AP)
+        userRepository.save(user)
         apTransactionRepository.save(
             ApTransaction.create(
                 user = user,

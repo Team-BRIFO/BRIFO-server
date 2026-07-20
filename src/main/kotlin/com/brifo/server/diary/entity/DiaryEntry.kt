@@ -9,7 +9,7 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
-import jakarta.persistence.ManyToOne
+import jakarta.persistence.OneToOne
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
 import org.hibernate.annotations.Generated
@@ -34,13 +34,9 @@ class DiaryEntry private constructor(
     var publicId: UUID? = null
         protected set
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "decision_id", nullable = false)
     var decision: Decision = decision
-        protected set
-
-    @Column(name = "share_count", nullable = false)
-    var shareCount: Int = 0
         protected set
 
     @Column(name = "share_image_url", columnDefinition = "TEXT")

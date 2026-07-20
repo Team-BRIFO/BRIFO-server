@@ -39,7 +39,13 @@ class TokenReissueServiceTest {
         val expiresAt = Instant.parse("2026-07-27T00:00:00Z")
         val claims = JwtTokenProvider.AuthTokenClaims(userId, REFRESH_TOKEN_ID, expiresAt)
         val newTokens = TokenInfo("new-access-token", "new-refresh-token", 3600, 604800)
-        val user = User.create(OAuthProvider.KAKAO, "social-id", "brifo", "user@example.com")
+        val user =
+            User.create(
+                provider = OAuthProvider.KAKAO,
+                socialId = "social-id",
+                email = "user@example.com",
+                nickname = "brifo",
+            )
         `when`(jwtTokenProvider.parseRefreshToken(REFRESH_TOKEN)).thenReturn(claims)
         `when`(revokedRefreshTokenRepository.existsByTokenId(REFRESH_TOKEN_ID)).thenReturn(false)
         `when`(userRepository.findByPublicId(userId)).thenReturn(user)

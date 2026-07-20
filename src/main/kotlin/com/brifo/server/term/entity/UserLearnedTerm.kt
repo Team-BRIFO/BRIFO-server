@@ -11,7 +11,10 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
+import org.hibernate.annotations.Generated
+import org.hibernate.generator.EventType
 import java.time.LocalDateTime
+import java.util.UUID
 
 @Entity
 @Table(name = "user_learned_terms")
@@ -28,6 +31,11 @@ class UserLearnedTerm private constructor(
     )
     @Column(name = "id", nullable = false, updatable = false)
     var id: Long? = null
+        protected set
+
+    @Column(name = "public_id", nullable = false, insertable = false, updatable = false)
+    @Generated(event = [EventType.INSERT])
+    var publicId: UUID? = null
         protected set
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

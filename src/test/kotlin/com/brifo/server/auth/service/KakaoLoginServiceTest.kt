@@ -52,7 +52,7 @@ class KakaoLoginServiceTest {
     @Test
     fun `기존 카카오 회원은 사용자 정보와 서비스 토큰을 받는다`() {
         val publicId = UUID.randomUUID()
-        val user = User.create(OAuthProvider.KAKAO, SOCIAL_ID, "brifo", "user@kakao.com")
+        val user = User.create(OAuthProvider.KAKAO, SOCIAL_ID, "user@kakao.com", "brifo")
         ReflectionTestUtils.setField(user, "publicId", publicId)
         ReflectionTestUtils.setField(user, "onboardingCompletedAt", LocalDateTime.of(2026, 7, 7, 0, 0))
         val tokenInfo = TokenInfo("access-token", "refresh-token", 3600, 604800)
@@ -71,7 +71,7 @@ class KakaoLoginServiceTest {
 
     @Test
     fun `온보딩 미완료 카카오 회원은 새 행 없이 회원가입용 임시 토큰을 다시 받는다`() {
-        val user = User.create(OAuthProvider.KAKAO, SOCIAL_ID, "brifo", "user@kakao.com")
+        val user = User.create(OAuthProvider.KAKAO, SOCIAL_ID, "user@kakao.com", "brifo")
         `when`(kakaoApiClient.getUser(AUTHORIZATION_CODE, REDIRECT_URI)).thenReturn(kakaoUser())
         `when`(userRepository.findByProviderAndSocialId(OAuthProvider.KAKAO, SOCIAL_ID)).thenReturn(user)
         `when`(jwtTokenProvider.issueSignupToken(OAuthProvider.KAKAO, SOCIAL_ID, "user@kakao.com"))

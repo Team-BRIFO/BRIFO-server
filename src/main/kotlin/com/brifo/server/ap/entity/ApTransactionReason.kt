@@ -8,6 +8,8 @@ enum class ApTransactionReason {
     DECISION_WIN,
     DECISION_LOSE,
     NEUTRAL_HIT,
+    NEUTRAL_MISS,
     SALARY,
+    SALARY_REFUND,
     CREDIT_LOAN,
 }

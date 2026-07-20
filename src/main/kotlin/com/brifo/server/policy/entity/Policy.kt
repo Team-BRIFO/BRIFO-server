@@ -11,6 +11,7 @@ import jakarta.persistence.Table
 import org.hibernate.annotations.Generated
 import org.hibernate.generator.EventType
 import org.springframework.data.annotation.LastModifiedDate
+import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -45,8 +46,8 @@ class Policy private constructor(
     var isRequired: Boolean = isRequired
         protected set
 
-    @Column(name = "version", nullable = false)
-    var version: Int = 1
+    @Column(name = "version", nullable = false, precision = 5, scale = 2)
+    var version: BigDecimal = BigDecimal("1.0")
         protected set
 
     @Column(name = "is_active", nullable = false)
