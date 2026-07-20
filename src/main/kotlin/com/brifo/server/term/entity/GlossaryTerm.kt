@@ -48,11 +48,12 @@ class GlossaryTerm private constructor(
             term: String,
             definition: String,
             category: String?,
-        ): GlossaryTerm =
-            GlossaryTerm(
+        ): GlossaryTerm {
+            return GlossaryTerm(
                 term = term,
                 definition = definition,
                 category = category,
             )
+        }
     }
 }

@@ -96,8 +96,8 @@ class News private constructor(
             importance: BigDecimal?,
             dedupKey: String,
             publishedAt: LocalDateTime,
-        ): News =
-            News(
+        ): News {
+            return News(
                 stock = stock,
                 source = source,
                 sourceUrl = sourceUrl,
@@ -107,5 +107,6 @@ class News private constructor(
                 dedupKey = dedupKey,
                 publishedAt = publishedAt,
             )
+        }
     }
 }

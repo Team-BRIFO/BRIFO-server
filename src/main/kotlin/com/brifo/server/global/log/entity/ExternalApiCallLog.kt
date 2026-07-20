@@ -84,8 +84,8 @@ class ExternalApiCallLog private constructor(
             status: ExternalApiCallStatus?,
             httpStatusCode: Int?,
             latencyMs: Int?,
-        ): ExternalApiCallLog =
-            ExternalApiCallLog(
+        ): ExternalApiCallLog {
+            return ExternalApiCallLog(
                 apiName = apiName,
                 provider = provider,
                 requestPayload = requestPayload,
@@ -94,5 +94,6 @@ class ExternalApiCallLog private constructor(
                 httpStatusCode = httpStatusCode,
                 latencyMs = latencyMs,
             )
+        }
     }
 }

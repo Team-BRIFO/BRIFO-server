@@ -54,12 +54,13 @@ class Badge private constructor(
             name: String,
             description: String?,
             ap: Int,
-        ): Badge =
-            Badge(
+        ): Badge {
+            return Badge(
                 code = code,
                 name = name,
                 description = description,
                 ap = ap,
             )
+        }
     }
 }

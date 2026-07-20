@@ -60,12 +60,13 @@ class DailyStockPrice private constructor(
             tradeDate: LocalDate,
             closePrice: BigDecimal,
             changeRate: BigDecimal,
-        ): DailyStockPrice =
-            DailyStockPrice(
+        ): DailyStockPrice {
+            return DailyStockPrice(
                 stock = stock,
                 tradeDate = tradeDate,
                 closePrice = closePrice,
                 changeRate = changeRate,
             )
+        }
     }
 }

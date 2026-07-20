@@ -48,10 +48,11 @@ class UserLearnedTerm private constructor(
         fun create(
             user: User,
             term: GlossaryTerm,
-        ): UserLearnedTerm =
-            UserLearnedTerm(
+        ): UserLearnedTerm {
+            return UserLearnedTerm(
                 user = user,
                 term = term,
             )
+        }
     }
 }

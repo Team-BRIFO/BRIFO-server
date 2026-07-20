@@ -85,10 +85,11 @@ class Briefing private constructor(
         fun create(
             newsCard: NewsCard,
             agent: Agent,
-        ): Briefing =
-            Briefing(
+        ): Briefing {
+            return Briefing(
                 newsCard = newsCard,
                 agent = agent,
             )
+        }
     }
 }
