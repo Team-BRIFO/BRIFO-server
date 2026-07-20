@@ -73,7 +73,24 @@ class JwtTokenProviderTest {
                 provider.parseRefreshToken(accessToken)
             }
 
-        assertEquals(ErrorCode.REFRESH_TOKEN_UNUSABLE, exception.errorCode)
+        assertEquals(ErrorCode.REFRESH_TOKEN_INVALID, exception.errorCode)
+    }
+
+    @Test
+    fun `만료된 Refresh Token은 만료 오류로 구분한다`() {
+        val refreshToken = provider.issueLoginTokens(UUID.randomUUID()).refreshToken
+        val expiredProvider =
+            JwtTokenProvider(
+                properties,
+                Clock.fixed(Instant.parse("2026-07-16T00:00:00Z"), ZoneOffset.UTC),
+            )
+
+        val exception =
+            assertThrows(BusinessException::class.java) {
+                expiredProvider.parseRefreshToken(refreshToken)
+            }
+
+        assertEquals(ErrorCode.REFRESH_TOKEN_EXPIRED, exception.errorCode)
     }
 
     @Test

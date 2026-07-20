@@ -5,6 +5,7 @@ import com.brifo.server.auth.entity.RevokedRefreshToken
 import com.brifo.server.auth.repository.RevokedRefreshTokenRepository
 import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.exception.BusinessException
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -24,7 +25,7 @@ class LogoutService(
                 ?: throw BusinessException(ErrorCode.REFRESH_TOKEN_REQUIRED)
 
         val accessClaims = jwtTokenProvider.parseAccessToken(accessToken)
-        val refreshClaims = jwtTokenProvider.parseRefreshToken(refreshToken)
+        val refreshClaims = jwtTokenProvider.parseRefreshTokenForLogout(refreshToken)
 
         if (accessClaims.userId != refreshClaims.userId) {
             throw BusinessException(ErrorCode.REFRESH_TOKEN_MISMATCH)
@@ -33,13 +34,17 @@ class LogoutService(
             throw BusinessException(ErrorCode.REFRESH_TOKEN_UNUSABLE)
         }
 
-        revokedRefreshTokenRepository.save(
-            RevokedRefreshToken.create(
-                tokenId = refreshClaims.tokenId,
-                userPublicId = refreshClaims.userId,
-                expiresAt = refreshClaims.expiresAt,
-            ),
-        )
+        try {
+            revokedRefreshTokenRepository.saveAndFlush(
+                RevokedRefreshToken.create(
+                    tokenId = refreshClaims.tokenId,
+                    userPublicId = refreshClaims.userId,
+                    expiresAt = refreshClaims.expiresAt,
+                ),
+            )
+        } catch (exception: DataIntegrityViolationException) {
+            throw BusinessException(ErrorCode.REFRESH_TOKEN_UNUSABLE)
+        }
     }
 
     private fun extractAccessToken(authorizationHeader: String?): String {

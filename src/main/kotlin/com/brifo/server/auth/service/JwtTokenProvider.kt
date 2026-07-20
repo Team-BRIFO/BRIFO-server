@@ -6,6 +6,7 @@ import com.brifo.server.global.config.JwtProperties
 import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.user.entity.OAuthProvider
 import io.jsonwebtoken.Claims
+import io.jsonwebtoken.ExpiredJwtException
 import io.jsonwebtoken.JwtException
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.io.Decoders
@@ -53,7 +54,13 @@ class JwtTokenProvider(
         )
 
     fun parseSignupToken(token: String): SignupTokenClaims {
-        val claims = parseClaims(token, TokenType.SIGNUP, ErrorCode.OAUTH_INVALID_TOKEN)
+        val claims =
+            parseClaims(
+                token = token,
+                expectedType = TokenType.SIGNUP,
+                invalidErrorCode = ErrorCode.OAUTH_INVALID_TOKEN,
+                expiredErrorCode = ErrorCode.OAUTH_INVALID_TOKEN,
+            )
         return SignupTokenClaims(
             socialId = claims.subject,
             provider = claims.get(PROVIDER_CLAIM, String::class.java),
@@ -61,16 +68,37 @@ class JwtTokenProvider(
         )
     }
 
-    fun parseAccessToken(token: String): AuthTokenClaims = parseAuthToken(token, TokenType.ACCESS, ErrorCode.OAUTH_INVALID_TOKEN)
+    fun parseAccessToken(token: String): AuthTokenClaims =
+        parseAuthToken(
+            token = token,
+            expectedType = TokenType.ACCESS,
+            invalidErrorCode = ErrorCode.OAUTH_INVALID_TOKEN,
+            expiredErrorCode = ErrorCode.OAUTH_INVALID_TOKEN,
+        )
 
-    fun parseRefreshToken(token: String): AuthTokenClaims = parseAuthToken(token, TokenType.REFRESH, ErrorCode.REFRESH_TOKEN_UNUSABLE)
+    fun parseRefreshToken(token: String): AuthTokenClaims =
+        parseAuthToken(
+            token = token,
+            expectedType = TokenType.REFRESH,
+            invalidErrorCode = ErrorCode.REFRESH_TOKEN_INVALID,
+            expiredErrorCode = ErrorCode.REFRESH_TOKEN_EXPIRED,
+        )
+
+    fun parseRefreshTokenForLogout(token: String): AuthTokenClaims =
+        parseAuthToken(
+            token = token,
+            expectedType = TokenType.REFRESH,
+            invalidErrorCode = ErrorCode.OAUTH_INVALID_TOKEN,
+            expiredErrorCode = ErrorCode.OAUTH_INVALID_TOKEN,
+        )
 
     private fun parseAuthToken(
         token: String,
         expectedType: TokenType,
-        errorCode: ErrorCode,
+        invalidErrorCode: ErrorCode,
+        expiredErrorCode: ErrorCode,
     ): AuthTokenClaims {
-        val claims = parseClaims(token, expectedType, errorCode)
+        val claims = parseClaims(token, expectedType, invalidErrorCode, expiredErrorCode)
         return try {
             AuthTokenClaims(
                 userId = UUID.fromString(claims.subject),
@@ -78,7 +106,7 @@ class JwtTokenProvider(
                 expiresAt = requireNotNull(claims.expiration).toInstant(),
             )
         } catch (exception: IllegalArgumentException) {
-            throw BusinessException(errorCode)
+            throw BusinessException(invalidErrorCode)
         }
     }
 
@@ -109,20 +137,23 @@ class JwtTokenProvider(
     private fun parseClaims(
         token: String,
         expectedType: TokenType,
-        errorCode: ErrorCode,
+        invalidErrorCode: ErrorCode,
+        expiredErrorCode: ErrorCode,
     ): Claims {
         try {
             val claims = parser.parseSignedClaims(token).payload
             if (claims.get(TOKEN_TYPE_CLAIM, String::class.java) != expectedType.name) {
-                throw BusinessException(errorCode)
+                throw BusinessException(invalidErrorCode)
             }
             return claims
         } catch (exception: BusinessException) {
             throw exception
+        } catch (exception: ExpiredJwtException) {
+            throw BusinessException(expiredErrorCode)
         } catch (exception: JwtException) {
-            throw BusinessException(errorCode)
+            throw BusinessException(invalidErrorCode)
         } catch (exception: IllegalArgumentException) {
-            throw BusinessException(errorCode)
+            throw BusinessException(invalidErrorCode)
         }
     }
 

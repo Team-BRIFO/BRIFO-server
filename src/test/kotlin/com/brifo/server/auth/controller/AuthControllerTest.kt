@@ -1,9 +1,13 @@
 package com.brifo.server.auth.controller
 
 import com.brifo.server.auth.dto.LogoutRequest
+import com.brifo.server.auth.dto.ReissueRequest
+import com.brifo.server.auth.dto.ReissueResponse
+import com.brifo.server.auth.dto.TokenInfo
 import com.brifo.server.auth.service.KakaoLoginService
 import com.brifo.server.auth.service.LogoutService
 import com.brifo.server.auth.service.NaverLoginService
+import com.brifo.server.auth.service.TokenReissueService
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -29,13 +33,16 @@ class AuthControllerTest {
     @Mock
     private lateinit var logoutService: LogoutService
 
+    @Mock
+    private lateinit var tokenReissueService: TokenReissueService
+
     private lateinit var mockMvc: MockMvc
 
     @BeforeEach
     fun setUp() {
         mockMvc =
             MockMvcBuilders
-                .standaloneSetup(AuthController(kakaoLoginService, naverLoginService, logoutService))
+                .standaloneSetup(AuthController(kakaoLoginService, naverLoginService, logoutService, tokenReissueService))
                 .build()
     }
 
@@ -54,5 +61,26 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.result").doesNotExist())
 
         verify(logoutService).logout("Bearer access-token", LogoutRequest("refresh-token"))
+    }
+
+    @Test
+    fun `Refresh Token으로 새 토큰 쌍을 발급한다`() {
+        val tokens = TokenInfo("new-access-token", "new-refresh-token", 3600, 604800)
+        org.mockito.Mockito
+            .`when`(tokenReissueService.reissue(ReissueRequest("refresh-token")))
+            .thenReturn(ReissueResponse(tokens))
+
+        mockMvc
+            .perform(
+                post("/api/auth/reissue")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"refreshToken":"refresh-token"}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.code").value("COMMON_200"))
+            .andExpect(jsonPath("$.result.token.accessToken").value("new-access-token"))
+            .andExpect(jsonPath("$.result.token.refreshToken").value("new-refresh-token"))
+            .andExpect(jsonPath("$.result.token.accessTokenExpiresIn").value(3600))
+            .andExpect(jsonPath("$.result.token.refreshTokenExpiresIn").value(604800))
     }
 }

@@ -33,14 +33,14 @@ class LogoutServiceTest {
         val service = service()
         `when`(jwtTokenProvider.parseAccessToken(ACCESS_TOKEN))
             .thenReturn(JwtTokenProvider.AuthTokenClaims(userId, "access-jti", expiresAt))
-        `when`(jwtTokenProvider.parseRefreshToken(REFRESH_TOKEN))
+        `when`(jwtTokenProvider.parseRefreshTokenForLogout(REFRESH_TOKEN))
             .thenReturn(JwtTokenProvider.AuthTokenClaims(userId, REFRESH_TOKEN_ID, expiresAt))
         `when`(revokedRefreshTokenRepository.existsByTokenId(REFRESH_TOKEN_ID)).thenReturn(false)
 
         service.logout("Bearer $ACCESS_TOKEN", LogoutRequest(REFRESH_TOKEN))
 
         val savedToken = org.mockito.ArgumentCaptor.forClass(RevokedRefreshToken::class.java)
-        verify(revokedRefreshTokenRepository).save(savedToken.capture())
+        verify(revokedRefreshTokenRepository).saveAndFlush(savedToken.capture())
         assertEquals(REFRESH_TOKEN_ID, savedToken.value.tokenId)
         assertEquals(userId, savedToken.value.userPublicId)
         assertEquals(expiresAt, savedToken.value.expiresAt)
@@ -78,7 +78,7 @@ class LogoutServiceTest {
         val expiresAt = Instant.parse("2026-07-27T00:00:00Z")
         `when`(jwtTokenProvider.parseAccessToken(ACCESS_TOKEN))
             .thenReturn(JwtTokenProvider.AuthTokenClaims(UUID.randomUUID(), "access-jti", expiresAt))
-        `when`(jwtTokenProvider.parseRefreshToken(REFRESH_TOKEN))
+        `when`(jwtTokenProvider.parseRefreshTokenForLogout(REFRESH_TOKEN))
             .thenReturn(JwtTokenProvider.AuthTokenClaims(UUID.randomUUID(), REFRESH_TOKEN_ID, expiresAt))
 
         val exception =
@@ -97,7 +97,7 @@ class LogoutServiceTest {
         val service = service()
         `when`(jwtTokenProvider.parseAccessToken(ACCESS_TOKEN))
             .thenReturn(JwtTokenProvider.AuthTokenClaims(userId, "access-jti", expiresAt))
-        `when`(jwtTokenProvider.parseRefreshToken(REFRESH_TOKEN))
+        `when`(jwtTokenProvider.parseRefreshTokenForLogout(REFRESH_TOKEN))
             .thenReturn(JwtTokenProvider.AuthTokenClaims(userId, REFRESH_TOKEN_ID, expiresAt))
         `when`(revokedRefreshTokenRepository.existsByTokenId(REFRESH_TOKEN_ID)).thenReturn(true)
 
