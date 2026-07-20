@@ -1,9 +1,11 @@
 package com.brifo.server.auth.service
 
-import com.brifo.server.auth.dto.TokenInfo
-import com.brifo.server.global.code.ErrorCode
+import com.brifo.server.auth.dto.response.TokenInfo
+import com.brifo.server.auth.exception.AuthException
+import com.brifo.server.auth.exception.InvalidRefreshTokenException
+import com.brifo.server.auth.exception.InvalidTokenException
+import com.brifo.server.auth.exception.RefreshTokenExpiredException
 import com.brifo.server.global.config.JwtProperties
-import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.user.entity.OAuthProvider
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.ExpiredJwtException
@@ -58,8 +60,8 @@ class JwtTokenProvider(
             parseClaims(
                 token = token,
                 expectedType = TokenType.SIGNUP,
-                invalidErrorCode = ErrorCode.OAUTH_INVALID_TOKEN,
-                expiredErrorCode = ErrorCode.OAUTH_INVALID_TOKEN,
+                invalidException = { InvalidTokenException() },
+                expiredException = { InvalidTokenException() },
             )
         return SignupTokenClaims(
             socialId = claims.subject,
@@ -72,33 +74,33 @@ class JwtTokenProvider(
         parseAuthToken(
             token = token,
             expectedType = TokenType.ACCESS,
-            invalidErrorCode = ErrorCode.OAUTH_INVALID_TOKEN,
-            expiredErrorCode = ErrorCode.OAUTH_INVALID_TOKEN,
+            invalidException = { InvalidTokenException() },
+            expiredException = { InvalidTokenException() },
         )
 
     fun parseRefreshToken(token: String): AuthTokenClaims =
         parseAuthToken(
             token = token,
             expectedType = TokenType.REFRESH,
-            invalidErrorCode = ErrorCode.REFRESH_TOKEN_INVALID,
-            expiredErrorCode = ErrorCode.REFRESH_TOKEN_EXPIRED,
+            invalidException = { InvalidRefreshTokenException() },
+            expiredException = { RefreshTokenExpiredException() },
         )
 
     fun parseRefreshTokenForLogout(token: String): AuthTokenClaims =
         parseAuthToken(
             token = token,
             expectedType = TokenType.REFRESH,
-            invalidErrorCode = ErrorCode.OAUTH_INVALID_TOKEN,
-            expiredErrorCode = ErrorCode.OAUTH_INVALID_TOKEN,
+            invalidException = { InvalidTokenException() },
+            expiredException = { InvalidTokenException() },
         )
 
     private fun parseAuthToken(
         token: String,
         expectedType: TokenType,
-        invalidErrorCode: ErrorCode,
-        expiredErrorCode: ErrorCode,
+        invalidException: () -> AuthException,
+        expiredException: () -> AuthException,
     ): AuthTokenClaims {
-        val claims = parseClaims(token, expectedType, invalidErrorCode, expiredErrorCode)
+        val claims = parseClaims(token, expectedType, invalidException, expiredException)
         return try {
             AuthTokenClaims(
                 userId = UUID.fromString(claims.subject),
@@ -106,7 +108,7 @@ class JwtTokenProvider(
                 expiresAt = requireNotNull(claims.expiration).toInstant(),
             )
         } catch (exception: IllegalArgumentException) {
-            throw BusinessException(invalidErrorCode)
+            throw invalidException()
         }
     }
 
@@ -137,23 +139,23 @@ class JwtTokenProvider(
     private fun parseClaims(
         token: String,
         expectedType: TokenType,
-        invalidErrorCode: ErrorCode,
-        expiredErrorCode: ErrorCode,
+        invalidException: () -> AuthException,
+        expiredException: () -> AuthException,
     ): Claims {
         try {
             val claims = parser.parseSignedClaims(token).payload
             if (claims.get(TOKEN_TYPE_CLAIM, String::class.java) != expectedType.name) {
-                throw BusinessException(invalidErrorCode)
+                throw invalidException()
             }
             return claims
-        } catch (exception: BusinessException) {
+        } catch (exception: AuthException) {
             throw exception
         } catch (exception: ExpiredJwtException) {
-            throw BusinessException(expiredErrorCode)
+            throw expiredException()
         } catch (exception: JwtException) {
-            throw BusinessException(invalidErrorCode)
+            throw invalidException()
         } catch (exception: IllegalArgumentException) {
-            throw BusinessException(invalidErrorCode)
+            throw invalidException()
         }
     }
 

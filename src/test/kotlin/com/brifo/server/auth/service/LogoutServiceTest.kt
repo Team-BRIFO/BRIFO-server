@@ -1,10 +1,10 @@
 package com.brifo.server.auth.service
 
-import com.brifo.server.auth.dto.LogoutRequest
+import com.brifo.server.auth.code.AuthErrorCode
+import com.brifo.server.auth.dto.request.LogoutRequest
 import com.brifo.server.auth.entity.RevokedRefreshToken
+import com.brifo.server.auth.exception.AuthException
 import com.brifo.server.auth.repository.RevokedRefreshTokenRepository
-import com.brifo.server.global.code.ErrorCode
-import com.brifo.server.global.exception.BusinessException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
@@ -51,11 +51,11 @@ class LogoutServiceTest {
         val service = service()
 
         val exception =
-            assertThrows(BusinessException::class.java) {
+            assertThrows(AuthException::class.java) {
                 service.logout(null, LogoutRequest(REFRESH_TOKEN))
             }
 
-        assertEquals(ErrorCode.UNAUTHORIZED, exception.errorCode)
+        assertEquals(AuthErrorCode.UNAUTHORIZED, exception.errorCode)
         verifyNoInteractions(jwtTokenProvider, revokedRefreshTokenRepository)
     }
 
@@ -64,11 +64,11 @@ class LogoutServiceTest {
         val service = service()
 
         val exception =
-            assertThrows(BusinessException::class.java) {
+            assertThrows(AuthException::class.java) {
                 service.logout("Bearer $ACCESS_TOKEN", null)
             }
 
-        assertEquals(ErrorCode.REFRESH_TOKEN_REQUIRED, exception.errorCode)
+        assertEquals(AuthErrorCode.REFRESH_TOKEN_REQUIRED, exception.errorCode)
         verifyNoInteractions(jwtTokenProvider, revokedRefreshTokenRepository)
     }
 
@@ -82,11 +82,11 @@ class LogoutServiceTest {
             .thenReturn(JwtTokenProvider.AuthTokenClaims(UUID.randomUUID(), REFRESH_TOKEN_ID, expiresAt))
 
         val exception =
-            assertThrows(BusinessException::class.java) {
+            assertThrows(AuthException::class.java) {
                 service.logout("Bearer $ACCESS_TOKEN", LogoutRequest(REFRESH_TOKEN))
             }
 
-        assertEquals(ErrorCode.REFRESH_TOKEN_MISMATCH, exception.errorCode)
+        assertEquals(AuthErrorCode.REFRESH_TOKEN_MISMATCH, exception.errorCode)
         verifyNoInteractions(revokedRefreshTokenRepository)
     }
 
@@ -102,11 +102,11 @@ class LogoutServiceTest {
         `when`(revokedRefreshTokenRepository.existsByTokenId(REFRESH_TOKEN_ID)).thenReturn(true)
 
         val exception =
-            assertThrows(BusinessException::class.java) {
+            assertThrows(AuthException::class.java) {
                 service.logout("Bearer $ACCESS_TOKEN", LogoutRequest(REFRESH_TOKEN))
             }
 
-        assertEquals(ErrorCode.REFRESH_TOKEN_UNUSABLE, exception.errorCode)
+        assertEquals(AuthErrorCode.REFRESH_TOKEN_UNUSABLE, exception.errorCode)
         verify(revokedRefreshTokenRepository).existsByTokenId(REFRESH_TOKEN_ID)
         verifyNoMoreInteractions(revokedRefreshTokenRepository)
     }

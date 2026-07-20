@@ -1,10 +1,13 @@
 package com.brifo.server.auth.service
 
-import com.brifo.server.auth.dto.LogoutRequest
+import com.brifo.server.auth.dto.request.LogoutRequest
 import com.brifo.server.auth.entity.RevokedRefreshToken
+import com.brifo.server.auth.exception.InvalidTokenException
+import com.brifo.server.auth.exception.RefreshTokenMismatchException
+import com.brifo.server.auth.exception.RefreshTokenRequiredException
+import com.brifo.server.auth.exception.UnauthorizedException
+import com.brifo.server.auth.exception.UnusableRefreshTokenException
 import com.brifo.server.auth.repository.RevokedRefreshTokenRepository
-import com.brifo.server.global.code.ErrorCode
-import com.brifo.server.global.exception.BusinessException
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -22,16 +25,16 @@ class LogoutService(
         val accessToken = extractAccessToken(authorizationHeader)
         val refreshToken =
             request?.refreshToken?.takeIf { it.isNotBlank() }
-                ?: throw BusinessException(ErrorCode.REFRESH_TOKEN_REQUIRED)
+                ?: throw RefreshTokenRequiredException()
 
         val accessClaims = jwtTokenProvider.parseAccessToken(accessToken)
         val refreshClaims = jwtTokenProvider.parseRefreshTokenForLogout(refreshToken)
 
         if (accessClaims.userId != refreshClaims.userId) {
-            throw BusinessException(ErrorCode.REFRESH_TOKEN_MISMATCH)
+            throw RefreshTokenMismatchException()
         }
         if (revokedRefreshTokenRepository.existsByTokenId(refreshClaims.tokenId)) {
-            throw BusinessException(ErrorCode.REFRESH_TOKEN_UNUSABLE)
+            throw UnusableRefreshTokenException()
         }
 
         try {
@@ -43,21 +46,21 @@ class LogoutService(
                 ),
             )
         } catch (exception: DataIntegrityViolationException) {
-            throw BusinessException(ErrorCode.REFRESH_TOKEN_UNUSABLE)
+            throw UnusableRefreshTokenException()
         }
     }
 
     private fun extractAccessToken(authorizationHeader: String?): String {
         val header = authorizationHeader?.trim()
         if (header.isNullOrEmpty()) {
-            throw BusinessException(ErrorCode.UNAUTHORIZED)
+            throw UnauthorizedException()
         }
         if (!header.startsWith(BEARER_PREFIX, ignoreCase = true)) {
-            throw BusinessException(ErrorCode.OAUTH_INVALID_TOKEN)
+            throw InvalidTokenException()
         }
 
         return header.substring(BEARER_PREFIX.length).trim().takeIf { it.isNotEmpty() }
-            ?: throw BusinessException(ErrorCode.OAUTH_INVALID_TOKEN)
+            ?: throw InvalidTokenException()
     }
 
     companion object {

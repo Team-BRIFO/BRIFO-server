@@ -1,8 +1,8 @@
 package com.brifo.server.auth.service
 
-import com.brifo.server.global.code.ErrorCode
+import com.brifo.server.auth.code.AuthErrorCode
+import com.brifo.server.auth.exception.AuthException
 import com.brifo.server.global.config.JwtProperties
-import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.user.entity.OAuthProvider
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.io.Decoders
@@ -69,11 +69,11 @@ class JwtTokenProviderTest {
         val accessToken = provider.issueLoginTokens(UUID.randomUUID()).accessToken
 
         val exception =
-            assertThrows(BusinessException::class.java) {
+            assertThrows(AuthException::class.java) {
                 provider.parseRefreshToken(accessToken)
             }
 
-        assertEquals(ErrorCode.REFRESH_TOKEN_INVALID, exception.errorCode)
+        assertEquals(AuthErrorCode.REFRESH_TOKEN_INVALID, exception.errorCode)
     }
 
     @Test
@@ -86,11 +86,11 @@ class JwtTokenProviderTest {
             )
 
         val exception =
-            assertThrows(BusinessException::class.java) {
+            assertThrows(AuthException::class.java) {
                 expiredProvider.parseRefreshToken(refreshToken)
             }
 
-        assertEquals(ErrorCode.REFRESH_TOKEN_EXPIRED, exception.errorCode)
+        assertEquals(AuthErrorCode.REFRESH_TOKEN_EXPIRED, exception.errorCode)
     }
 
     @Test
@@ -122,9 +122,9 @@ class JwtTokenProviderTest {
         parts[2] = (if (parts[2].first() == 'a') "b" else "a") + parts[2].drop(1)
         val tamperedToken = parts.joinToString(".")
 
-        val exception = assertThrows(BusinessException::class.java) { provider.parseSignupToken(tamperedToken) }
+        val exception = assertThrows(AuthException::class.java) { provider.parseSignupToken(tamperedToken) }
 
-        assertEquals(ErrorCode.OAUTH_INVALID_TOKEN, exception.errorCode)
+        assertEquals(AuthErrorCode.OAUTH_INVALID_TOKEN, exception.errorCode)
     }
 
     @Test

@@ -1,4 +1,4 @@
-package com.brifo.server.auth.dto
+package com.brifo.server.auth.dto.response
 
 sealed interface NaverLoginResponse {
     val loginType: LoginType

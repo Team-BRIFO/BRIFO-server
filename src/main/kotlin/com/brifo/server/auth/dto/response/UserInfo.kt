@@ -1,4 +1,4 @@
-package com.brifo.server.auth.dto
+package com.brifo.server.auth.dto.response
 
 import java.util.UUID
 

@@ -1,11 +1,11 @@
 package com.brifo.server.auth.service
 
-import com.brifo.server.auth.dto.ReissueRequest
-import com.brifo.server.auth.dto.TokenInfo
+import com.brifo.server.auth.code.AuthErrorCode
+import com.brifo.server.auth.dto.request.ReissueRequest
+import com.brifo.server.auth.dto.response.TokenInfo
 import com.brifo.server.auth.entity.RevokedRefreshToken
+import com.brifo.server.auth.exception.AuthException
 import com.brifo.server.auth.repository.RevokedRefreshTokenRepository
-import com.brifo.server.global.code.ErrorCode
-import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.user.entity.OAuthProvider
 import com.brifo.server.user.entity.User
 import com.brifo.server.user.repository.UserRepository
@@ -64,11 +64,11 @@ class TokenReissueServiceTest {
     @Test
     fun `Refresh Token이 없으면 필수 값 오류를 반환한다`() {
         val exception =
-            assertThrows(BusinessException::class.java) {
+            assertThrows(AuthException::class.java) {
                 service().reissue(null)
             }
 
-        assertEquals(ErrorCode.REFRESH_TOKEN_REQUIRED, exception.errorCode)
+        assertEquals(AuthErrorCode.REFRESH_TOKEN_REQUIRED, exception.errorCode)
         verifyNoInteractions(jwtTokenProvider, revokedRefreshTokenRepository, userRepository)
     }
 
@@ -84,11 +84,11 @@ class TokenReissueServiceTest {
         `when`(revokedRefreshTokenRepository.existsByTokenId(REFRESH_TOKEN_ID)).thenReturn(true)
 
         val exception =
-            assertThrows(BusinessException::class.java) {
+            assertThrows(AuthException::class.java) {
                 service().reissue(ReissueRequest(REFRESH_TOKEN))
             }
 
-        assertEquals(ErrorCode.REFRESH_TOKEN_UNUSABLE, exception.errorCode)
+        assertEquals(AuthErrorCode.REFRESH_TOKEN_UNUSABLE, exception.errorCode)
         verifyNoInteractions(userRepository)
         verify(revokedRefreshTokenRepository).existsByTokenId(REFRESH_TOKEN_ID)
         verifyNoMoreInteractions(revokedRefreshTokenRepository)
@@ -108,11 +108,11 @@ class TokenReissueServiceTest {
         `when`(userRepository.findByPublicId(userId)).thenReturn(null)
 
         val exception =
-            assertThrows(BusinessException::class.java) {
+            assertThrows(AuthException::class.java) {
                 service().reissue(ReissueRequest(REFRESH_TOKEN))
             }
 
-        assertEquals(ErrorCode.AUTH_USER_NOT_FOUND, exception.errorCode)
+        assertEquals(AuthErrorCode.AUTH_USER_NOT_FOUND, exception.errorCode)
         verify(revokedRefreshTokenRepository).existsByTokenId(REFRESH_TOKEN_ID)
         verifyNoMoreInteractions(revokedRefreshTokenRepository)
     }

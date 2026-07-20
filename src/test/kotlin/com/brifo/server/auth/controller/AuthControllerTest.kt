@@ -1,9 +1,9 @@
 package com.brifo.server.auth.controller
 
-import com.brifo.server.auth.dto.LogoutRequest
-import com.brifo.server.auth.dto.ReissueRequest
-import com.brifo.server.auth.dto.ReissueResponse
-import com.brifo.server.auth.dto.TokenInfo
+import com.brifo.server.auth.dto.request.LogoutRequest
+import com.brifo.server.auth.dto.request.ReissueRequest
+import com.brifo.server.auth.dto.response.ReissueResponse
+import com.brifo.server.auth.dto.response.TokenInfo
 import com.brifo.server.auth.service.KakaoLoginService
 import com.brifo.server.auth.service.LogoutService
 import com.brifo.server.auth.service.NaverLoginService

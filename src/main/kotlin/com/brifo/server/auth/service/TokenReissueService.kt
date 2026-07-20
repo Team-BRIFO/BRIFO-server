@@ -1,11 +1,12 @@
 package com.brifo.server.auth.service
 
-import com.brifo.server.auth.dto.ReissueRequest
-import com.brifo.server.auth.dto.ReissueResponse
+import com.brifo.server.auth.dto.request.ReissueRequest
+import com.brifo.server.auth.dto.response.ReissueResponse
 import com.brifo.server.auth.entity.RevokedRefreshToken
+import com.brifo.server.auth.exception.AuthUserNotFoundException
+import com.brifo.server.auth.exception.RefreshTokenRequiredException
+import com.brifo.server.auth.exception.UnusableRefreshTokenException
 import com.brifo.server.auth.repository.RevokedRefreshTokenRepository
-import com.brifo.server.global.code.ErrorCode
-import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.user.repository.UserRepository
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
@@ -21,14 +22,14 @@ class TokenReissueService(
     fun reissue(request: ReissueRequest?): ReissueResponse {
         val refreshToken =
             request?.refreshToken?.takeIf { it.isNotBlank() }
-                ?: throw BusinessException(ErrorCode.REFRESH_TOKEN_REQUIRED)
+                ?: throw RefreshTokenRequiredException()
         val claims = jwtTokenProvider.parseRefreshToken(refreshToken)
 
         if (revokedRefreshTokenRepository.existsByTokenId(claims.tokenId)) {
-            throw BusinessException(ErrorCode.REFRESH_TOKEN_UNUSABLE)
+            throw UnusableRefreshTokenException()
         }
         if (userRepository.findByPublicId(claims.userId) == null) {
-            throw BusinessException(ErrorCode.AUTH_USER_NOT_FOUND)
+            throw AuthUserNotFoundException()
         }
 
         try {
@@ -40,7 +41,7 @@ class TokenReissueService(
                 ),
             )
         } catch (exception: DataIntegrityViolationException) {
-            throw BusinessException(ErrorCode.REFRESH_TOKEN_UNUSABLE)
+            throw UnusableRefreshTokenException()
         }
 
         return ReissueResponse(token = jwtTokenProvider.issueLoginTokens(claims.userId))

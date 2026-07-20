@@ -3,9 +3,10 @@ package com.brifo.server.auth.service
 import com.brifo.server.ap.entity.ApTransaction
 import com.brifo.server.ap.entity.ApTransactionReason
 import com.brifo.server.ap.repository.ApTransactionRepository
-import com.brifo.server.auth.dto.NaverLoginRequest
-import com.brifo.server.auth.dto.NaverLoginResponse
-import com.brifo.server.auth.dto.UserInfo
+import com.brifo.server.auth.client.NaverApiClient
+import com.brifo.server.auth.dto.request.NaverLoginRequest
+import com.brifo.server.auth.dto.response.NaverLoginResponse
+import com.brifo.server.auth.dto.response.UserInfo
 import com.brifo.server.user.entity.OAuthProvider
 import com.brifo.server.user.entity.User
 import com.brifo.server.user.repository.UserRepository

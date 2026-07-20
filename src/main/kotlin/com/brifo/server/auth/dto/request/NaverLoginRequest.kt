@@ -1,4 +1,4 @@
-package com.brifo.server.auth.dto
+package com.brifo.server.auth.dto.request
 
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size

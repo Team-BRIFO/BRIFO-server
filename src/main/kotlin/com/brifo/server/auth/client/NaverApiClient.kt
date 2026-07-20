@@ -1,10 +1,13 @@
-package com.brifo.server.auth.service
+package com.brifo.server.auth.client
 
-import com.brifo.server.auth.dto.NaverTokenResponse
-import com.brifo.server.auth.dto.NaverUserResponse
-import com.brifo.server.global.code.ErrorCode
+import com.brifo.server.auth.dto.external.NaverTokenResponse
+import com.brifo.server.auth.dto.external.NaverUserResponse
+import com.brifo.server.auth.exception.AuthException
+import com.brifo.server.auth.exception.InvalidAuthorizationCodeException
+import com.brifo.server.auth.exception.InvalidTokenException
+import com.brifo.server.auth.exception.NaverServerException
+import com.brifo.server.auth.exception.OAuthRedirectUriMismatchException
 import com.brifo.server.global.config.NaverProperties
-import com.brifo.server.global.exception.BusinessException
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
@@ -32,7 +35,7 @@ class NaverApiClient(
 
     private fun validateRedirectUri(redirectUri: String) {
         if (redirectUri !in properties.redirectUris) {
-            throw BusinessException(ErrorCode.OAUTH_REDIRECT_URI_MISMATCH)
+            throw OAuthRedirectUriMismatchException()
         }
     }
 
@@ -58,16 +61,16 @@ class NaverApiClient(
                     .body(form)
                     .retrieve()
                     .body(NaverTokenResponse::class.java)
-                    ?: throw BusinessException(ErrorCode.NAVER_SERVER_ERROR)
+                    ?: throw NaverServerException()
 
             response.error?.let { throw mapTokenError(it) }
-            return response.accessToken ?: throw BusinessException(ErrorCode.NAVER_SERVER_ERROR)
+            return response.accessToken ?: throw NaverServerException()
         } catch (exception: HttpClientErrorException) {
             val response = parseError(exception.responseBodyAsString)
             response?.error?.let { throw mapTokenError(it) }
-            throw BusinessException(ErrorCode.NAVER_SERVER_ERROR)
+            throw NaverServerException()
         } catch (exception: RestClientException) {
-            throw BusinessException(ErrorCode.NAVER_SERVER_ERROR)
+            throw NaverServerException()
         }
     }
 
@@ -80,33 +83,31 @@ class NaverApiClient(
                     .headers { it.setBearerAuth(accessToken) }
                     .retrieve()
                     .body(NaverUserResponse::class.java)
-                    ?: throw BusinessException(ErrorCode.NAVER_SERVER_ERROR)
+                    ?: throw NaverServerException()
 
             if (response.resultcode in INVALID_TOKEN_RESULT_CODES) {
-                throw BusinessException(ErrorCode.OAUTH_INVALID_TOKEN)
+                throw InvalidTokenException()
             }
             if (response.resultcode != SUCCESS_RESULT_CODE || response.response == null) {
-                throw BusinessException(ErrorCode.NAVER_SERVER_ERROR)
+                throw NaverServerException()
             }
             return response.response
         } catch (exception: HttpClientErrorException.Unauthorized) {
-            throw BusinessException(ErrorCode.OAUTH_INVALID_TOKEN)
+            throw InvalidTokenException()
         } catch (exception: RestClientException) {
-            throw BusinessException(ErrorCode.NAVER_SERVER_ERROR)
+            throw NaverServerException()
         }
     }
 
     private fun parseError(body: String): NaverTokenResponse? =
         runCatching { objectMapper.readValue(body, NaverTokenResponse::class.java) }.getOrNull()
 
-    private fun mapTokenError(error: String): BusinessException =
-        BusinessException(
-            if (error in INVALID_AUTHORIZATION_ERRORS) {
-                ErrorCode.OAUTH_INVALID_AUTHORIZATION_CODE
-            } else {
-                ErrorCode.NAVER_SERVER_ERROR
-            },
-        )
+    private fun mapTokenError(error: String): AuthException =
+        if (error in INVALID_AUTHORIZATION_ERRORS) {
+            InvalidAuthorizationCodeException()
+        } else {
+            NaverServerException()
+        }
 
     companion object {
         private const val NAVER_TOKEN_URI = "https://nid.naver.com/oauth2.0/token"

@@ -1,4 +1,4 @@
-package com.brifo.server.auth.dto
+package com.brifo.server.auth.dto.external
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty

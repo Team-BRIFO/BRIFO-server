@@ -1,12 +1,15 @@
-package com.brifo.server.auth.service
+package com.brifo.server.auth.client
 
-import com.brifo.server.auth.dto.KakaoApiErrorResponse
-import com.brifo.server.auth.dto.KakaoOAuthErrorResponse
-import com.brifo.server.auth.dto.KakaoTokenResponse
-import com.brifo.server.auth.dto.KakaoUserResponse
-import com.brifo.server.global.code.ErrorCode
+import com.brifo.server.auth.dto.external.KakaoApiErrorResponse
+import com.brifo.server.auth.dto.external.KakaoOAuthErrorResponse
+import com.brifo.server.auth.dto.external.KakaoTokenResponse
+import com.brifo.server.auth.dto.external.KakaoUserResponse
+import com.brifo.server.auth.exception.AuthException
+import com.brifo.server.auth.exception.InvalidAuthorizationCodeException
+import com.brifo.server.auth.exception.InvalidTokenException
+import com.brifo.server.auth.exception.KakaoServerException
+import com.brifo.server.auth.exception.OAuthRedirectUriMismatchException
 import com.brifo.server.global.config.KakaoProperties
-import com.brifo.server.global.exception.BusinessException
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
@@ -33,7 +36,7 @@ class KakaoApiClient(
 
     private fun validateRedirectUri(redirectUri: String) {
         if (redirectUri !in properties.redirectUris) {
-            throw BusinessException(ErrorCode.OAUTH_REDIRECT_URI_MISMATCH)
+            throw OAuthRedirectUriMismatchException()
         }
     }
 
@@ -61,11 +64,11 @@ class KakaoApiClient(
                 .retrieve()
                 .body(KakaoTokenResponse::class.java)
                 ?.accessToken
-                ?: throw BusinessException(ErrorCode.KAKAO_SERVER_ERROR)
+                ?: throw KakaoServerException()
         } catch (exception: HttpClientErrorException) {
             throw mapTokenError(exception)
         } catch (exception: RestClientException) {
-            throw BusinessException(ErrorCode.KAKAO_SERVER_ERROR)
+            throw KakaoServerException()
         }
     }
 
@@ -77,31 +80,29 @@ class KakaoApiClient(
                 .headers { it.setBearerAuth(accessToken) }
                 .retrieve()
                 .body(KakaoUserResponse::class.java)
-                ?: throw BusinessException(ErrorCode.KAKAO_SERVER_ERROR)
+                ?: throw KakaoServerException()
         } catch (exception: HttpClientErrorException) {
             val error = parseError(exception.responseBodyAsString, KakaoApiErrorResponse::class.java)
             if (exception.statusCode.value() == 401 || error?.code == KAKAO_INVALID_TOKEN_CODE) {
-                throw BusinessException(ErrorCode.OAUTH_INVALID_TOKEN)
+                throw InvalidTokenException()
             }
-            throw BusinessException(ErrorCode.KAKAO_SERVER_ERROR)
+            throw KakaoServerException()
         } catch (exception: RestClientException) {
-            throw BusinessException(ErrorCode.KAKAO_SERVER_ERROR)
+            throw KakaoServerException()
         }
     }
 
-    private fun mapTokenError(exception: HttpClientErrorException): BusinessException {
+    private fun mapTokenError(exception: HttpClientErrorException): AuthException {
         val error = parseError(exception.responseBodyAsString, KakaoOAuthErrorResponse::class.java)
         val isRedirectMismatch =
             error?.error == "invalid_grant" &&
                 error.errorDescription?.contains("redirect", ignoreCase = true) == true
 
-        val errorCode =
-            when {
-                isRedirectMismatch -> ErrorCode.OAUTH_REDIRECT_URI_MISMATCH
-                error?.error == "invalid_grant" -> ErrorCode.OAUTH_INVALID_AUTHORIZATION_CODE
-                else -> ErrorCode.KAKAO_SERVER_ERROR
-            }
-        return BusinessException(errorCode)
+        return when {
+            isRedirectMismatch -> OAuthRedirectUriMismatchException()
+            error?.error == "invalid_grant" -> InvalidAuthorizationCodeException()
+            else -> KakaoServerException()
+        }
     }
 
     private fun <T> parseError(
