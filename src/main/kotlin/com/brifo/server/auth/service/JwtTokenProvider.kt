@@ -1,10 +1,10 @@
 package com.brifo.server.auth.service
 
-import com.brifo.server.auth.dto.KakaoInfo
 import com.brifo.server.auth.dto.TokenInfo
 import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.config.JwtProperties
 import com.brifo.server.global.exception.BusinessException
+import com.brifo.server.user.entity.OAuthProvider
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.JwtException
 import io.jsonwebtoken.Jwts
@@ -40,12 +40,16 @@ class JwtTokenProvider(
             refreshTokenExpiresIn = properties.refreshTokenExpiration.seconds,
         )
 
-    fun issueSignupToken(kakaoInfo: KakaoInfo): String =
+    fun issueSignupToken(
+        provider: OAuthProvider,
+        socialId: String,
+        email: String?,
+    ): String =
         createToken(
-            subject = kakaoInfo.id,
+            subject = socialId,
             tokenType = TokenType.SIGNUP,
             expiration = properties.signupTokenExpiration,
-            additionalClaims = mapOf(PROVIDER_CLAIM to KAKAO_PROVIDER, EMAIL_CLAIM to kakaoInfo.email),
+            additionalClaims = mapOf(PROVIDER_CLAIM to provider.name, EMAIL_CLAIM to email),
         )
 
     fun parseSignupToken(token: String): SignupTokenClaims {
@@ -88,15 +92,15 @@ class JwtTokenProvider(
         try {
             val claims = parser.parseSignedClaims(token).payload
             if (claims.get(TOKEN_TYPE_CLAIM, String::class.java) != expectedType.name) {
-                throw BusinessException(ErrorCode.KAKAO_INVALID_TOKEN)
+                throw BusinessException(ErrorCode.OAUTH_INVALID_TOKEN)
             }
             return claims
         } catch (exception: BusinessException) {
             throw exception
         } catch (exception: JwtException) {
-            throw BusinessException(ErrorCode.KAKAO_INVALID_TOKEN)
+            throw BusinessException(ErrorCode.OAUTH_INVALID_TOKEN)
         } catch (exception: IllegalArgumentException) {
-            throw BusinessException(ErrorCode.KAKAO_INVALID_TOKEN)
+            throw BusinessException(ErrorCode.OAUTH_INVALID_TOKEN)
         }
     }
 
@@ -131,6 +135,5 @@ class JwtTokenProvider(
         private const val TOKEN_TYPE_CLAIM = "tokenType"
         private const val PROVIDER_CLAIM = "provider"
         private const val EMAIL_CLAIM = "email"
-        private const val KAKAO_PROVIDER = "KAKAO"
     }
 }

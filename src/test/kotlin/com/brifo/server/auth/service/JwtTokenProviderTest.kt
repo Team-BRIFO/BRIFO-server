@@ -1,9 +1,9 @@
 package com.brifo.server.auth.service
 
-import com.brifo.server.auth.dto.KakaoInfo
 import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.config.JwtProperties
 import com.brifo.server.global.exception.BusinessException
+import com.brifo.server.user.entity.OAuthProvider
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.io.Decoders
 import io.jsonwebtoken.security.Keys
@@ -52,7 +52,7 @@ class JwtTokenProviderTest {
 
     @Test
     fun `회원가입 토큰은 카카오 정보와 SIGNUP 종류를 검증한다`() {
-        val token = provider.issueSignupToken(KakaoInfo(id = "1234567890", email = "user@kakao.com"))
+        val token = provider.issueSignupToken(OAuthProvider.KAKAO, "1234567890", "user@kakao.com")
 
         val claims = provider.parseSignupToken(token)
 
@@ -63,14 +63,14 @@ class JwtTokenProviderTest {
 
     @Test
     fun `위조된 회원가입 토큰은 거부한다`() {
-        val token = provider.issueSignupToken(KakaoInfo(id = "1234567890", email = null))
+        val token = provider.issueSignupToken(OAuthProvider.KAKAO, "1234567890", null)
         val parts = token.split(".").toMutableList()
         parts[2] = (if (parts[2].first() == 'a') "b" else "a") + parts[2].drop(1)
         val tamperedToken = parts.joinToString(".")
 
         val exception = assertThrows(BusinessException::class.java) { provider.parseSignupToken(tamperedToken) }
 
-        assertEquals(ErrorCode.KAKAO_INVALID_TOKEN, exception.errorCode)
+        assertEquals(ErrorCode.OAUTH_INVALID_TOKEN, exception.errorCode)
     }
 
     @Test

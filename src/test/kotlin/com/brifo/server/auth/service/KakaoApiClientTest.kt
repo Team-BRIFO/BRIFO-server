@@ -40,7 +40,7 @@ class KakaoApiClientTest {
             .andExpect(method(HttpMethod.GET))
             .andRespond(
                 withSuccess(
-                    """{"id":1234567890,"kakao_account":{"email":"user@kakao.com"}}""",
+                    """{"id":1234567890,"kakao_account":{"email":"user@kakao.com","profile":{"nickname":"brifo"}}}""",
                     MediaType.APPLICATION_JSON,
                 ),
             )
@@ -49,6 +49,7 @@ class KakaoApiClientTest {
 
         assertEquals(1234567890L, user.id)
         assertEquals("user@kakao.com", user.kakaoAccount?.email)
+        assertEquals("brifo", user.kakaoAccount?.profile?.nickname)
         server.verify()
     }
 
@@ -59,7 +60,7 @@ class KakaoApiClientTest {
                 client.getUser("authorization-code", "https://attacker.example/callback")
             }
 
-        assertEquals(ErrorCode.KAKAO_REDIRECT_URI_MISMATCH, exception.errorCode)
+        assertEquals(ErrorCode.OAUTH_REDIRECT_URI_MISMATCH, exception.errorCode)
         server.verify()
     }
 
@@ -78,7 +79,7 @@ class KakaoApiClientTest {
                 client.getUser("expired-code", REDIRECT_URI)
             }
 
-        assertEquals(ErrorCode.KAKAO_INVALID_AUTHORIZATION_CODE, exception.errorCode)
+        assertEquals(ErrorCode.OAUTH_INVALID_AUTHORIZATION_CODE, exception.errorCode)
         server.verify()
     }
 
@@ -96,7 +97,7 @@ class KakaoApiClientTest {
                 client.getUser("authorization-code", REDIRECT_URI)
             }
 
-        assertEquals(ErrorCode.KAKAO_INVALID_TOKEN, exception.errorCode)
+        assertEquals(ErrorCode.OAUTH_INVALID_TOKEN, exception.errorCode)
         server.verify()
     }
 

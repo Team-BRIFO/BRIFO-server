@@ -33,7 +33,7 @@ class KakaoApiClient(
 
     private fun validateRedirectUri(redirectUri: String) {
         if (redirectUri !in properties.redirectUris) {
-            throw BusinessException(ErrorCode.KAKAO_REDIRECT_URI_MISMATCH)
+            throw BusinessException(ErrorCode.OAUTH_REDIRECT_URI_MISMATCH)
         }
     }
 
@@ -81,7 +81,7 @@ class KakaoApiClient(
         } catch (exception: HttpClientErrorException) {
             val error = parseError(exception.responseBodyAsString, KakaoApiErrorResponse::class.java)
             if (exception.statusCode.value() == 401 || error?.code == KAKAO_INVALID_TOKEN_CODE) {
-                throw BusinessException(ErrorCode.KAKAO_INVALID_TOKEN)
+                throw BusinessException(ErrorCode.OAUTH_INVALID_TOKEN)
             }
             throw BusinessException(ErrorCode.KAKAO_SERVER_ERROR)
         } catch (exception: RestClientException) {
@@ -97,8 +97,8 @@ class KakaoApiClient(
 
         val errorCode =
             when {
-                isRedirectMismatch -> ErrorCode.KAKAO_REDIRECT_URI_MISMATCH
-                error?.error == "invalid_grant" -> ErrorCode.KAKAO_INVALID_AUTHORIZATION_CODE
+                isRedirectMismatch -> ErrorCode.OAUTH_REDIRECT_URI_MISMATCH
+                error?.error == "invalid_grant" -> ErrorCode.OAUTH_INVALID_AUTHORIZATION_CODE
                 else -> ErrorCode.KAKAO_SERVER_ERROR
             }
         return BusinessException(errorCode)

@@ -12,6 +12,5 @@ sealed interface KakaoLoginResponse {
     data class SignupRequired(
         override val loginType: LoginType = LoginType.SIGNUP_REQUIRED,
         val signupToken: String,
-        val kakaoInfo: KakaoInfo,
     ) : KakaoLoginResponse
 }

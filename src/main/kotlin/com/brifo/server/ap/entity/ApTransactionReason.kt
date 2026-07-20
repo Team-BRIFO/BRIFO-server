@@ -1,6 +1,7 @@
 package com.brifo.server.ap.entity
 
 enum class ApTransactionReason {
+    INITIAL_GRANT,
     ATTENDANCE,
     TUTORIAL,
     BADGE,
