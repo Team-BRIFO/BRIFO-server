@@ -27,7 +27,13 @@ class ExternalApiCallService(
         var networkRetryCount = 0
         var tokenRefreshed = false
 
-        while (true) {
+        // 네트워크 재시도와 토큰 갱신 후 재요청을 합친 최대 횟수
+        val maxTotalRetries =
+            policy.maxRetries +
+                if (idempotent && refreshToken != null) 1 else 0
+
+        // 최초 요청은 retryCount가 0이므로 최대 재시도 횟수까지 실행한다.
+        while (totalRetryCount <= maxTotalRetries) {
             try {
                 val response = request()
                 val responseBody = checkNotNull(response.body) {
@@ -104,6 +110,8 @@ class ExternalApiCallService(
                 throw exception
             }
         }
+
+        error("$apiName API request exceeded the maximum retry count")
     }
 
 }
