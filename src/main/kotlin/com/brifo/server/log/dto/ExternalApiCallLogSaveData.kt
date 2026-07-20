@@ -1,8 +1,8 @@
 package com.brifo.server.log.dto
 
 import com.brifo.server.log.entity.ExternalApiCallStatus
+import com.fasterxml.jackson.databind.JsonNode
 import java.time.LocalDateTime
-import tools.jackson.databind.JsonNode
 
 data class ExternalApiCallLogSaveData(
     val provider: String,

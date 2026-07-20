@@ -2,7 +2,7 @@ package com.brifo.server.log.config
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import tools.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.ObjectMapper
 
 // 생성자 주입을 하기 위해 ObjectMapper 객체를 Spring에 등록하는 코드
 @Configuration

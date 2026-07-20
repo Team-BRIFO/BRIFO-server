@@ -2,7 +2,7 @@ package com.brifo.server.log.service
 
 import com.brifo.server.log.entity.ExternalApiCallLog
 import com.brifo.server.log.entity.ExternalApiCallStatus
-import tools.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.web.client.ResourceAccessException
