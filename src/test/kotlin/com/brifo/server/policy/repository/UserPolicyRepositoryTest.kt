@@ -4,6 +4,7 @@ import com.brifo.server.TestcontainersConfiguration
 import com.brifo.server.global.config.JpaConfig
 import com.brifo.server.global.config.QueryDslConfig
 import com.brifo.server.policy.entity.Policy
+import com.brifo.server.policy.entity.PolicyCode
 import com.brifo.server.user.entity.OAuthProvider
 import com.brifo.server.user.entity.User
 import com.brifo.server.user.repository.UserRepository
@@ -37,9 +38,24 @@ class UserPolicyRepositoryTest {
     @Test
     fun `약관 목록과 pending은 사용자의 활성 동의 상태와 필수 여부를 반영한다`() {
         val user = saveUser()
-        val agreedRequired = savePolicy(title = "동의한 필수 약관", isRequired = true)
-        val pendingRequired = savePolicy(title = "미동의 필수 약관", isRequired = true)
-        val optional = savePolicy(title = "선택 약관", isRequired = false)
+        val agreedRequired =
+            savePolicy(
+                code = PolicyCode.TERMS_OF_SERVICE,
+                title = "동의한 필수 약관",
+                isRequired = true,
+            )
+        val pendingRequired =
+            savePolicy(
+                code = PolicyCode.PRIVACY_POLICY,
+                title = "미동의 필수 약관",
+                isRequired = true,
+            )
+        val optional =
+            savePolicy(
+                code = PolicyCode.MARKETING_COMMUNICATION_CONSENT,
+                title = "선택 약관",
+                isRequired = false,
+            )
         val agreedRequiredPublicId = requireNotNull(agreedRequired.publicId)
         val pendingRequiredPublicId = requireNotNull(pendingRequired.publicId)
         val optionalPublicId = requireNotNull(optional.publicId)
@@ -63,7 +79,12 @@ class UserPolicyRepositoryTest {
     @Test
     fun `동의와 철회는 멱등이고 철회 후 재동의하면 새 이력을 생성한다`() {
         val user = saveUser()
-        val policy = savePolicy(title = "서비스 이용약관", isRequired = true)
+        val policy =
+            savePolicy(
+                code = PolicyCode.TERMS_OF_SERVICE,
+                title = "서비스 이용약관",
+                isRequired = true,
+            )
         val userId = requireNotNull(user.id)
         val policyId = requireNotNull(policy.id)
 
@@ -106,11 +127,13 @@ class UserPolicyRepositoryTest {
         )
 
     private fun savePolicy(
+        code: PolicyCode,
         title: String,
         isRequired: Boolean,
     ): Policy =
         policyRepository.saveAndFlush(
             Policy.create(
+                code = code,
                 title = title,
                 content = "약관 전문",
                 isRequired = isRequired,
