@@ -263,6 +263,132 @@ class ExternalApiCallServiceUnitTest {
     }
 
     @Test
+    fun `멱등하지 않은 요청은 401이 발생해도 토큰을 갱신하거나 재요청하지 않는다`() {
+        var attempts = 0
+        var refreshCount = 0
+
+        assertThatThrownBy {
+            execute(
+                idempotent = false,
+                refreshToken = {
+                    refreshCount++
+                },
+            ) {
+                attempts++
+
+                throw clientException(
+                    HttpStatus.UNAUTHORIZED.value(),
+                )
+            }
+        }.isInstanceOf(HttpClientErrorException::class.java)
+
+        assertThat(attempts).isEqualTo(1)
+        assertThat(refreshCount).isZero()
+
+        assertLog(
+            status = ExternalApiCallStatus.FAIL,
+            statusCode = 401,
+            retryCount = 0,
+        )
+    }
+
+    @Test
+    fun `첫 요청의 401로 시도한 토큰 갱신이 실패하면 실패 로그를 저장하고 예외를 던진다`() {
+        var attempts = 0
+        var refreshCount = 0
+
+        val refreshException =
+            IllegalStateException("token refresh failed")
+
+        assertThatThrownBy {
+            execute(
+                refreshToken = {
+                    refreshCount++
+                    throw refreshException
+                },
+            ) {
+                attempts++
+
+                throw clientException(
+                    HttpStatus.UNAUTHORIZED.value(),
+                )
+            }
+        }.isSameAs(refreshException)
+
+        assertThat(attempts).isEqualTo(1)
+        assertThat(refreshCount).isEqualTo(1)
+
+        assertLog(
+            status = ExternalApiCallStatus.FAIL,
+            statusCode = 401,
+            retryCount = 0,
+        )
+
+        assertThat(writer.savedLog?.errorMessage)
+            .isEqualTo("token refresh failed")
+    }
+
+    @Test
+    fun `401 토큰 갱신 후 5xx가 발생하면 네트워크 재시도를 수행한다`() {
+        var attempts = 0
+        var refreshCount = 0
+
+        val result = execute(
+            refreshToken = {
+                refreshCount++
+            },
+        ) {
+            attempts++
+
+            when (attempts) {
+                1 -> throw clientException(HttpStatus.UNAUTHORIZED.value())
+                2 -> throw serverException(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                else -> ResponseEntity.ok("success")
+            }
+        }
+
+        assertThat(result).isEqualTo("success")
+        assertThat(attempts).isEqualTo(3)
+        assertThat(refreshCount).isEqualTo(1)
+
+        assertLog(
+            status = ExternalApiCallStatus.SUCCESS,
+            statusCode = 200,
+            retryCount = 2,
+        )
+    }
+
+    @Test
+    fun `5xx 네트워크 재시도 후 401이 발생하면 토큰 갱신 재요청을 수행한다`() {
+        var attempts = 0
+        var refreshCount = 0
+
+        val result = execute(
+            refreshToken = {
+                refreshCount++
+            },
+        ) {
+            attempts++
+
+            when (attempts) {
+                1 -> throw serverException(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                2 -> throw clientException(HttpStatus.UNAUTHORIZED.value())
+                else -> ResponseEntity.ok("success")
+            }
+        }
+
+        assertThat(result).isEqualTo("success")
+        assertThat(attempts).isEqualTo(3)
+        assertThat(refreshCount).isEqualTo(1)
+
+        assertLog(
+            status = ExternalApiCallStatus.SUCCESS,
+            statusCode = 200,
+            retryCount = 2,
+        )
+    }
+
+    @Test
     fun `멱등하지 않은 요청은 5xx가 발생해도 재시도하지 않는다`() {
         var attempts = 0
 
