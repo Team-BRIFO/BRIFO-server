@@ -53,12 +53,33 @@ class JwtTokenProvider(
         )
 
     fun parseSignupToken(token: String): SignupTokenClaims {
-        val claims = parseClaims(token, TokenType.SIGNUP)
+        val claims = parseClaims(token, TokenType.SIGNUP, ErrorCode.OAUTH_INVALID_TOKEN)
         return SignupTokenClaims(
             socialId = claims.subject,
             provider = claims.get(PROVIDER_CLAIM, String::class.java),
             email = claims.get(EMAIL_CLAIM, String::class.java),
         )
+    }
+
+    fun parseAccessToken(token: String): AuthTokenClaims = parseAuthToken(token, TokenType.ACCESS, ErrorCode.OAUTH_INVALID_TOKEN)
+
+    fun parseRefreshToken(token: String): AuthTokenClaims = parseAuthToken(token, TokenType.REFRESH, ErrorCode.REFRESH_TOKEN_UNUSABLE)
+
+    private fun parseAuthToken(
+        token: String,
+        expectedType: TokenType,
+        errorCode: ErrorCode,
+    ): AuthTokenClaims {
+        val claims = parseClaims(token, expectedType, errorCode)
+        return try {
+            AuthTokenClaims(
+                userId = UUID.fromString(claims.subject),
+                tokenId = claims.id?.takeIf { it.isNotBlank() } ?: throw IllegalArgumentException(),
+                expiresAt = requireNotNull(claims.expiration).toInstant(),
+            )
+        } catch (exception: IllegalArgumentException) {
+            throw BusinessException(errorCode)
+        }
     }
 
     private fun createToken(
@@ -88,19 +109,20 @@ class JwtTokenProvider(
     private fun parseClaims(
         token: String,
         expectedType: TokenType,
+        errorCode: ErrorCode,
     ): Claims {
         try {
             val claims = parser.parseSignedClaims(token).payload
             if (claims.get(TOKEN_TYPE_CLAIM, String::class.java) != expectedType.name) {
-                throw BusinessException(ErrorCode.OAUTH_INVALID_TOKEN)
+                throw BusinessException(errorCode)
             }
             return claims
         } catch (exception: BusinessException) {
             throw exception
         } catch (exception: JwtException) {
-            throw BusinessException(ErrorCode.OAUTH_INVALID_TOKEN)
+            throw BusinessException(errorCode)
         } catch (exception: IllegalArgumentException) {
-            throw BusinessException(ErrorCode.OAUTH_INVALID_TOKEN)
+            throw BusinessException(errorCode)
         }
     }
 
@@ -122,6 +144,12 @@ class JwtTokenProvider(
         val socialId: String,
         val provider: String,
         val email: String?,
+    )
+
+    data class AuthTokenClaims(
+        val userId: UUID,
+        val tokenId: String,
+        val expiresAt: Instant,
     )
 
     private enum class TokenType {

@@ -14,9 +14,12 @@ enum class ErrorCode(
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "COMMON_405", "지원하지 않는 HTTP 메서드입니다."),
     CONFLICT(HttpStatus.CONFLICT, "COMMON_409", "요청이 현재 상태와 충돌합니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON_500", "서버 내부 오류가 발생했습니다."),
+    REFRESH_TOKEN_REQUIRED(HttpStatus.BAD_REQUEST, "AUTH_400_02", "refreshToken은 필수입니다."),
     OAUTH_REDIRECT_URI_MISMATCH(HttpStatus.BAD_REQUEST, "AUTH_400_01", "Redirect URI가 일치하지 않습니다."),
     OAUTH_INVALID_AUTHORIZATION_CODE(HttpStatus.UNAUTHORIZED, "AUTH_401_01", "유효하지 않은 인증 코드입니다."),
     OAUTH_INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_401_03", "유효하지 않은 토큰입니다."),
+    REFRESH_TOKEN_UNUSABLE(HttpStatus.UNAUTHORIZED, "AUTH_401_06", "사용할 수 없는 Refresh Token입니다."),
+    REFRESH_TOKEN_MISMATCH(HttpStatus.UNAUTHORIZED, "AUTH_401_07", "Refresh Token이 일치하지 않습니다."),
     KAKAO_SERVER_ERROR(HttpStatus.BAD_GATEWAY, "AUTH_502", "OAuth 서버 오류가 발생했습니다."),
     NAVER_SERVER_ERROR(HttpStatus.BAD_GATEWAY, "AUTH_502", "OAuth 서버 오류가 발생했습니다."),
 }

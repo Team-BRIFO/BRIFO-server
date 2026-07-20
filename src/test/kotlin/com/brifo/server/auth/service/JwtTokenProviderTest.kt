@@ -51,6 +51,32 @@ class JwtTokenProviderTest {
     }
 
     @Test
+    fun `Access Token과 Refresh Token을 용도별로 검증한다`() {
+        val userId = UUID.randomUUID()
+        val tokens = provider.issueLoginTokens(userId)
+
+        val accessClaims = provider.parseAccessToken(tokens.accessToken)
+        val refreshClaims = provider.parseRefreshToken(tokens.refreshToken)
+
+        assertEquals(userId, accessClaims.userId)
+        assertEquals(userId, refreshClaims.userId)
+        assertEquals(Instant.parse("2026-07-08T01:00:00Z"), accessClaims.expiresAt)
+        assertEquals(Instant.parse("2026-07-15T00:00:00Z"), refreshClaims.expiresAt)
+    }
+
+    @Test
+    fun `Access Token을 Refresh Token으로 사용하면 거부한다`() {
+        val accessToken = provider.issueLoginTokens(UUID.randomUUID()).accessToken
+
+        val exception =
+            assertThrows(BusinessException::class.java) {
+                provider.parseRefreshToken(accessToken)
+            }
+
+        assertEquals(ErrorCode.REFRESH_TOKEN_UNUSABLE, exception.errorCode)
+    }
+
+    @Test
     fun `회원가입 토큰은 카카오 정보와 SIGNUP 종류를 검증한다`() {
         val token = provider.issueSignupToken(OAuthProvider.KAKAO, "1234567890", "user@kakao.com")
 
