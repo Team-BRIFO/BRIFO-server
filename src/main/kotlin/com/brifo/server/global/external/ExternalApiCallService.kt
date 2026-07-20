@@ -1,7 +1,5 @@
 package com.brifo.server.global.external
 
-import com.brifo.server.log.dto.ExternalApiCallLogSaveData
-import com.brifo.server.log.entity.ExternalApiCallStatus
 import com.brifo.server.log.service.ExternalApiCallLogService
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
@@ -24,7 +22,7 @@ class ExternalApiCallService(
         // 실제 외부 API 요청
         request: () -> ResponseEntity<T>,
     ): T {
-        val startedAt = logService.startTimer()
+        val startedAt = Instant.now()
         val requestedAt = LocalDateTime.now()
         var totalRetryCount = 0
         var networkRetryCount = 0
@@ -37,12 +35,13 @@ class ExternalApiCallService(
                     "$apiName API response body is empty"
                 }
 
-                saveSuccess(
+                logService.saveLog(
                     provider = provider,
                     apiName = apiName,
                     requestPayload = requestPayload,
                     responsePayload = responseBody,
                     responseStatusCode = response.statusCode.value(),
+                    exception = null,
                     retryCount = totalRetryCount,
                     requestedAt = requestedAt,
                     startedAt = startedAt,
@@ -60,10 +59,11 @@ class ExternalApiCallService(
                     try {
                         refreshToken()
                     } catch (refreshException: Exception) {
-                        saveFailure(
+                        logService.saveLog(
                             provider = provider,
                             apiName = apiName,
                             requestPayload = requestPayload,
+                            responsePayload = null,
                             exception = refreshException,
                             responseStatusCode = 401,
                             retryCount = totalRetryCount,
@@ -90,10 +90,11 @@ class ExternalApiCallService(
                     continue
                 }
 
-                saveFailure(
+                logService.saveLog(
                     provider = provider,
                     apiName = apiName,
                     requestPayload = requestPayload,
+                    responsePayload = null,
                     exception = exception,
                     responseStatusCode = exception.responseStatusCode(),
                     retryCount = totalRetryCount,
@@ -106,87 +107,4 @@ class ExternalApiCallService(
         }
     }
 
-    // 최종 성공 결과를 저장한다.
-    private fun saveSuccess(
-        provider: String,
-        apiName: String,
-        requestPayload: Any?,
-        responsePayload: Any?,
-        responseStatusCode: Int,
-        retryCount: Int,
-        requestedAt: LocalDateTime,
-        startedAt: Instant,
-    ) {
-        saveLog(
-            provider = provider,
-            apiName = apiName,
-            status = ExternalApiCallStatus.SUCCESS,
-            requestPayload = requestPayload,
-            responsePayload = responsePayload,
-            responseStatusCode = responseStatusCode,
-            errorMessage = null,
-            retryCount = retryCount,
-            requestedAt = requestedAt,
-            startedAt = startedAt,
-        )
-    }
-
-    // 최종 실패 결과를 저장한다.
-    private fun saveFailure(
-        provider: String,
-        apiName: String,
-        requestPayload: Any?,
-        exception: Throwable,
-        responseStatusCode: Int?,
-        retryCount: Int,
-        requestedAt: LocalDateTime,
-        startedAt: Instant,
-    ) {
-        saveLog(
-            provider = provider,
-            apiName = apiName,
-            status = exception.toCallStatus(),
-            requestPayload = requestPayload,
-            responsePayload = null,
-            responseStatusCode = responseStatusCode,
-            errorMessage = exception.safeMessage(),
-            retryCount = retryCount,
-            requestedAt = requestedAt,
-            startedAt = startedAt,
-        )
-    }
-
-    // 기존 ExternalApiCallLogService를 이용해 최종 로그를 저장한다.
-    private fun saveLog(
-        provider: String,
-        apiName: String,
-        status: ExternalApiCallStatus,
-        requestPayload: Any?,
-        responsePayload: Any?,
-        responseStatusCode: Int?,
-        errorMessage: String?,
-        retryCount: Int,
-        requestedAt: LocalDateTime,
-        startedAt: Instant,
-    ) {
-        logService.save(
-            ExternalApiCallLogSaveData(
-                provider = provider,
-                apiName = apiName,
-                status = status,
-
-                // 기존 민감 정보 마스킹 기능
-                requestPayloadRedacted = logService.redactPayload(requestPayload),
-                responsePayloadRedacted = logService.redactPayload(responsePayload),
-                responseStatusCode = responseStatusCode,
-                errorMessage = errorMessage,
-                retryCount = retryCount,
-
-                // 기존 시간 계산 기능
-                durationMs = logService.calculateDurationMs(startedAt),
-                requestedAt = requestedAt,
-                respondedAt = LocalDateTime.now(),
-            ),
-        )
-    }
 }

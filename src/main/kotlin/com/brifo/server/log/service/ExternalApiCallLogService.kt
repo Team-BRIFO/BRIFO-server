@@ -9,8 +9,12 @@ import tools.jackson.databind.node.ArrayNode
 import tools.jackson.databind.node.ObjectNode
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.net.SocketTimeoutException
+import java.net.http.HttpTimeoutException
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDateTime
+import java.util.concurrent.TimeoutException
 
 @Service
 class ExternalApiCallLogService(
@@ -43,6 +47,44 @@ class ExternalApiCallLogService(
         return payload
             ?.let { objectMapper.valueToTree<JsonNode>(it) }
             ?.maskSensitiveFields()
+    }
+
+    fun saveLog(
+        provider: String,
+        apiName: String,
+        requestPayload: Any?,
+        responsePayload: Any?,
+        responseStatusCode: Int?,
+        exception: Throwable?,
+        retryCount: Int,
+        requestedAt: LocalDateTime,
+        startedAt: Instant,
+    ) {
+        val status = when {
+            exception == null -> ExternalApiCallStatus.SUCCESS
+            exception.isTimeout() -> ExternalApiCallStatus.TIMEOUT
+            else -> ExternalApiCallStatus.FAIL
+        }
+
+        save(
+            ExternalApiCallLogSaveData(
+                provider = provider,
+                apiName = apiName,
+                status = status,
+                requestPayloadRedacted = redactPayload(requestPayload),
+                responsePayloadRedacted = if (exception == null) {
+                    redactPayload(responsePayload)
+                } else {
+                    null
+                },
+                responseStatusCode = responseStatusCode,
+                errorMessage = exception?.safeMessage(),
+                retryCount = retryCount,
+                durationMs = calculateDurationMs(startedAt),
+                requestedAt = requestedAt,
+                respondedAt = LocalDateTime.now(),
+            ),
+        )
     }
 
     private fun JsonNode.maskSensitiveFields(): JsonNode {
@@ -81,6 +123,22 @@ class ExternalApiCallLogService(
                 exception,
             )
         }
+    }
+
+    private fun Throwable.isTimeout(): Boolean {
+        return causes().any {
+            it is SocketTimeoutException ||
+                it is HttpTimeoutException ||
+                it is TimeoutException
+        }
+    }
+
+    private fun Throwable.safeMessage(): String {
+        return (message ?: javaClass.simpleName).take(MAX_ERROR_MESSAGE_LENGTH)
+    }
+
+    private fun Throwable.causes(): Sequence<Throwable> {
+        return generateSequence(this) { it.cause }
     }
 
     // '가변 부분'만 StatusFields로 변경 (이후 아래에서 'statusFields.responsePayload, statusFields.responseStatusCode, statusFields.errorMessage' 처럼 사용 예정)
@@ -131,4 +189,8 @@ class ExternalApiCallLogService(
         val responseStatusCode: Int?, // '외부 서버' 응답 (우리 로그 상태 ExternalAPiCallStatus.TIMEOUT 아님 주의)
         val errorMessage: String?, // '우리 서버'가 기록할 오류 설명
     )
+
+    private companion object {
+        const val MAX_ERROR_MESSAGE_LENGTH = 2_000
+    }
 }
