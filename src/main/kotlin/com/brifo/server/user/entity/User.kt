@@ -82,6 +82,16 @@ class User private constructor(
     var deletedAt: LocalDateTime? = null
         protected set
 
+    fun updateOnboardingProfile(
+        nickname: String,
+        companyName: String?,
+    ) {
+        this.nickname = nickname
+        if (companyName != null) {
+            this.companyName = companyName
+        }
+    }
+
     fun spendAp(amount: Int) {
         require(amount > 0) { "amount must be positive" }
         require(balanceAp >= amount) { "insufficient AP balance" }
