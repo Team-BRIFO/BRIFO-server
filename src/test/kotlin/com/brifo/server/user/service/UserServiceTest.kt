@@ -507,6 +507,22 @@ class UserServiceTest {
     }
 
     @Test
+    fun `인증 연동 전에는 공개 ID로 사용자를 조회해 온보딩을 완료한다`() {
+        val userPublicId = UUID.randomUUID()
+        val user = user().also { it.updateOnboardingProfile("brifo", null) }
+        `when`(userRepository.findByPublicId(userPublicId)).thenReturn(user)
+        `when`(policyRepository.countByIsRequiredTrueAndIsActiveTrue()).thenReturn(2)
+        `when`(userPolicyRepository.countActiveRequiredAgreements(user)).thenReturn(2)
+        `when`(userStockRepository.countByUser(user)).thenReturn(1)
+        `when`(agentRepository.existsByUser(user)).thenReturn(false)
+
+        userService.completeOnboarding(userPublicId)
+
+        verify(userRepository).findByPublicId(userPublicId)
+        assertEquals(LocalDateTime.of(2026, 7, 21, 18, 0), user.onboardingCompletedAt)
+    }
+
+    @Test
     fun `온보딩 완료 조건은 필수 약관 동의를 가장 먼저 검증한다`() {
         val user = user()
         `when`(userRepository.findByProviderAndSocialId(OAuthProvider.KAKAO, "social-id")).thenReturn(user)

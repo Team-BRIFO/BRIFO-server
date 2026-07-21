@@ -11,6 +11,7 @@ import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.UUID
@@ -69,6 +70,32 @@ class UserControllerTest {
                         """.trimIndent(),
                     ),
             ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("COMMON_400"))
+    }
+
+    @Test
+    fun `온보딩 완료는 임시 사용자 ID를 받아 사용자 처리를 완료한다`() {
+        val userId = UUID.randomUUID()
+
+        mockMvc
+            .perform(
+                post("/api/onboarding/complete")
+                    .param("userId", userId.toString()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.code").value("USER_200_02"))
+            .andExpect(jsonPath("$.message").value("회원가입이 완료되었습니다."))
+            .andExpect(jsonPath("$.result").doesNotExist())
+
+        verify(userService).completeOnboarding(userId)
+    }
+
+    @Test
+    fun `온보딩 완료에 사용자 ID가 없으면 400을 반환한다`() {
+        mockMvc
+            .perform(post("/api/onboarding/complete"))
+            .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.code").value("COMMON_400"))
     }

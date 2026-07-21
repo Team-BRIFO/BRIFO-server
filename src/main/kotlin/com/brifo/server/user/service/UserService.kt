@@ -171,6 +171,16 @@ class UserService(
         socialId: String,
     ) {
         val user = userRepository.findByProviderAndSocialId(provider, socialId) ?: throw UserNotFoundException()
+        completeOnboarding(user)
+    }
+
+    @Transactional
+    fun completeOnboarding(userPublicId: UUID) {
+        val user = userRepository.findByPublicId(userPublicId) ?: throw UserNotFoundException()
+        completeOnboarding(user)
+    }
+
+    private fun completeOnboarding(user: User) {
         if (user.onboardingCompletedAt != null) {
             throw OnboardingAlreadyCompletedException()
         }

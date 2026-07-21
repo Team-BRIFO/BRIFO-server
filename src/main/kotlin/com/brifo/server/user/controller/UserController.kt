@@ -35,8 +35,12 @@ class UserController(
     }
 
     @PostMapping("/onboarding/complete")
-    fun completeOnboarding(): ApiResponse<CompleteOnboardingResponse> =
-        TODO("온보딩 완료 서비스 구현 필요")
+    fun completeOnboarding(
+        @RequestParam userId: UUID,
+    ): ApiResponse<CompleteOnboardingResponse> {
+        userService.completeOnboarding(userId)
+        return ApiResponse.success(UserSuccessCode.ONBOARDING_COMPLETED)
+    }
 
     @GetMapping("/users/me/profile")
     fun getUserProfile(): ApiResponse<GetUserProfileResponse> = TODO("사용자 프로필 조회 서비스 구현 필요")
