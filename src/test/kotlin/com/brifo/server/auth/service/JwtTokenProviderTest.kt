@@ -128,6 +128,27 @@ class JwtTokenProviderTest {
     }
 
     @Test
+    fun `공급자 클레임이 없는 회원가입 토큰은 거부한다`() {
+        val key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(TEST_SECRET_BASE64))
+        val issuedAt = Instant.now(clock)
+        val token =
+            Jwts
+                .builder()
+                .id(UUID.randomUUID().toString())
+                .issuer(properties.issuer)
+                .subject("social-id")
+                .issuedAt(Date.from(issuedAt))
+                .expiration(Date.from(issuedAt.plus(properties.signupTokenExpiration)))
+                .claim("tokenType", "SIGNUP")
+                .signWith(key)
+                .compact()
+
+        val exception = assertThrows(AuthException::class.java) { provider.parseSignupToken(token) }
+
+        assertEquals(AuthErrorCode.OAUTH_INVALID_TOKEN, exception.errorCode)
+    }
+
+    @Test
     fun `32바이트보다 짧은 JWT 키는 거부한다`() {
         val shortProperties = properties.copy(secretBase64 = "c2hvcnQ=")
 

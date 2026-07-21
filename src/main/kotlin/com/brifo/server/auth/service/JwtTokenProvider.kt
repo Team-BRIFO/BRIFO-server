@@ -63,9 +63,16 @@ class JwtTokenProvider(
                 invalidException = { InvalidTokenException() },
                 expiredException = { InvalidTokenException() },
             )
+        val socialId = claims.subject?.takeIf { it.isNotBlank() } ?: throw InvalidTokenException()
+        val provider =
+            claims
+                .get(PROVIDER_CLAIM, String::class.java)
+                ?.takeIf { it.isNotBlank() }
+                ?: throw InvalidTokenException()
+
         return SignupTokenClaims(
-            socialId = claims.subject,
-            provider = claims.get(PROVIDER_CLAIM, String::class.java),
+            socialId = socialId,
+            provider = provider,
             email = claims.get(EMAIL_CLAIM, String::class.java),
         )
     }

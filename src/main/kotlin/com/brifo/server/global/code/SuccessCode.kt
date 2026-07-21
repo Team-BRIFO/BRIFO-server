@@ -10,6 +10,4 @@ enum class SuccessCode(
     OK(HttpStatus.OK, "COMMON_200", "요청에 성공했습니다."),
     CREATED(HttpStatus.CREATED, "COMMON_201", "요청이 성공적으로 생성되었습니다."),
     NO_CONTENT(HttpStatus.NO_CONTENT, "COMMON_204", "요청이 성공적으로 처리되었습니다."),
-    LOGIN(HttpStatus.OK, "COMMON_200", "요청에 성공했습니다."),
-    SIGNUP_REQUIRED(HttpStatus.OK, "COMMON_200", "요청에 성공했습니다."),
 }

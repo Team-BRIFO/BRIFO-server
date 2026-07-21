@@ -155,7 +155,7 @@ ALTER TABLE attendance_rewards
 ALTER TABLE users
     ALTER COLUMN balance_ap SET DEFAULT 0;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_ap_transactions_user_initial_grant_unique
+CREATE UNIQUE INDEX idx_ap_transactions_user_initial_grant_unique
     ON ap_transactions (user_id)
     WHERE reason = 'INITIAL_GRANT';
 
