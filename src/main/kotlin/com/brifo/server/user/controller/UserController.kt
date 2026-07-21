@@ -64,5 +64,11 @@ class UserController(
     fun deleteUser(): ApiResponse<Nothing> = TODO("회원 탈퇴 서비스 구현 필요")
 
     @GetMapping("/users/me/home")
-    fun getUserHome(): ApiResponse<GetUserHomeResponse> = TODO("사용자 홈 조회 서비스 구현 필요")
+    fun getUserHome(
+        @RequestParam userId: UUID,
+    ): ApiResponse<GetUserHomeResponse> =
+        ApiResponse.success(
+            SuccessCode.OK,
+            userService.getUserHome(userId),
+        )
 }

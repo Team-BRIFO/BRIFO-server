@@ -1,7 +1,10 @@
 package com.brifo.server.user.controller
 
+import com.brifo.server.agent.entity.AgentType
+import com.brifo.server.news.entity.NewsSource
 import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
 import com.brifo.server.user.dto.response.GetMyPageResponse
+import com.brifo.server.user.dto.response.GetUserHomeResponse
 import com.brifo.server.user.service.UserService
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.verify
@@ -17,6 +20,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.math.BigDecimal
+import java.time.LocalDateTime
 import java.util.UUID
 
 @WebMvcTest(UserController::class)
@@ -142,6 +147,76 @@ class UserControllerTest {
     fun `마이페이지 조회에 사용자 ID가 없으면 400을 반환한다`() {
         mockMvc
             .perform(get("/api/users/me"))
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("COMMON_400"))
+    }
+
+    @Test
+    fun `홈 화면 조회는 임시 사용자 ID로 대시보드 정보를 반환한다`() {
+        val userId = UUID.randomUUID()
+        val agentId = UUID.randomUUID()
+        val cardId = UUID.randomUUID()
+        val newsId = UUID.randomUUID()
+        val stockId = UUID.randomUUID()
+        val batchTime = LocalDateTime.of(2026, 7, 21, 8, 0)
+        val publishedAt = LocalDateTime.of(2026, 7, 21, 7, 30)
+        val response =
+            GetUserHomeResponse(
+                user = GetUserHomeResponse.User("brifo", "내 투자회사", 1250),
+                agents = listOf(GetUserHomeResponse.Agent(agentId, AgentType.ROOKIE, 3)),
+                todayDecisions = GetUserHomeResponse.TodayDecisions(2),
+                todayNewsCards =
+                    GetUserHomeResponse.TodayNewsCards(
+                        batchTime = batchTime,
+                        items =
+                            listOf(
+                                GetUserHomeResponse.TodayNewsCards.Item(
+                                    cardId = cardId,
+                                    headline = "삼성전자, 반도체 실적 개선 기대",
+                                    news =
+                                        GetUserHomeResponse.TodayNewsCards.News(
+                                            newsId,
+                                            publishedAt,
+                                            NewsSource.NAVER,
+                                        ),
+                                    stock =
+                                        GetUserHomeResponse.TodayNewsCards.Stock(
+                                            stockId,
+                                            "삼성전자",
+                                            BigDecimal("1.3"),
+                                        ),
+                                ),
+                            ),
+                    ),
+            )
+        `when`(userService.getUserHome(userId)).thenReturn(response)
+
+        mockMvc
+            .perform(
+                get("/api/users/me/home")
+                    .param("userId", userId.toString()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.code").value("COMMON_200"))
+            .andExpect(jsonPath("$.result.user.nickname").value("brifo"))
+            .andExpect(jsonPath("$.result.user.balanceAp").value(1250))
+            .andExpect(jsonPath("$.result.agents[0].agentId").value(agentId.toString()))
+            .andExpect(jsonPath("$.result.agents[0].agentType").value("ROOKIE"))
+            .andExpect(jsonPath("$.result.todayDecisions.count").value(2))
+            .andExpect(jsonPath("$.result.todayNewsCards.batchTime").value("2026-07-21T08:00:00"))
+            .andExpect(jsonPath("$.result.todayNewsCards.items[0].cardId").value(cardId.toString()))
+            .andExpect(jsonPath("$.result.todayNewsCards.items[0].news.newsId").value(newsId.toString()))
+            .andExpect(jsonPath("$.result.todayNewsCards.items[0].stock.stockId").value(stockId.toString()))
+            .andExpect(jsonPath("$.result.todayNewsCards.items[0].stock.changeRate").value(1.3))
+
+        verify(userService).getUserHome(userId)
+    }
+
+    @Test
+    fun `홈 화면 조회에 사용자 ID가 없으면 400을 반환한다`() {
+        mockMvc
+            .perform(get("/api/users/me/home"))
             .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.code").value("COMMON_400"))
