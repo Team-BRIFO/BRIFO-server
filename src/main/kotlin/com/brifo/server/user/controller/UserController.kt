@@ -1,6 +1,7 @@
 package com.brifo.server.user.controller
 
 import com.brifo.server.global.common.ApiResponse
+import com.brifo.server.user.code.UserSuccessCode
 import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
 import com.brifo.server.user.dto.request.UpdateUserProfileRequest
 import com.brifo.server.user.dto.response.CompleteOnboardingResponse
@@ -15,7 +16,9 @@ import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.util.UUID
 
 @RestController
 @RequestMapping("/api")
@@ -24,8 +27,12 @@ class UserController(
 ) {
     @PatchMapping("/onboarding/profile")
     fun updateOnboardingProfile(
+        @RequestParam userId: UUID,
         @Valid @RequestBody request: UpdateOnboardingProfileRequest,
-    ): ApiResponse<Nothing> = TODO("온보딩 프로필 저장 서비스 구현 필요")
+    ): ApiResponse<Nothing> {
+        userService.updateOnboardingProfile(userId, request)
+        return ApiResponse.success(UserSuccessCode.ONBOARDING_PROFILE_UPDATED)
+    }
 
     @PostMapping("/onboarding/complete")
     fun completeOnboarding(): ApiResponse<CompleteOnboardingResponse> =

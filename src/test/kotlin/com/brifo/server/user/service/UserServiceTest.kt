@@ -106,6 +106,26 @@ class UserServiceTest {
     }
 
     @Test
+    fun `인증 연동 전에는 공개 ID로 온보딩 사용자를 조회해 프로필을 저장한다`() {
+        val userPublicId = UUID.randomUUID()
+        val user = user()
+        `when`(userRepository.findByPublicId(userPublicId)).thenReturn(user)
+
+        userService.updateOnboardingProfile(
+            userPublicId = userPublicId,
+            request =
+                UpdateOnboardingProfileRequest(
+                    nickname = "  brifo  ",
+                    companyName = "  내 투자회사  ",
+                ),
+        )
+
+        verify(userRepository).findByPublicId(userPublicId)
+        assertEquals("brifo", user.nickname)
+        assertEquals("내 투자회사", user.companyName)
+    }
+
+    @Test
     fun `회사명이 없으면 기존 기본 회사명을 유지한다`() {
         val user = user()
         `when`(userRepository.findByProviderAndSocialId(OAuthProvider.KAKAO, "social-id")).thenReturn(user)

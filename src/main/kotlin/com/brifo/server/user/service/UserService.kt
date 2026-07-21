@@ -60,7 +60,25 @@ class UserService(
         val nickname = validateNickname(request.nickname)
         val companyName = validateCompanyName(request.companyName)
         val user = userRepository.findByProviderAndSocialId(provider, socialId) ?: throw UserNotFoundException()
+        updateOnboardingProfile(user, nickname, companyName)
+    }
 
+    @Transactional
+    fun updateOnboardingProfile(
+        userPublicId: UUID,
+        request: UpdateOnboardingProfileRequest,
+    ) {
+        val nickname = validateNickname(request.nickname)
+        val companyName = validateCompanyName(request.companyName)
+        val user = userRepository.findByPublicId(userPublicId) ?: throw UserNotFoundException()
+        updateOnboardingProfile(user, nickname, companyName)
+    }
+
+    private fun updateOnboardingProfile(
+        user: User,
+        nickname: String,
+        companyName: String?,
+    ) {
         if (user.onboardingCompletedAt != null) {
             throw OnboardingAlreadyCompletedException()
         }
