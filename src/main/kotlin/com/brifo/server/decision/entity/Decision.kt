@@ -55,16 +55,16 @@ class Decision private constructor(
         fun create(
             briefing: Briefing,
             direction: DecisionDirection,
-            confidenceLevel: Short,
+            confidenceLevel: Int,
         ): Decision {
-            require(confidenceLevel.toInt() in 1..5) {
+            require(confidenceLevel in 1..5) {
                 "confidenceLevel must be between 1 and 5"
             }
 
             return Decision(
                 briefing = briefing,
                 direction = direction,
-                confidenceLevel = confidenceLevel,
+                confidenceLevel = confidenceLevel.toShort(),
             )
         }
     }
