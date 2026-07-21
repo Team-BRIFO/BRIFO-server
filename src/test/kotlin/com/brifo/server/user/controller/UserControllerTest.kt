@@ -16,6 +16,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
@@ -273,6 +274,32 @@ class UserControllerTest {
                         """.trimIndent(),
                     ),
             ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("COMMON_400"))
+    }
+
+    @Test
+    fun `회원 탈퇴는 임시 사용자 ID의 사용자를 soft delete한다`() {
+        val userId = UUID.randomUUID()
+
+        mockMvc
+            .perform(
+                delete("/api/users/me")
+                    .param("userId", userId.toString()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.code").value("USER_200_04"))
+            .andExpect(jsonPath("$.message").value("회원 탈퇴가 완료되었습니다."))
+            .andExpect(jsonPath("$.result").doesNotExist())
+
+        verify(userService).deleteUser(userId)
+    }
+
+    @Test
+    fun `회원 탈퇴에 사용자 ID가 없으면 400을 반환한다`() {
+        mockMvc
+            .perform(delete("/api/users/me"))
+            .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.code").value("COMMON_400"))
     }
