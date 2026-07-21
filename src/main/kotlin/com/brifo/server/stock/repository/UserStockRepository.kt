@@ -5,4 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface UserStockRepository :
     JpaRepository<UserStock, Long>,
-    UserStockQueryRepository
+    UserStockQueryRepository {
+    fun findAllByUserId(userId: Long): List<UserStock>
+}
