@@ -6,4 +6,6 @@ import java.util.UUID
 
 interface PolicyRepository : JpaRepository<Policy, Long> {
     fun findByPublicId(publicId: UUID): Policy?
+
+    fun countByIsRequiredTrueAndIsActiveTrue(): Long
 }

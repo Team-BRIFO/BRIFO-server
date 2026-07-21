@@ -8,4 +8,6 @@ interface UserStockRepository :
     JpaRepository<UserStock, Long>,
     UserStockQueryRepository {
     fun findAllByUser(user: User): List<UserStock>
+
+    fun countByUser(user: User): Long
 }

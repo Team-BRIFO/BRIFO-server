@@ -1,7 +1,11 @@
 package com.brifo.server.user.service
 
+import com.brifo.server.agent.entity.Agent
 import com.brifo.server.agent.entity.AgentType
+import com.brifo.server.agent.repository.AgentRepository
 import com.brifo.server.news.entity.NewsSource
+import com.brifo.server.policy.repository.PolicyRepository
+import com.brifo.server.policy.repository.UserPolicyRepository
 import com.brifo.server.stock.entity.Stock
 import com.brifo.server.stock.entity.UserStock
 import com.brifo.server.stock.exception.DuplicatedStockSelectionException
@@ -17,6 +21,9 @@ import com.brifo.server.user.entity.User
 import com.brifo.server.user.exception.InvalidCompanyNameException
 import com.brifo.server.user.exception.InvalidNicknameException
 import com.brifo.server.user.exception.OnboardingAlreadyCompletedException
+import com.brifo.server.user.exception.OnboardingProfileNotCompletedException
+import com.brifo.server.user.exception.OnboardingStocksNotSelectedException
+import com.brifo.server.user.exception.RequiredPoliciesNotAgreedException
 import com.brifo.server.user.exception.UserNotFoundException
 import com.brifo.server.user.repository.UserHomeAgent
 import com.brifo.server.user.repository.UserHomeData
@@ -47,6 +54,9 @@ class UserServiceTest {
     private lateinit var userHomeQueryRepository: UserHomeQueryRepository
     private lateinit var stockRepository: StockRepository
     private lateinit var userStockRepository: UserStockRepository
+    private lateinit var policyRepository: PolicyRepository
+    private lateinit var userPolicyRepository: UserPolicyRepository
+    private lateinit var agentRepository: AgentRepository
     private lateinit var userService: UserService
 
     private val clock = Clock.fixed(Instant.parse("2026-07-21T09:00:00Z"), ZoneId.of("Asia/Seoul"))
@@ -58,6 +68,9 @@ class UserServiceTest {
         userHomeQueryRepository = mock(UserHomeQueryRepository::class.java)
         stockRepository = mock(StockRepository::class.java)
         userStockRepository = mock(UserStockRepository::class.java)
+        policyRepository = mock(PolicyRepository::class.java)
+        userPolicyRepository = mock(UserPolicyRepository::class.java)
+        agentRepository = mock(AgentRepository::class.java)
         userService =
             UserService(
                 userRepository,
@@ -65,6 +78,9 @@ class UserServiceTest {
                 userHomeQueryRepository,
                 stockRepository,
                 userStockRepository,
+                policyRepository,
+                userPolicyRepository,
+                agentRepository,
                 clock,
             )
     }
@@ -447,6 +463,82 @@ class UserServiceTest {
         assertThrows(UserNotFoundException::class.java) {
             userService.deleteUser(userPublicId)
         }
+    }
+
+    @Test
+    fun `온보딩 완료는 완료 시각을 기록하고 기본 에이전트 세 개를 생성한다`() {
+        val user = user().also { it.updateOnboardingProfile("brifo", null) }
+        `when`(userRepository.findByProviderAndSocialId(OAuthProvider.KAKAO, "social-id")).thenReturn(user)
+        `when`(policyRepository.countByIsRequiredTrueAndIsActiveTrue()).thenReturn(2)
+        `when`(userPolicyRepository.countActiveRequiredAgreements(user)).thenReturn(2)
+        `when`(userStockRepository.countByUser(user)).thenReturn(3)
+        `when`(agentRepository.existsByUser(user)).thenReturn(false)
+
+        userService.completeOnboarding(OAuthProvider.KAKAO, "social-id")
+
+        assertEquals(LocalDateTime.of(2026, 7, 21, 18, 0), user.onboardingCompletedAt)
+        @Suppress("UNCHECKED_CAST")
+        val agentsCaptor = ArgumentCaptor.forClass(List::class.java) as ArgumentCaptor<List<Agent>>
+        verify(agentRepository).saveAll(agentsCaptor.capture())
+        assertEquals(
+            listOf(AgentType.ROOKIE, AgentType.TANKER, AgentType.PRO),
+            agentsCaptor.value.map { it.agentType },
+        )
+    }
+
+    @Test
+    fun `온보딩 완료 조건은 필수 약관 동의를 가장 먼저 검증한다`() {
+        val user = user()
+        `when`(userRepository.findByProviderAndSocialId(OAuthProvider.KAKAO, "social-id")).thenReturn(user)
+        `when`(policyRepository.countByIsRequiredTrueAndIsActiveTrue()).thenReturn(2)
+        `when`(userPolicyRepository.countActiveRequiredAgreements(user)).thenReturn(1)
+
+        assertThrows(RequiredPoliciesNotAgreedException::class.java) {
+            userService.completeOnboarding(OAuthProvider.KAKAO, "social-id")
+        }
+
+        verifyNoInteractions(agentRepository)
+    }
+
+    @Test
+    fun `필수 약관에 동의했지만 닉네임이 없으면 프로필 미완료 예외를 던진다`() {
+        val user = user()
+        `when`(userRepository.findByProviderAndSocialId(OAuthProvider.KAKAO, "social-id")).thenReturn(user)
+        `when`(policyRepository.countByIsRequiredTrueAndIsActiveTrue()).thenReturn(2)
+        `when`(userPolicyRepository.countActiveRequiredAgreements(user)).thenReturn(2)
+
+        assertThrows(OnboardingProfileNotCompletedException::class.java) {
+            userService.completeOnboarding(OAuthProvider.KAKAO, "social-id")
+        }
+
+        verifyNoInteractions(agentRepository)
+    }
+
+    @Test
+    fun `프로필을 입력했지만 관심 종목이 없으면 종목 미선택 예외를 던진다`() {
+        val user = user().also { it.updateOnboardingProfile("brifo", null) }
+        `when`(userRepository.findByProviderAndSocialId(OAuthProvider.KAKAO, "social-id")).thenReturn(user)
+        `when`(policyRepository.countByIsRequiredTrueAndIsActiveTrue()).thenReturn(2)
+        `when`(userPolicyRepository.countActiveRequiredAgreements(user)).thenReturn(2)
+        `when`(userStockRepository.countByUser(user)).thenReturn(0)
+
+        assertThrows(OnboardingStocksNotSelectedException::class.java) {
+            userService.completeOnboarding(OAuthProvider.KAKAO, "social-id")
+        }
+
+        verifyNoInteractions(agentRepository)
+    }
+
+    @Test
+    fun `이미 완료된 온보딩을 다시 완료할 수 없다`() {
+        val user = user().also { it.completeOnboarding(LocalDateTime.of(2026, 7, 20, 10, 0)) }
+        `when`(userRepository.findByProviderAndSocialId(OAuthProvider.KAKAO, "social-id")).thenReturn(user)
+
+        assertThrows(OnboardingAlreadyCompletedException::class.java) {
+            userService.completeOnboarding(OAuthProvider.KAKAO, "social-id")
+        }
+
+        verifyNoInteractions(policyRepository, userPolicyRepository, agentRepository)
     }
 
     private fun user(): User =

@@ -100,6 +100,10 @@ class User private constructor(
         this.companyName = companyName
     }
 
+    fun completeOnboarding(completedAt: LocalDateTime) {
+        onboardingCompletedAt = completedAt
+    }
+
     fun spendAp(amount: Int) {
         require(amount > 0) { "amount must be positive" }
         require(balanceAp >= amount) { "insufficient AP balance" }

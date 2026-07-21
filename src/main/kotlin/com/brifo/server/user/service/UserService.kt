@@ -1,6 +1,10 @@
 package com.brifo.server.user.service
 
+import com.brifo.server.agent.entity.Agent
 import com.brifo.server.agent.entity.AgentType
+import com.brifo.server.agent.repository.AgentRepository
+import com.brifo.server.policy.repository.PolicyRepository
+import com.brifo.server.policy.repository.UserPolicyRepository
 import com.brifo.server.stock.entity.UserStock
 import com.brifo.server.stock.exception.DuplicatedStockSelectionException
 import com.brifo.server.stock.exception.StockNotFoundException
@@ -13,9 +17,13 @@ import com.brifo.server.user.dto.request.UpdateUserProfileRequest
 import com.brifo.server.user.dto.response.GetMyPageResponse
 import com.brifo.server.user.dto.response.GetUserHomeResponse
 import com.brifo.server.user.entity.OAuthProvider
+import com.brifo.server.user.entity.User
 import com.brifo.server.user.exception.InvalidCompanyNameException
 import com.brifo.server.user.exception.InvalidNicknameException
 import com.brifo.server.user.exception.OnboardingAlreadyCompletedException
+import com.brifo.server.user.exception.OnboardingProfileNotCompletedException
+import com.brifo.server.user.exception.OnboardingStocksNotSelectedException
+import com.brifo.server.user.exception.RequiredPoliciesNotAgreedException
 import com.brifo.server.user.exception.UserNotFoundException
 import com.brifo.server.user.repository.UserHomeData
 import com.brifo.server.user.repository.UserHomeQueryRepository
@@ -38,6 +46,9 @@ class UserService(
     private val userHomeQueryRepository: UserHomeQueryRepository,
     private val stockRepository: StockRepository,
     private val userStockRepository: UserStockRepository,
+    private val policyRepository: PolicyRepository,
+    private val userPolicyRepository: UserPolicyRepository,
+    private val agentRepository: AgentRepository,
     private val clock: Clock,
 ) {
     @Transactional
@@ -136,6 +147,35 @@ class UserService(
         userRepository.delete(user)
     }
 
+    @Transactional
+    fun completeOnboarding(
+        provider: OAuthProvider,
+        socialId: String,
+    ) {
+        val user = userRepository.findByProviderAndSocialId(provider, socialId) ?: throw UserNotFoundException()
+        if (user.onboardingCompletedAt != null) {
+            throw OnboardingAlreadyCompletedException()
+        }
+
+        val requiredPolicyCount = policyRepository.countByIsRequiredTrueAndIsActiveTrue()
+        val agreedRequiredPolicyCount = userPolicyRepository.countActiveRequiredAgreements(user)
+        if (agreedRequiredPolicyCount != requiredPolicyCount) {
+            throw RequiredPoliciesNotAgreedException()
+        }
+        if (user.nickname.isNullOrBlank()) {
+            throw OnboardingProfileNotCompletedException()
+        }
+
+        val interestStockCount = userStockRepository.countByUser(user)
+        if (interestStockCount !in MIN_STOCK_SELECTION_COUNT..MAX_STOCK_SELECTION_COUNT.toLong()) {
+            throw OnboardingStocksNotSelectedException()
+        }
+
+        check(!agentRepository.existsByUser(user)) { "Onboarding user must not already have agents." }
+        user.completeOnboarding(LocalDateTime.now(clock))
+        agentRepository.saveAll(DEFAULT_AGENT_PROFILES.map { it.createAgent(user) })
+    }
+
     private fun validateNickname(nickname: String): String =
         nickname.trim().takeIf { it.length in NICKNAME_LENGTH_RANGE }
             ?: throw InvalidNicknameException()
@@ -212,6 +252,24 @@ class UserService(
         private val REQUIRED_AGENT_ORDER = listOf(AgentType.ROOKIE, AgentType.TANKER, AgentType.PRO)
         private val NICKNAME_LENGTH_RANGE = 1..50
         private val COMPANY_NAME_LENGTH_RANGE = 1..100
+        private const val MIN_STOCK_SELECTION_COUNT = 1L
         private const val MAX_STOCK_SELECTION_COUNT = 3
+        private val DEFAULT_AGENT_PROFILES =
+            listOf(
+                DefaultAgentProfile(AgentType.ROOKIE, "ROOKIE", "루키", "기본 투자 분석 에이전트", 10),
+                DefaultAgentProfile(AgentType.TANKER, "TANKER", "탱커", "안정형 투자 분석 에이전트", 20),
+                DefaultAgentProfile(AgentType.PRO, "PRO", "프로", "전문 투자 분석 에이전트", 30),
+            )
+    }
+
+    private data class DefaultAgentProfile(
+        val agentType: AgentType,
+        val modelName: String,
+        val nickname: String,
+        val description: String,
+        val dailySalary: Int,
+    ) {
+        fun createAgent(user: User): Agent =
+            Agent.create(user, agentType, modelName, nickname, description, dailySalary)
     }
 }
