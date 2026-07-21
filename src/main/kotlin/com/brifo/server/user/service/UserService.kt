@@ -1,12 +1,16 @@
 package com.brifo.server.user.service
 
+import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
 import com.brifo.server.user.dto.response.GetMyPageResponse
+import com.brifo.server.user.dto.response.GetUserHomeResponse
 import com.brifo.server.user.entity.OAuthProvider
 import com.brifo.server.user.exception.InvalidCompanyNameException
 import com.brifo.server.user.exception.InvalidNicknameException
 import com.brifo.server.user.exception.OnboardingAlreadyCompletedException
 import com.brifo.server.user.exception.UserNotFoundException
+import com.brifo.server.user.repository.UserHomeData
+import com.brifo.server.user.repository.UserHomeQueryRepository
 import com.brifo.server.user.repository.UserMyPageQueryRepository
 import com.brifo.server.user.repository.UserRepository
 import org.springframework.stereotype.Service
@@ -23,6 +27,7 @@ import kotlin.math.roundToInt
 class UserService(
     private val userRepository: UserRepository,
     private val userMyPageQueryRepository: UserMyPageQueryRepository,
+    private val userHomeQueryRepository: UserHomeQueryRepository,
     private val clock: Clock,
 ) {
     @Transactional
@@ -63,6 +68,27 @@ class UserService(
         )
     }
 
+    @Transactional(readOnly = true)
+    fun getUserHome(userPublicId: UUID): GetUserHomeResponse {
+        val user = userRepository.findByPublicId(userPublicId) ?: throw UserNotFoundException()
+        val userId = requireNotNull(user.id) { "Persisted user must have an id." }
+        val todayStart = LocalDate.now(clock).atStartOfDay()
+        val tomorrowStart = todayStart.plusDays(1)
+        val homeData = userHomeQueryRepository.getUserHomeData(userId, todayStart, tomorrowStart)
+
+        return GetUserHomeResponse(
+            user =
+                GetUserHomeResponse.User(
+                    nickname = requireNotNull(user.nickname) { "Onboarded user must have a nickname." },
+                    companyName = user.companyName,
+                    balanceAp = user.balanceAp,
+                ),
+            agents = mapAgents(homeData),
+            todayDecisions = GetUserHomeResponse.TodayDecisions(Math.toIntExact(homeData.todayDecisionCount)),
+            todayNewsCards = mapTodayNewsCards(homeData),
+        )
+    }
+
     private fun validateNickname(nickname: String): String =
         nickname.trim().takeIf { it.length in NICKNAME_LENGTH_RANGE }
             ?: throw InvalidNicknameException()
@@ -95,7 +121,40 @@ class UserService(
         }
     }
 
+    private fun mapAgents(homeData: UserHomeData): List<GetUserHomeResponse.Agent> {
+        val agentsByType = homeData.agents.associateBy { it.agentType }
+        check(agentsByType.size == REQUIRED_AGENT_ORDER.size && agentsByType.keys.containsAll(REQUIRED_AGENT_ORDER)) {
+            "User must have exactly one agent for every required agent type."
+        }
+
+        return REQUIRED_AGENT_ORDER.map { agentType ->
+            val agent = requireNotNull(agentsByType[agentType])
+            GetUserHomeResponse.Agent(agent.agentId, agent.agentType, agent.level)
+        }
+    }
+
+    private fun mapTodayNewsCards(homeData: UserHomeData): GetUserHomeResponse.TodayNewsCards {
+        val batchTime = homeData.batchTime
+        if (batchTime == null) {
+            return GetUserHomeResponse.TodayNewsCards(batchTime = null, items = emptyList())
+        }
+
+        return GetUserHomeResponse.TodayNewsCards(
+            batchTime = batchTime,
+            items =
+                homeData.newsCards.map {
+                    GetUserHomeResponse.TodayNewsCards.Item(
+                        cardId = it.cardId,
+                        headline = it.headline,
+                        news = GetUserHomeResponse.TodayNewsCards.News(it.newsId, it.publishedAt, it.source),
+                        stock = GetUserHomeResponse.TodayNewsCards.Stock(it.stockId, it.stockName, it.changeRate),
+                    )
+                },
+        )
+    }
+
     companion object {
+        private val REQUIRED_AGENT_ORDER = listOf(AgentType.ROOKIE, AgentType.TANKER, AgentType.PRO)
         private val NICKNAME_LENGTH_RANGE = 1..50
         private val COMPANY_NAME_LENGTH_RANGE = 1..100
     }

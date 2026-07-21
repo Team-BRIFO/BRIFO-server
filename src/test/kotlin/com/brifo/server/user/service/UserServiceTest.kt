@@ -1,5 +1,7 @@
 package com.brifo.server.user.service
 
+import com.brifo.server.agent.entity.AgentType
+import com.brifo.server.news.entity.NewsSource
 import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
 import com.brifo.server.user.entity.OAuthProvider
 import com.brifo.server.user.entity.User
@@ -7,6 +9,10 @@ import com.brifo.server.user.exception.InvalidCompanyNameException
 import com.brifo.server.user.exception.InvalidNicknameException
 import com.brifo.server.user.exception.OnboardingAlreadyCompletedException
 import com.brifo.server.user.exception.UserNotFoundException
+import com.brifo.server.user.repository.UserHomeAgent
+import com.brifo.server.user.repository.UserHomeData
+import com.brifo.server.user.repository.UserHomeNewsCard
+import com.brifo.server.user.repository.UserHomeQueryRepository
 import com.brifo.server.user.repository.UserMyPageQueryRepository
 import com.brifo.server.user.repository.UserMyPageStats
 import com.brifo.server.user.repository.UserRepository
@@ -18,6 +24,7 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
+import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
@@ -27,6 +34,7 @@ import java.util.UUID
 class UserServiceTest {
     private lateinit var userRepository: UserRepository
     private lateinit var userMyPageQueryRepository: UserMyPageQueryRepository
+    private lateinit var userHomeQueryRepository: UserHomeQueryRepository
     private lateinit var userService: UserService
 
     private val clock = Clock.fixed(Instant.parse("2026-07-21T09:00:00Z"), ZoneId.of("Asia/Seoul"))
@@ -35,7 +43,8 @@ class UserServiceTest {
     fun setUp() {
         userRepository = mock(UserRepository::class.java)
         userMyPageQueryRepository = mock(UserMyPageQueryRepository::class.java)
-        userService = UserService(userRepository, userMyPageQueryRepository, clock)
+        userHomeQueryRepository = mock(UserHomeQueryRepository::class.java)
+        userService = UserService(userRepository, userMyPageQueryRepository, userHomeQueryRepository, clock)
     }
 
     @Test
@@ -208,6 +217,111 @@ class UserServiceTest {
         verifyNoInteractions(userMyPageQueryRepository)
     }
 
+    @Test
+    fun `홈 화면은 에이전트를 고정 순서로 정렬하고 오늘의 정보를 반환한다`() {
+        val userPublicId = UUID.randomUUID()
+        val user = myPageUser()
+        val batchTime = LocalDateTime.of(2026, 7, 21, 8, 0)
+        val cardId = UUID.randomUUID()
+        val newsId = UUID.randomUUID()
+        val stockId = UUID.randomUUID()
+        val homeData =
+            UserHomeData(
+                agents =
+                    listOf(
+                        UserHomeAgent(UUID.randomUUID(), AgentType.PRO, 4),
+                        UserHomeAgent(UUID.randomUUID(), AgentType.ROOKIE, 3),
+                        UserHomeAgent(UUID.randomUUID(), AgentType.TANKER, 2),
+                    ),
+                todayDecisionCount = 2,
+                batchTime = batchTime,
+                newsCards =
+                    listOf(
+                        UserHomeNewsCard(
+                            cardId = cardId,
+                            headline = "삼성전자, 반도체 실적 개선 기대",
+                            newsId = newsId,
+                            publishedAt = LocalDateTime.of(2026, 7, 21, 7, 30),
+                            source = NewsSource.NAVER,
+                            stockId = stockId,
+                            stockName = "삼성전자",
+                            changeRate = BigDecimal("1.3"),
+                        ),
+                    ),
+            )
+        `when`(userRepository.findByPublicId(userPublicId)).thenReturn(user)
+        `when`(
+            userHomeQueryRepository.getUserHomeData(
+                7L,
+                LocalDateTime.of(2026, 7, 21, 0, 0),
+                LocalDateTime.of(2026, 7, 22, 0, 0),
+            ),
+        ).thenReturn(homeData)
+
+        val response = userService.getUserHome(userPublicId)
+
+        assertEquals("brifo", response.user.nickname)
+        assertEquals(1250, response.user.balanceAp)
+        assertEquals(listOf(AgentType.ROOKIE, AgentType.TANKER, AgentType.PRO), response.agents.map { it.agentType })
+        assertEquals(2, response.todayDecisions.count)
+        assertEquals(batchTime, response.todayNewsCards.batchTime)
+        assertEquals(cardId, response.todayNewsCards.items.single().cardId)
+        assertEquals(newsId, response.todayNewsCards.items.single().news.newsId)
+        assertEquals(stockId, response.todayNewsCards.items.single().stock.stockId)
+        assertEquals(BigDecimal("1.3"), response.todayNewsCards.items.single().stock.changeRate)
+    }
+
+    @Test
+    fun `오늘 완료된 배치가 없으면 카드뉴스 목록은 비어 있다`() {
+        val userPublicId = UUID.randomUUID()
+        val user = myPageUser()
+        val homeData =
+            UserHomeData(
+                agents = requiredAgents(),
+                todayDecisionCount = 0,
+                batchTime = null,
+                newsCards = emptyList(),
+            )
+        `when`(userRepository.findByPublicId(userPublicId)).thenReturn(user)
+        `when`(
+            userHomeQueryRepository.getUserHomeData(
+                7L,
+                LocalDateTime.of(2026, 7, 21, 0, 0),
+                LocalDateTime.of(2026, 7, 22, 0, 0),
+            ),
+        ).thenReturn(homeData)
+
+        val response = userService.getUserHome(userPublicId)
+
+        assertEquals(null, response.todayNewsCards.batchTime)
+        assertEquals(emptyList<Any>(), response.todayNewsCards.items)
+    }
+
+    @Test
+    fun `필수 에이전트가 누락되면 데이터 무결성 오류가 발생한다`() {
+        val userPublicId = UUID.randomUUID()
+        val user = myPageUser()
+        val homeData =
+            UserHomeData(
+                agents = requiredAgents().dropLast(1),
+                todayDecisionCount = 0,
+                batchTime = null,
+                newsCards = emptyList(),
+            )
+        `when`(userRepository.findByPublicId(userPublicId)).thenReturn(user)
+        `when`(
+            userHomeQueryRepository.getUserHomeData(
+                7L,
+                LocalDateTime.of(2026, 7, 21, 0, 0),
+                LocalDateTime.of(2026, 7, 22, 0, 0),
+            ),
+        ).thenReturn(homeData)
+
+        assertThrows(IllegalStateException::class.java) {
+            userService.getUserHome(userPublicId)
+        }
+    }
+
     private fun user(): User =
         User.create(
             provider = OAuthProvider.KAKAO,
@@ -222,4 +336,11 @@ class UserServiceTest {
             `when`(it.companyName).thenReturn("내 투자회사")
             `when`(it.balanceAp).thenReturn(1250)
         }
+
+    private fun requiredAgents(): List<UserHomeAgent> =
+        listOf(
+            UserHomeAgent(UUID.randomUUID(), AgentType.ROOKIE, 1),
+            UserHomeAgent(UUID.randomUUID(), AgentType.TANKER, 1),
+            UserHomeAgent(UUID.randomUUID(), AgentType.PRO, 1),
+        )
 }
