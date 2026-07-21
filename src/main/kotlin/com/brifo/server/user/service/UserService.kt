@@ -1,7 +1,15 @@
 package com.brifo.server.user.service
 
 import com.brifo.server.agent.entity.AgentType
+import com.brifo.server.stock.entity.UserStock
+import com.brifo.server.stock.exception.DuplicatedStockSelectionException
+import com.brifo.server.stock.exception.StockNotFoundException
+import com.brifo.server.stock.exception.StockSelectionMaximumExceededException
+import com.brifo.server.stock.exception.StockSelectionMinimumNotMetException
+import com.brifo.server.stock.repository.StockRepository
+import com.brifo.server.stock.repository.UserStockRepository
 import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
+import com.brifo.server.user.dto.request.UpdateUserProfileRequest
 import com.brifo.server.user.dto.response.GetMyPageResponse
 import com.brifo.server.user.dto.response.GetUserHomeResponse
 import com.brifo.server.user.entity.OAuthProvider
@@ -28,6 +36,8 @@ class UserService(
     private val userRepository: UserRepository,
     private val userMyPageQueryRepository: UserMyPageQueryRepository,
     private val userHomeQueryRepository: UserHomeQueryRepository,
+    private val stockRepository: StockRepository,
+    private val userStockRepository: UserStockRepository,
     private val clock: Clock,
 ) {
     @Transactional
@@ -89,6 +99,37 @@ class UserService(
         )
     }
 
+    @Transactional
+    fun updateUserProfile(
+        userPublicId: UUID,
+        request: UpdateUserProfileRequest,
+    ) {
+        val nickname = validateNickname(request.nickname)
+        val companyName = requireNotNull(validateCompanyName(request.companyName))
+        validateStockIds(request.stockIds)
+
+        val user = userRepository.findByPublicId(userPublicId) ?: throw UserNotFoundException()
+        val stocks = stockRepository.findAllByPublicIdInAndIsActiveTrue(request.stockIds)
+        val stocksByPublicId = stocks.associateBy { requireNotNull(it.publicId) { "Persisted stock must have a public id." } }
+        if (stocksByPublicId.keys != request.stockIds.toSet()) {
+            throw StockNotFoundException()
+        }
+
+        val existingInterests = userStockRepository.findAllByUser(user)
+        val existingStockIds = existingInterests.mapTo(mutableSetOf()) { requireNotNull(it.stock.publicId) }
+        val requestedStockIds = request.stockIds.toSet()
+
+        user.updateProfile(nickname, companyName)
+        userStockRepository.deleteAllInBatch(
+            existingInterests.filter { requireNotNull(it.stock.publicId) !in requestedStockIds },
+        )
+        userStockRepository.saveAll(
+            request.stockIds
+                .filterNot(existingStockIds::contains)
+                .map { UserStock.create(user, requireNotNull(stocksByPublicId[it])) },
+        )
+    }
+
     private fun validateNickname(nickname: String): String =
         nickname.trim().takeIf { it.length in NICKNAME_LENGTH_RANGE }
             ?: throw InvalidNicknameException()
@@ -98,6 +139,14 @@ class UserService(
 
         return companyName.trim().takeIf { it.length in COMPANY_NAME_LENGTH_RANGE }
             ?: throw InvalidCompanyNameException()
+    }
+
+    private fun validateStockIds(stockIds: List<UUID>) {
+        when {
+            stockIds.isEmpty() -> throw StockSelectionMinimumNotMetException()
+            stockIds.size > MAX_STOCK_SELECTION_COUNT -> throw StockSelectionMaximumExceededException()
+            stockIds.distinct().size != stockIds.size -> throw DuplicatedStockSelectionException()
+        }
     }
 
     private fun calculateAccuracyRate(
@@ -157,5 +206,6 @@ class UserService(
         private val REQUIRED_AGENT_ORDER = listOf(AgentType.ROOKIE, AgentType.TANKER, AgentType.PRO)
         private val NICKNAME_LENGTH_RANGE = 1..50
         private val COMPANY_NAME_LENGTH_RANGE = 1..100
+        private const val MAX_STOCK_SELECTION_COUNT = 3
     }
 }

@@ -2,7 +2,16 @@ package com.brifo.server.user.service
 
 import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.news.entity.NewsSource
+import com.brifo.server.stock.entity.Stock
+import com.brifo.server.stock.entity.UserStock
+import com.brifo.server.stock.exception.DuplicatedStockSelectionException
+import com.brifo.server.stock.exception.StockNotFoundException
+import com.brifo.server.stock.exception.StockSelectionMaximumExceededException
+import com.brifo.server.stock.exception.StockSelectionMinimumNotMetException
+import com.brifo.server.stock.repository.StockRepository
+import com.brifo.server.stock.repository.UserStockRepository
 import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
+import com.brifo.server.user.dto.request.UpdateUserProfileRequest
 import com.brifo.server.user.entity.OAuthProvider
 import com.brifo.server.user.entity.User
 import com.brifo.server.user.exception.InvalidCompanyNameException
@@ -20,6 +29,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.ArgumentCaptor
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
@@ -35,6 +45,8 @@ class UserServiceTest {
     private lateinit var userRepository: UserRepository
     private lateinit var userMyPageQueryRepository: UserMyPageQueryRepository
     private lateinit var userHomeQueryRepository: UserHomeQueryRepository
+    private lateinit var stockRepository: StockRepository
+    private lateinit var userStockRepository: UserStockRepository
     private lateinit var userService: UserService
 
     private val clock = Clock.fixed(Instant.parse("2026-07-21T09:00:00Z"), ZoneId.of("Asia/Seoul"))
@@ -44,7 +56,17 @@ class UserServiceTest {
         userRepository = mock(UserRepository::class.java)
         userMyPageQueryRepository = mock(UserMyPageQueryRepository::class.java)
         userHomeQueryRepository = mock(UserHomeQueryRepository::class.java)
-        userService = UserService(userRepository, userMyPageQueryRepository, userHomeQueryRepository, clock)
+        stockRepository = mock(StockRepository::class.java)
+        userStockRepository = mock(UserStockRepository::class.java)
+        userService =
+            UserService(
+                userRepository,
+                userMyPageQueryRepository,
+                userHomeQueryRepository,
+                stockRepository,
+                userStockRepository,
+                clock,
+            )
     }
 
     @Test
@@ -322,6 +344,90 @@ class UserServiceTest {
         }
     }
 
+    @Test
+    fun `프로필 수정은 입력값을 trim하고 기존 관심 종목은 유지하며 목록을 교체한다`() {
+        val userPublicId = UUID.randomUUID()
+        val user = user()
+        val removedStock = stock(UUID.randomUUID())
+        val keptStock = stock(UUID.randomUUID())
+        val addedStock = stock(UUID.randomUUID())
+        val removedInterest = UserStock.create(user, removedStock)
+        val keptInterest = UserStock.create(user, keptStock)
+        val stockIds = listOf(requireNotNull(keptStock.publicId), requireNotNull(addedStock.publicId))
+        val stocks = stockIds.map(::stock)
+        `when`(userRepository.findByPublicId(userPublicId)).thenReturn(user)
+        `when`(stockRepository.findAllByPublicIdInAndIsActiveTrue(stockIds)).thenReturn(stocks)
+        `when`(userStockRepository.findAllByUser(user)).thenReturn(listOf(removedInterest, keptInterest))
+
+        userService.updateUserProfile(
+            userPublicId,
+            UpdateUserProfileRequest(
+                nickname = "  brifo  ",
+                companyName = "  새 투자회사  ",
+                stockIds = stockIds,
+            ),
+        )
+
+        assertEquals("brifo", user.nickname)
+        assertEquals("새 투자회사", user.companyName)
+        verify(userStockRepository).deleteAllInBatch(listOf(removedInterest))
+        @Suppress("UNCHECKED_CAST")
+        val savedInterestsCaptor = ArgumentCaptor.forClass(List::class.java) as ArgumentCaptor<List<UserStock>>
+        verify(userStockRepository).saveAll(savedInterestsCaptor.capture())
+        assertEquals(listOf(addedStock.publicId), savedInterestsCaptor.value.map { it.stock.publicId })
+    }
+
+    @Test
+    fun `프로필 수정 관심 종목은 최소 한 개여야 한다`() {
+        assertThrows(StockSelectionMinimumNotMetException::class.java) {
+            userService.updateUserProfile(
+                UUID.randomUUID(),
+                UpdateUserProfileRequest("brifo", "내 투자회사", emptyList()),
+            )
+        }
+    }
+
+    @Test
+    fun `프로필 수정 관심 종목은 최대 세 개까지 허용한다`() {
+        assertThrows(StockSelectionMaximumExceededException::class.java) {
+            userService.updateUserProfile(
+                UUID.randomUUID(),
+                UpdateUserProfileRequest("brifo", "내 투자회사", List(4) { UUID.randomUUID() }),
+            )
+        }
+    }
+
+    @Test
+    fun `프로필 수정 관심 종목에 중복이 있으면 예외를 던진다`() {
+        val stockId = UUID.randomUUID()
+
+        assertThrows(DuplicatedStockSelectionException::class.java) {
+            userService.updateUserProfile(
+                UUID.randomUUID(),
+                UpdateUserProfileRequest("brifo", "내 투자회사", listOf(stockId, stockId)),
+            )
+        }
+    }
+
+    @Test
+    fun `프로필 수정 요청의 종목을 찾을 수 없으면 예외를 던진다`() {
+        val userPublicId = UUID.randomUUID()
+        val user = user()
+        val stockIds = listOf(UUID.randomUUID(), UUID.randomUUID())
+        val existingStock = stock(stockIds.first())
+        `when`(userRepository.findByPublicId(userPublicId)).thenReturn(user)
+        `when`(stockRepository.findAllByPublicIdInAndIsActiveTrue(stockIds)).thenReturn(listOf(existingStock))
+
+        assertThrows(StockNotFoundException::class.java) {
+            userService.updateUserProfile(
+                userPublicId,
+                UpdateUserProfileRequest("brifo", "내 투자회사", stockIds),
+            )
+        }
+
+        verifyNoInteractions(userStockRepository)
+    }
+
     private fun user(): User =
         User.create(
             provider = OAuthProvider.KAKAO,
@@ -343,4 +449,9 @@ class UserServiceTest {
             UserHomeAgent(UUID.randomUUID(), AgentType.TANKER, 1),
             UserHomeAgent(UUID.randomUUID(), AgentType.PRO, 1),
         )
+
+    private fun stock(publicId: UUID): Stock =
+        mock(Stock::class.java).also {
+            `when`(it.publicId).thenReturn(publicId)
+        }
 }

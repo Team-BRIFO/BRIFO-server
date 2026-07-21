@@ -92,6 +92,14 @@ class User private constructor(
         }
     }
 
+    fun updateProfile(
+        nickname: String,
+        companyName: String,
+    ) {
+        this.nickname = nickname
+        this.companyName = companyName
+    }
+
     fun spendAp(amount: Int) {
         require(amount > 0) { "amount must be positive" }
         require(balanceAp >= amount) { "insufficient AP balance" }
