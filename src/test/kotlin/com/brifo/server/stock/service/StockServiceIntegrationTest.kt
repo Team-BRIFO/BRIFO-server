@@ -145,8 +145,8 @@ class StockServiceIntegrationTest {
         )
 
         entityManager
-            .createNativeQuery("UPDATE stocks SET is_active = false WHERE id = :id")
-            .setParameter("id", inactiveStock.id)
+            .createNativeQuery("UPDATE stocks SET is_active = false WHERE id = ?1")
+            .setParameter(1, inactiveStock.id)
             .executeUpdate()
         entityManager.clear()
 
