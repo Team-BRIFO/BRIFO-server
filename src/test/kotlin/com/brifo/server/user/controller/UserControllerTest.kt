@@ -3,6 +3,7 @@ package com.brifo.server.user.controller
 import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.news.entity.NewsSource
 import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
+import com.brifo.server.user.dto.request.UpdateUserProfileRequest
 import com.brifo.server.user.dto.response.GetMyPageResponse
 import com.brifo.server.user.dto.response.GetUserHomeResponse
 import com.brifo.server.user.service.UserService
@@ -218,6 +219,60 @@ class UserControllerTest {
         mockMvc
             .perform(get("/api/users/me/home"))
             .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("COMMON_400"))
+    }
+
+    @Test
+    fun `프로필 수정은 임시 사용자 ID와 전체 프로필 정보를 전달한다`() {
+        val userId = UUID.randomUUID()
+        val stockIds = listOf(UUID.randomUUID(), UUID.randomUUID())
+        val request =
+            UpdateUserProfileRequest(
+                nickname = "brifo",
+                companyName = "BRIFO 투자회사",
+                stockIds = stockIds,
+            )
+
+        mockMvc
+            .perform(
+                patch("/api/users/me/profile")
+                    .param("userId", userId.toString())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "nickname": "${request.nickname}",
+                          "companyName": "${request.companyName}",
+                          "stockIds": ["${stockIds[0]}", "${stockIds[1]}"]
+                        }
+                        """.trimIndent(),
+                    ),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.code").value("USER_200_03"))
+            .andExpect(jsonPath("$.message").value("프로필이 수정되었습니다."))
+            .andExpect(jsonPath("$.result").doesNotExist())
+
+        verify(userService).updateUserProfile(userId, request)
+    }
+
+    @Test
+    fun `프로필 수정에 사용자 ID가 없으면 400을 반환한다`() {
+        mockMvc
+            .perform(
+                patch("/api/users/me/profile")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "nickname": "brifo",
+                          "companyName": "BRIFO 투자회사",
+                          "stockIds": ["${UUID.randomUUID()}"]
+                        }
+                        """.trimIndent(),
+                    ),
+            ).andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.code").value("COMMON_400"))
     }

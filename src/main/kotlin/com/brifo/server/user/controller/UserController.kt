@@ -57,8 +57,12 @@ class UserController(
 
     @PatchMapping("/users/me/profile")
     fun updateUserProfile(
+        @RequestParam userId: UUID,
         @Valid @RequestBody request: UpdateUserProfileRequest,
-    ): ApiResponse<Nothing> = TODO("사용자 프로필 수정 서비스 구현 필요")
+    ): ApiResponse<Nothing> {
+        userService.updateUserProfile(userId, request)
+        return ApiResponse.success(UserSuccessCode.PROFILE_UPDATED)
+    }
 
     @DeleteMapping("/users/me")
     fun deleteUser(): ApiResponse<Nothing> = TODO("회원 탈퇴 서비스 구현 필요")
