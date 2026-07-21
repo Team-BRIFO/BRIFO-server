@@ -428,6 +428,27 @@ class UserServiceTest {
         verifyNoInteractions(userStockRepository)
     }
 
+    @Test
+    fun `회원 탈퇴는 현재 사용자를 soft delete한다`() {
+        val userPublicId = UUID.randomUUID()
+        val user = user()
+        `when`(userRepository.findByPublicId(userPublicId)).thenReturn(user)
+
+        userService.deleteUser(userPublicId)
+
+        verify(userRepository).delete(user)
+    }
+
+    @Test
+    fun `회원 탈퇴 사용자를 찾을 수 없으면 예외를 던진다`() {
+        val userPublicId = UUID.randomUUID()
+        `when`(userRepository.findByPublicId(userPublicId)).thenReturn(null)
+
+        assertThrows(UserNotFoundException::class.java) {
+            userService.deleteUser(userPublicId)
+        }
+    }
+
     private fun user(): User =
         User.create(
             provider = OAuthProvider.KAKAO,

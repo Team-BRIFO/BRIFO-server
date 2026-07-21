@@ -130,6 +130,12 @@ class UserService(
         )
     }
 
+    @Transactional
+    fun deleteUser(userPublicId: UUID) {
+        val user = userRepository.findByPublicId(userPublicId) ?: throw UserNotFoundException()
+        userRepository.delete(user)
+    }
+
     private fun validateNickname(nickname: String): String =
         nickname.trim().takeIf { it.length in NICKNAME_LENGTH_RANGE }
             ?: throw InvalidNicknameException()
