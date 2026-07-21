@@ -1,6 +1,7 @@
 package com.brifo.server.user.controller
 
 import com.brifo.server.global.common.ApiResponse
+import com.brifo.server.global.code.SuccessCode
 import com.brifo.server.user.code.UserSuccessCode
 import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
 import com.brifo.server.user.dto.request.UpdateUserProfileRequest
@@ -46,7 +47,13 @@ class UserController(
     fun getUserProfile(): ApiResponse<GetUserProfileResponse> = TODO("사용자 프로필 조회 서비스 구현 필요")
 
     @GetMapping("/users/me")
-    fun getMyPage(): ApiResponse<GetMyPageResponse> = TODO("마이페이지 조회 서비스 구현 필요")
+    fun getMyPage(
+        @RequestParam userId: UUID,
+    ): ApiResponse<GetMyPageResponse> =
+        ApiResponse.success(
+            SuccessCode.OK,
+            userService.getMyPage(userId),
+        )
 
     @PatchMapping("/users/me/profile")
     fun updateUserProfile(
