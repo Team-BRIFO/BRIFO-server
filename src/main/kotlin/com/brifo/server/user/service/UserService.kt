@@ -89,6 +89,7 @@ class UserService(
     @Transactional(readOnly = true)
     fun getMyPage(userPublicId: UUID): GetMyPageResponse {
         val user = userRepository.findByPublicId(userPublicId) ?: throw UserNotFoundException()
+        validateOnboardingCompleted(user)
         val userId = requireNotNull(user.id) { "Persisted user must have an id." }
         val now = LocalDateTime.now(clock)
         val today = LocalDate.now(clock)
@@ -110,6 +111,7 @@ class UserService(
     @Transactional(readOnly = true)
     fun getUserHome(userPublicId: UUID): GetUserHomeResponse {
         val user = userRepository.findByPublicId(userPublicId) ?: throw UserNotFoundException()
+        validateOnboardingCompleted(user)
         val userId = requireNotNull(user.id) { "Persisted user must have an id." }
         val todayStart = LocalDate.now(clock).atStartOfDay()
         val tomorrowStart = todayStart.plusDays(1)
@@ -220,6 +222,12 @@ class UserService(
             stockIds.isEmpty() -> throw StockSelectionMinimumNotMetException()
             stockIds.size > MAX_STOCK_SELECTION_COUNT -> throw StockSelectionMaximumExceededException()
             stockIds.distinct().size != stockIds.size -> throw DuplicatedStockSelectionException()
+        }
+    }
+
+    private fun validateOnboardingCompleted(user: User) {
+        if (user.onboardingCompletedAt == null) {
+            throw OnboardingProfileNotCompletedException()
         }
     }
 

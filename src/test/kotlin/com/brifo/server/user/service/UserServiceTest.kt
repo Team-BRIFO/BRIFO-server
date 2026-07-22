@@ -276,6 +276,19 @@ class UserServiceTest {
     }
 
     @Test
+    fun `마이페이지는 온보딩 미완료 사용자면 프로필 미완료 예외를 던진다`() {
+        val userPublicId = UUID.randomUUID()
+        val user = incompleteMyPageUser()
+        `when`(userRepository.findByPublicId(userPublicId)).thenReturn(user)
+
+        assertThrows(OnboardingProfileNotCompletedException::class.java) {
+            userService.getMyPage(userPublicId)
+        }
+
+        verifyNoInteractions(userMyPageQueryRepository)
+    }
+
+    @Test
     fun `홈 화면은 에이전트를 고정 순서로 정렬하고 오늘의 정보를 반환한다`() {
         val userPublicId = UUID.randomUUID()
         val user = myPageUser()
@@ -378,6 +391,19 @@ class UserServiceTest {
         assertThrows(IllegalStateException::class.java) {
             userService.getUserHome(userPublicId)
         }
+    }
+
+    @Test
+    fun `홈 화면은 온보딩 미완료 사용자면 프로필 미완료 예외를 던진다`() {
+        val userPublicId = UUID.randomUUID()
+        val user = incompleteMyPageUser()
+        `when`(userRepository.findByPublicId(userPublicId)).thenReturn(user)
+
+        assertThrows(OnboardingProfileNotCompletedException::class.java) {
+            userService.getUserHome(userPublicId)
+        }
+
+        verifyNoInteractions(userHomeQueryRepository)
     }
 
     @Test
@@ -590,6 +616,13 @@ class UserServiceTest {
             `when`(it.nickname).thenReturn("brifo")
             `when`(it.companyName).thenReturn("내 투자회사")
             `when`(it.balanceAp).thenReturn(1250)
+            `when`(it.onboardingCompletedAt).thenReturn(LocalDateTime.of(2026, 7, 21, 18, 0))
+        }
+
+    private fun incompleteMyPageUser(): User =
+        mock(User::class.java).also {
+            `when`(it.id).thenReturn(7L)
+            `when`(it.onboardingCompletedAt).thenReturn(null)
         }
 
     private fun requiredAgents(): List<UserHomeAgent> =
