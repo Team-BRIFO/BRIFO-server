@@ -15,6 +15,11 @@ data class GetApTransactionsResponse(
         val monthlyLostAp: Int,
     )
 
+    data class MonthlyAmounts(
+        val earnedAp: Int,
+        val lostAp: Int,
+    )
+
     data class Item(
         val apTransactionId: UUID,
         val reason: ApTransactionReason,
