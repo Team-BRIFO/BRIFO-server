@@ -2,5 +2,8 @@ package com.brifo.server.ap.repository
 
 import com.brifo.server.ap.entity.AttendanceReward
 import org.springframework.data.jpa.repository.JpaRepository
+import java.util.UUID
 
-interface AttendanceRewardRepository : JpaRepository<AttendanceReward, Long>
+interface AttendanceRewardRepository : JpaRepository<AttendanceReward, Long> {
+    fun findTopByUserPublicIdOrderByIdDesc(userPublicId: UUID): AttendanceReward?
+}
