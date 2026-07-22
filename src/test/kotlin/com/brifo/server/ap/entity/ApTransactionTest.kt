@@ -31,9 +31,9 @@ class ApTransactionTest {
             socialId = "social-id",
             email = "user@example.com",
         )
-        user.refundAp(10)
+        user.changeAp(10)
 
-        assertFailsWith<IllegalArgumentException> { user.spendAp(11) }
+        assertFailsWith<IllegalArgumentException> { user.changeAp(-11) }
         assertEquals(10, user.balanceAp)
     }
 }
