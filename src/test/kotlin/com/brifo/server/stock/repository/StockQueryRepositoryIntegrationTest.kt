@@ -235,11 +235,13 @@ class StockQueryRepositoryIntegrationTest {
     }
 
     private fun deactivate(stock: Stock) {
-        // Entity에 비활성화 메서드가 없어 테스트 데이터만 native query로 변경한다.
         entityManager
             .createNativeQuery(
-                "UPDATE stocks SET is_active = false WHERE id = :stockId",
-            ).setParameter("stockId", requireNotNull(stock.id))
+                "UPDATE stocks SET is_active = false WHERE id = ?1", // ?1 == 첫번째 매게변수 자리
+            )
+            .setParameter(1, requireNotNull(stock.id)) // 첫번째 매게변수 자리에, stock.id를 넣는다. (1번 행X, 하드코딩X)
             .executeUpdate()
+
+        entityManager.clear()
     }
 }
