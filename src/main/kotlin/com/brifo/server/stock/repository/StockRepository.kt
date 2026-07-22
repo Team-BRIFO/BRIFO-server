@@ -4,6 +4,8 @@ import com.brifo.server.stock.entity.Stock
 import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
-interface StockRepository : JpaRepository<Stock, Long> {
+interface StockRepository :
+    JpaRepository<Stock, Long>,
+    StockQueryRepository {
     fun findByPublicId(publicId: UUID): Stock?
 }
