@@ -1,5 +1,7 @@
 package com.brifo.server.news.service
 
+import com.brifo.server.global.code.ErrorCode
+import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.news.dto.response.GetNewsCardResponse
 import com.brifo.server.news.exception.NewsCardNotFoundException
 import com.brifo.server.news.repository.NewsCardRepository
@@ -28,7 +30,10 @@ class NewsService(
             newsDailyStockPriceRepository.findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDesc(
                 stockId = requireNotNull(stock.id),
                 tradeDate = publishedDate,
-            ) ?: throw IllegalStateException("카드뉴스 기준일의 종목 가격 데이터가 없습니다.")
+            ) ?: throw BusinessException(
+                errorCode = ErrorCode.INTERNAL_SERVER_ERROR,
+                message = "카드뉴스 기준일의 종목 가격 데이터가 없습니다.",
+            )
 
         val terms =
             newsCardTermRepository.findAllByNewsCardIdOrderByDisplayOrderAsc(

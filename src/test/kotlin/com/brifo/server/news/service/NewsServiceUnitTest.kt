@@ -1,5 +1,7 @@
 package com.brifo.server.news.service
 
+import com.brifo.server.global.code.ErrorCode
+import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.news.entity.News
 import com.brifo.server.news.entity.NewsCard
 import com.brifo.server.news.exception.NewsCardNotFoundException
@@ -13,6 +15,7 @@ import org.mockito.Mockito.`when`
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class NewsServiceUnitTest {
@@ -63,8 +66,11 @@ class NewsServiceUnitTest {
         ).thenReturn(null)
 
         // 필수 가격이 없으면 응답을 만들 수 없어야 한다.
-        assertFailsWith<IllegalStateException> {
-            newsService.getNewsCard(cardId)
-        }
+        val exception =
+            assertFailsWith<BusinessException> {
+                newsService.getNewsCard(cardId)
+            }
+
+        assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, exception.errorCode)
     }
 }
