@@ -13,6 +13,7 @@ import com.brifo.server.decision.exception.DecisionRequestClosedException
 import com.brifo.server.decision.repository.DecisionRepository
 import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.exception.BusinessException
+import com.brifo.server.news.entity.NewsCard
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -39,12 +40,12 @@ class DecisionRequestService(
         validateRequest(requestedAt, confidenceLevel)
         val briefing = briefingRepository.findOwnedBriefing(userPublicId, briefingPublicId)
             ?: throw BriefingNotFoundException()
-        validateDatabaseState(
+        val newsCard = validateDatabaseState(
             userPublicId = userPublicId,
             briefing = briefing,
             requestedAt = requestedAt,
         )
-        val stock = briefing.newsCards.first().news.stock
+        val stock = newsCard.news.stock
 
         val decision = decisionRepository.saveAndFlush(
             Decision.create(
@@ -81,11 +82,11 @@ class DecisionRequestService(
         userPublicId: UUID,
         briefing: Briefing,
         requestedAt: LocalDateTime,
-    ) {
+    ): NewsCard {
         if (briefing.status != BriefingStatus.COMPLETED) {
             throw BriefingNotCompletedException()
         }
-        val newsCard = briefing.newsCards.first()
+        val newsCard = briefing.newsCards.firstOrNull() ?: throw BriefingNotFoundException()
         if (newsCard.displayDate != requestedAt.toLocalDate()) {
             throw BriefingNotFoundException()
         }
@@ -98,6 +99,7 @@ class DecisionRequestService(
         ) {
             throw DecisionAlreadyExistsException()
         }
+        return newsCard
     }
 
     private companion object {

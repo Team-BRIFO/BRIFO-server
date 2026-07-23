@@ -17,6 +17,8 @@ import com.brifo.server.stock.entity.Stock
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.times
+import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import java.time.Clock
@@ -94,6 +96,25 @@ class DecisionRequestServiceTest {
     }
 
     @Test
+    fun `뉴스 카드가 없는 브리핑이면 찾을 수 없는 브리핑으로 처리한다`() {
+        val userId = UUID.randomUUID()
+        val briefingId = UUID.randomUUID()
+        val briefing = mock(Briefing::class.java)
+        `when`(briefing.newsCards).thenReturn(emptyList())
+        `when`(briefing.status).thenReturn(BriefingStatus.COMPLETED)
+        `when`(briefingRepository.findOwnedBriefing(userId, briefingId)).thenReturn(briefing)
+
+        assertFailsWith<BriefingNotFoundException> {
+            serviceAt("2026-07-21T05:00:00Z").request(
+                userId,
+                briefingId,
+                DecisionDirection.UP,
+                3,
+            )
+        }
+    }
+
+    @Test
     fun `오늘 브리핑이 아니면 찾을 수 없는 브리핑으로 처리한다`() {
         val userId = UUID.randomUUID()
         val briefingId = UUID.randomUUID()
@@ -153,6 +174,7 @@ class DecisionRequestServiceTest {
 
         kotlin.test.assertEquals(decisionId, response.decisionId)
         kotlin.test.assertEquals(context.stockId, response.stock.stockId)
+        verify(context.briefing, times(1)).newsCards
     }
 
     private fun serviceAt(instant: String) =
