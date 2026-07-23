@@ -44,7 +44,13 @@ class UserController(
     }
 
     @GetMapping("/users/me/profile")
-    fun getUserProfile(): ApiResponse<GetUserProfileResponse> = TODO("사용자 프로필 조회 서비스 구현 필요")
+    fun getUserProfile(
+        @RequestParam userId: UUID,
+    ): ApiResponse<GetUserProfileResponse> =
+        ApiResponse.success(
+            SuccessCode.OK,
+            userService.getUserProfile(userId),
+        )
 
     @GetMapping("/users/me")
     fun getMyPage(

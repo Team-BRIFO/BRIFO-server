@@ -6,6 +6,7 @@ import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
 import com.brifo.server.user.dto.request.UpdateUserProfileRequest
 import com.brifo.server.user.dto.response.GetMyPageResponse
 import com.brifo.server.user.dto.response.GetUserHomeResponse
+import com.brifo.server.user.dto.response.GetUserProfileResponse
 import com.brifo.server.user.service.UserService
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.verify
@@ -219,6 +220,42 @@ class UserControllerTest {
     fun `홈 화면 조회에 사용자 ID가 없으면 400을 반환한다`() {
         mockMvc
             .perform(get("/api/users/me/home"))
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.code").value("COMMON_400"))
+    }
+
+    @Test
+    fun `프로필 조회는 임시 사용자 ID로 현재 프로필과 관심 종목을 반환한다`() {
+        val userId = UUID.randomUUID()
+        val stockId = UUID.randomUUID()
+        val response =
+            GetUserProfileResponse(
+                nickname = "brifo",
+                companyName = "BRIFO 투자회사",
+                stocks = listOf(GetUserProfileResponse.Stock(stockId, "삼성전자")),
+            )
+        `when`(userService.getUserProfile(userId)).thenReturn(response)
+
+        mockMvc
+            .perform(
+                get("/api/users/me/profile")
+                    .param("userId", userId.toString()),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.code").value("COMMON_200"))
+            .andExpect(jsonPath("$.result.nickname").value("brifo"))
+            .andExpect(jsonPath("$.result.companyName").value("BRIFO 투자회사"))
+            .andExpect(jsonPath("$.result.stocks[0].stockId").value(stockId.toString()))
+            .andExpect(jsonPath("$.result.stocks[0].name").value("삼성전자"))
+
+        verify(userService).getUserProfile(userId)
+    }
+
+    @Test
+    fun `프로필 조회에 사용자 ID가 없으면 400을 반환한다`() {
+        mockMvc
+            .perform(get("/api/users/me/profile"))
             .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.code").value("COMMON_400"))

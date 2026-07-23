@@ -407,6 +407,44 @@ class UserServiceTest {
     }
 
     @Test
+    fun `프로필 조회는 현재 사용자 정보와 관심 종목을 반환한다`() {
+        val userPublicId = UUID.randomUUID()
+        val user = myPageUser()
+        val samsung = stock(UUID.randomUUID(), "삼성전자")
+        val skHynix = stock(UUID.randomUUID(), "SK하이닉스")
+        `when`(userRepository.findByPublicId(userPublicId)).thenReturn(user)
+        `when`(userStockRepository.findAllByUser(user)).thenReturn(
+            listOf(
+                UserStock.create(user, samsung),
+                UserStock.create(user, skHynix),
+            ),
+        )
+
+        val response = userService.getUserProfile(userPublicId)
+
+        assertEquals("brifo", response.nickname)
+        assertEquals("내 투자회사", response.companyName)
+        assertEquals(
+            listOf(samsung.publicId, skHynix.publicId),
+            response.stocks.map { it.stockId },
+        )
+        assertEquals(listOf("삼성전자", "SK하이닉스"), response.stocks.map { it.name })
+    }
+
+    @Test
+    fun `프로필 조회는 온보딩 미완료 사용자면 프로필 미완료 예외를 던진다`() {
+        val userPublicId = UUID.randomUUID()
+        val user = incompleteMyPageUser()
+        `when`(userRepository.findByPublicId(userPublicId)).thenReturn(user)
+
+        assertThrows(OnboardingProfileNotCompletedException::class.java) {
+            userService.getUserProfile(userPublicId)
+        }
+
+        verifyNoInteractions(userStockRepository)
+    }
+
+    @Test
     fun `프로필 수정은 입력값을 trim하고 기존 관심 종목은 유지하며 목록을 교체한다`() {
         val userPublicId = UUID.randomUUID()
         val user = user()
@@ -632,8 +670,12 @@ class UserServiceTest {
             UserHomeAgent(UUID.randomUUID(), AgentType.PRO, 1),
         )
 
-    private fun stock(publicId: UUID): Stock =
+    private fun stock(
+        publicId: UUID,
+        name: String = "삼성전자",
+    ): Stock =
         mock(Stock::class.java).also {
             `when`(it.publicId).thenReturn(publicId)
+            `when`(it.name).thenReturn(name)
         }
 }

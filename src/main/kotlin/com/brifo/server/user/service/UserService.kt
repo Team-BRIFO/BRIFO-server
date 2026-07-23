@@ -16,6 +16,7 @@ import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
 import com.brifo.server.user.dto.request.UpdateUserProfileRequest
 import com.brifo.server.user.dto.response.GetMyPageResponse
 import com.brifo.server.user.dto.response.GetUserHomeResponse
+import com.brifo.server.user.dto.response.GetUserProfileResponse
 import com.brifo.server.user.entity.OAuthProvider
 import com.brifo.server.user.entity.User
 import com.brifo.server.user.exception.InvalidCompanyNameException
@@ -127,6 +128,26 @@ class UserService(
             agents = mapAgents(homeData),
             todayDecisions = GetUserHomeResponse.TodayDecisions(Math.toIntExact(homeData.todayDecisionCount)),
             todayNewsCards = mapTodayNewsCards(homeData),
+        )
+    }
+
+    @Transactional(readOnly = true)
+    fun getUserProfile(userPublicId: UUID): GetUserProfileResponse {
+        val user = userRepository.findByPublicId(userPublicId) ?: throw UserNotFoundException()
+        validateOnboardingCompleted(user)
+        val interests = userStockRepository.findAllByUser(user)
+
+        return GetUserProfileResponse(
+            nickname = requireNotNull(user.nickname) { "Onboarded user must have a nickname." },
+            companyName = user.companyName,
+            stocks =
+                interests.map {
+                    val stock = it.stock
+                    GetUserProfileResponse.Stock(
+                        stockId = requireNotNull(stock.publicId) { "Persisted stock must have a public id." },
+                        name = stock.name,
+                    )
+                },
         )
     }
 
