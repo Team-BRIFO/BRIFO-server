@@ -2,7 +2,6 @@ package com.brifo.server.diary.dto.response
 
 import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.briefing.entity.BriefingDirection
-import java.math.BigDecimal
 import java.util.UUID
 
 data class GetDiaryDetailResponse(
@@ -16,7 +15,7 @@ data class GetDiaryDetailResponse(
     data class Stock(
         val stockId: UUID,
         val name: String,
-        val changeRate: BigDecimal,
+        val changeRate: Int,
     )
 
     data class Agent(

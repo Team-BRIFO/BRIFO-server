@@ -8,4 +8,6 @@ interface AgentRepository :
     JpaRepository<Agent, Long>,
     AgentQueryRepository {
     fun findByPublicId(publicId: UUID): Agent?
+
+    fun findAllByUserPublicIdOrderByAgentTypeAsc(userPublicId: UUID): List<Agent>
 }
