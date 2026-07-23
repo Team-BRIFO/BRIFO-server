@@ -72,6 +72,7 @@ class ApTransactionQueryRepositoryImpl(
                         .where(
                             refund.reason.eq(ApTransactionReason.SALARY_REFUND),
                             refund.targetId.eq(apTransaction.targetId),
+                            refund.targetType.eq(apTransaction.targetType),
                         ).exists(),
                 )
         val monthlyEarned =
