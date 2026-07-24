@@ -94,7 +94,7 @@ class DecisionControllerTest {
                         direction = DecisionDirection.DOWN,
                         confidenceLevel = 3,
                         agent = GetDecisionsResponse.Agent(agentId, AgentType.TANKER),
-                        stock = GetDecisionsResponse.Stock(stockId, "삼성전자", null, null),
+                        stock = GetDecisionsResponse.Stock(stockId, "삼성전자", null, null, null),
                     ),
                 ),
             ),
@@ -108,6 +108,7 @@ class DecisionControllerTest {
             .andExpect(jsonPath("$.result.items[0].agent.agentId").value(agentId.toString()))
             .andExpect(jsonPath("$.result.items[0].agent.agentType").value("TANKER"))
             .andExpect(jsonPath("$.result.items[0].stock.stockId").value(stockId.toString()))
+            .andExpect(jsonPath("$.result.items[0].stock.price").isEmpty)
             .andExpect(jsonPath("$.result.items[0].stock.changeRate").isEmpty)
             .andExpect(jsonPath("$.result.items[0].stock.tradeDate").isEmpty)
     }

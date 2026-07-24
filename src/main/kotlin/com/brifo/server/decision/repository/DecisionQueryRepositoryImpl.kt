@@ -49,6 +49,11 @@ class DecisionQueryRepositoryImpl(
             "round({0}, 1)",
             dailyStockPrice.changeRate,
         )
+        val price = Expressions.numberTemplate(
+            Long::class.javaObjectType,
+            "cast({0} as long)",
+            dailyStockPrice.price,
+        )
         return queryFactory
             .select(
                 Projections.constructor(
@@ -65,6 +70,7 @@ class DecisionQueryRepositoryImpl(
                         GetDecisionsResponse.Stock::class.java,
                         briefingNewsCard.newsCard.news.stock.publicId,
                         briefingNewsCard.newsCard.news.stock.name,
+                        price,
                         roundedChangeRate,
                         dailyStockPrice.tradeDate,
                     ),
