@@ -4,7 +4,7 @@ import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 
 @Component
-//@Profile("dev")
+@Profile("dev")
 class DevBriefingAnalysisClient : BriefingAnalysisClient {
     // TODO: 외부 briefing 분석 API 구현체로 교체한다.
     override fun createBriefings(request: BriefingAnalysisClient.Request): BriefingAnalysisClient.Result =
