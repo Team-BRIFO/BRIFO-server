@@ -4,6 +4,7 @@ import com.brifo.server.externalapi.log.entity.ExternalApiCallLog
 import com.brifo.server.externalapi.log.entity.ExternalApiCallStatus
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatCode
 import org.junit.jupiter.api.Test
 import org.springframework.web.client.ResourceAccessException
 import java.net.SocketTimeoutException
@@ -43,6 +44,35 @@ class ExternalApiCallLogServiceUnitTest {
         assertThat(payload["news"][0]["newsContent"].asText()).isEqualTo("******")
         assertThat(payload["stockCode"].asText()).isEqualTo("005930")
         assertThat(payload["news"][0]["title"].asText()).isEqualTo("삼성전자 뉴스")
+    }
+
+    @Test
+    fun `redactPayload는 payload 변환에 실패하면 null을 반환한다`() {
+        val result = service.redactPayload(ThrowingPayload())
+
+        assertThat(result).isNull()
+    }
+
+    @Test
+    fun `saveLog는 payload 변환에 실패해도 예외를 전파하지 않는다`() {
+        assertThatCode {
+            service.saveLog(
+                provider = "KIS",
+                apiName = "KIS_STOCK_PRICE",
+                requestPayload = ThrowingPayload(),
+                responsePayload = mapOf("price" to 72_500),
+                responseStatusCode = 200,
+                exception = null,
+                retryCount = 0,
+                requestedAt = LocalDateTime.of(2026, 7, 20, 10, 0),
+                startedAt = service.startTimer(),
+            )
+        }.doesNotThrowAnyException()
+
+        val savedLog = checkNotNull(writer.savedLog)
+        assertThat(savedLog.status).isEqualTo(ExternalApiCallStatus.SUCCESS)
+        assertThat(savedLog.requestPayloadRedacted).isNull()
+        assertThat(savedLog.responsePayloadRedacted!!["price"].asInt()).isEqualTo(72_500)
     }
 
     @Test
@@ -195,5 +225,10 @@ class ExternalApiCallLogServiceUnitTest {
         ) {
             savedLog = externalApiCallLog
         }
+    }
+
+    private class ThrowingPayload {
+        val value: String
+            get() = throw IllegalStateException("serialization failed")
     }
 }

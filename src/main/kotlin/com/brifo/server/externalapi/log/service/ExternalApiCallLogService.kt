@@ -44,9 +44,17 @@ class ExternalApiCallLogService(
     }
 
     fun redactPayload(payload: Any?): JsonNode? {
-        return payload
-            ?.let { objectMapper.valueToTree<JsonNode>(it) }
-            ?.maskSensitiveFields()
+        return try {
+            payload
+                ?.let { objectMapper.valueToTree<JsonNode>(it) }
+                ?.maskSensitiveFields()
+        } catch (exception: Exception) {
+            log.warn(
+                "Failed to redact external API payload.",
+                exception,
+            )
+            null
+        }
     }
 
     fun saveLog(
