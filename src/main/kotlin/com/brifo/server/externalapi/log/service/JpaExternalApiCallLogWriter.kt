@@ -1,7 +1,7 @@
-package com.brifo.server.log.service
+package com.brifo.server.externalapi.log.service
 
-import com.brifo.server.log.entity.ExternalApiCallLog
-import com.brifo.server.log.repository.ExternalApiCallLogRepository
+import com.brifo.server.externalapi.log.entity.ExternalApiCallLog
+import com.brifo.server.externalapi.log.repository.ExternalApiCallLogRepository
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional

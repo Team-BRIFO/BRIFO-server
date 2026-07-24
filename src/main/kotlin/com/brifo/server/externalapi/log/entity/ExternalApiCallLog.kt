@@ -1,4 +1,4 @@
-package com.brifo.server.log.entity
+package com.brifo.server.externalapi.log.entity
 
 import com.brifo.server.global.common.BaseEntity
 import com.fasterxml.jackson.databind.JsonNode

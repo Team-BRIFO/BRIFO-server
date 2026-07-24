@@ -1,6 +1,6 @@
-package com.brifo.server.log.dto
+package com.brifo.server.externalapi.log.dto
 
-import com.brifo.server.log.entity.ExternalApiCallStatus
+import com.brifo.server.externalapi.log.entity.ExternalApiCallStatus
 import com.fasterxml.jackson.databind.JsonNode
 import java.time.LocalDateTime
 
