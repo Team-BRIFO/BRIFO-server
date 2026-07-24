@@ -47,3 +47,6 @@ app:
       redirect-uris: ${NAVER_REDIRECT_URIS}
       connect-timeout: 3s
       read-timeout: 5s
+external:
+  kis:
+    base-url: https://openapi.koreainvestment.com:9443

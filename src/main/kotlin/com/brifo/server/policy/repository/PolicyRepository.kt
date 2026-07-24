@@ -4,6 +4,12 @@ import com.brifo.server.policy.entity.Policy
 import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
-interface PolicyRepository : JpaRepository<Policy, Long> {
-    fun findByPublicId(publicId: UUID): Policy?
+interface PolicyRepository :
+    JpaRepository<Policy, Long>,
+    PolicyQueryRepository {
+    fun findByPublicIdAndIsActiveTrue(publicId: UUID): Policy?
+
+    fun findAllByPublicIdInAndIsActiveTrue(publicIds: Collection<UUID>): List<Policy>
+
+    fun findAllByIsActiveTrueAndIsRequiredTrue(): List<Policy>
 }
