@@ -49,6 +49,7 @@ class NotificationCreationService(
         userId: UUID,
         code: NotificationCode,
         target: Target,
+        eventId: Long? = null,
     ) {
         require(target.type == TARGET_TYPES.getValue(code)) { "Invalid target type for $code" }
 
@@ -56,7 +57,7 @@ class NotificationCreationService(
         val type =
             notificationTypeRepository.findByCode(code.name)
                 ?: error("Unknown notification type: ${code.name}")
-        val content = resolveContent(userId, code, target.id)
+        val content = resolveContent(userId, code, target.id, eventId)
 
         notificationRepository.save(
             Notification.create(
@@ -74,13 +75,14 @@ class NotificationCreationService(
         userId: UUID,
         code: NotificationCode,
         targetId: UUID?,
+        eventId: Long?,
     ): Content =
         when (code) {
             NotificationCode.DECISION_RESULT -> decisionResultContent(userId, requireNotNull(targetId))
             NotificationCode.BRIEFING_READY -> briefingReadyContent(userId, requireNotNull(targetId))
             NotificationCode.NEWS_CARD_ARRIVED -> newsCardArrivedContent(userId)
-            NotificationCode.BADGE_AWARDED -> badgeAwardedContent(userId)
-            NotificationCode.ATTENDANCE_REWARDED -> attendanceRewardedContent(userId)
+            NotificationCode.BADGE_AWARDED -> badgeAwardedContent(userId, requireNotNull(eventId))
+            NotificationCode.ATTENDANCE_REWARDED -> attendanceRewardedContent(userId, requireNotNull(eventId))
             NotificationCode.AGENT_SALARY_PAID -> agentSalaryPaidContent(userId, requireNotNull(targetId))
             NotificationCode.AGENT_LEVEL_UP -> agentLevelUpContent(userId, requireNotNull(targetId))
         }
@@ -120,16 +122,22 @@ class NotificationCreationService(
         )
     }
 
-    private fun badgeAwardedContent(userId: UUID): Content {
-        val badge = userBadgeRepository.findTopByUserPublicIdOrderByIdDesc(userId)?.badge ?: invalidTarget(userId)
+    private fun badgeAwardedContent(
+        userId: UUID,
+        eventId: Long,
+    ): Content {
+        val badge = userBadgeRepository.findByIdAndUserPublicId(eventId, userId)?.badge ?: invalidTarget(eventId)
         return Content(
             title = "뱃지를 획득했어요 · ${badge.name}",
             body = "${badge.description ?: badge.name} 보상 +${formatNumber(badge.rewardAp)} AP를 지급했어요",
         )
     }
 
-    private fun attendanceRewardedContent(userId: UUID): Content {
-        val reward = attendanceRewardRepository.findTopByUserPublicIdOrderByIdDesc(userId) ?: invalidTarget(userId)
+    private fun attendanceRewardedContent(
+        userId: UUID,
+        eventId: Long,
+    ): Content {
+        val reward = attendanceRewardRepository.findByIdAndUserPublicId(eventId, userId) ?: invalidTarget(eventId)
         val transaction =
             apTransactionRepository
                 .findTopByUserPublicIdAndTargetTypeAndTargetIdAndReasonInOrderByIdDesc(
@@ -201,7 +209,7 @@ class NotificationCreationService(
         val value = rate.stripTrailingZeros().toPlainString()
         return when {
             rate.signum() > 0 -> "▲+$value%"
-            rate.signum() < 0 -> "▼$value%"
+            rate.signum() < 0 -> "▼${rate.abs().stripTrailingZeros().toPlainString()}%"
             else -> "0%"
         }
     }

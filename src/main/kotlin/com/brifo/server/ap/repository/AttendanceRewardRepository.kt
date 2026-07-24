@@ -5,5 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
 interface AttendanceRewardRepository : JpaRepository<AttendanceReward, Long> {
-    fun findTopByUserPublicIdOrderByIdDesc(userPublicId: UUID): AttendanceReward?
+    fun findByIdAndUserPublicId(
+        id: Long,
+        userPublicId: UUID,
+    ): AttendanceReward?
 }

@@ -134,6 +134,23 @@ class NotificationCreationServiceUnitTest {
             expectedTitle = "오늘의 정산이 끝났어요",
             expectedBody = "삼성전자 ▲+1.9% · 상승 예측 적중 · AP +100 (잔액 1,380)",
         )
+        `when`(notificationRepository.findDecisionResultContent(userId, decisionId)).thenReturn(
+            NotificationContentProjection.DecisionResult(
+                "삼성전자",
+                BigDecimal("-1.90"),
+                DecisionDirection.DOWN,
+                false,
+                -100,
+                1280,
+            ),
+        )
+        assertCreatedContent(
+            userId = userId,
+            code = NotificationCode.DECISION_RESULT,
+            target = NotificationCreationService.Target(NotificationTargetType.DECISION, decisionId),
+            expectedTitle = "오늘의 정산이 끝났어요",
+            expectedBody = "삼성전자 ▼1.9% · 하락 예측 실패 · AP -100 (잔액 1,280)",
+        )
         assertCreatedContent(
             userId = userId,
             code = NotificationCode.BRIEFING_READY,
@@ -179,9 +196,11 @@ class NotificationCreationServiceUnitTest {
     }
 
     @Test
-    fun `배지 출석 레벨업 템플릿은 최신 도메인 상태를 반영한다`() {
+    fun `배지 출석 템플릿은 전달된 이벤트를 조회하고 레벨업 템플릿은 최신 상태를 반영한다`() {
         val userId = UUID.randomUUID()
         val agentId = UUID.randomUUID()
+        val userBadgeId = 21L
+        val attendanceRewardId = 31L
         val badge = mock(Badge::class.java)
         val userBadge = mock(UserBadge::class.java)
         val reward = mock(AttendanceReward::class.java)
@@ -191,15 +210,15 @@ class NotificationCreationServiceUnitTest {
         `when`(badge.description).thenReturn("첫 예측을 맞혔어요!")
         `when`(badge.rewardAp).thenReturn(50)
         `when`(userBadge.badge).thenReturn(badge)
-        `when`(userBadgeRepository.findTopByUserPublicIdOrderByIdDesc(userId)).thenReturn(userBadge)
-        `when`(reward.id).thenReturn(31L)
+        `when`(userBadgeRepository.findByIdAndUserPublicId(userBadgeId, userId)).thenReturn(userBadge)
+        `when`(reward.id).thenReturn(attendanceRewardId)
         `when`(reward.consecutiveDays).thenReturn(3)
-        `when`(attendanceRewardRepository.findTopByUserPublicIdOrderByIdDesc(userId)).thenReturn(reward)
+        `when`(attendanceRewardRepository.findByIdAndUserPublicId(attendanceRewardId, userId)).thenReturn(reward)
         `when`(
             apTransactionRepository.findTopByUserPublicIdAndTargetTypeAndTargetIdAndReasonInOrderByIdDesc(
                 userId,
                 ApTransactionTargetType.ATTENDANCE_REWARD,
-                31L,
+                attendanceRewardId,
                 listOf(ApTransactionReason.ATTENDANCE),
             ),
         ).thenReturn(transaction)
@@ -214,6 +233,7 @@ class NotificationCreationServiceUnitTest {
             NotificationCreationService.Target(NotificationTargetType.NONE, null),
             "뱃지를 획득했어요 · 첫 적중",
             "첫 예측을 맞혔어요! 보상 +50 AP를 지급했어요",
+            userBadgeId,
         )
         assertCreatedContent(
             userId,
@@ -221,6 +241,7 @@ class NotificationCreationServiceUnitTest {
             NotificationCreationService.Target(NotificationTargetType.NONE, null),
             "출석 보너스 +50 AP",
             "3일 연속 출석 중이에요. 내일도 만나요!",
+            attendanceRewardId,
         )
         assertCreatedContent(
             userId,
@@ -237,11 +258,12 @@ class NotificationCreationServiceUnitTest {
         target: NotificationCreationService.Target,
         expectedTitle: String,
         expectedBody: String,
+        eventId: Long? = null,
     ) {
         `when`(userRepository.findByPublicId(userId)).thenReturn(mock(User::class.java))
         `when`(notificationTypeRepository.findByCode(code.name)).thenReturn(mock(NotificationType::class.java))
 
-        service.create(userId, code, target)
+        service.create(userId, code, target, eventId)
 
         val captor = ArgumentCaptor.forClass(Notification::class.java)
         verify(notificationRepository).save(captor.capture())

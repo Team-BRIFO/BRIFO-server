@@ -34,7 +34,6 @@ import com.brifo.server.user.entity.OAuthProvider
 import com.brifo.server.user.entity.User
 import com.brifo.server.user.repository.UserRepository
 import jakarta.persistence.EntityManager
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
@@ -43,6 +42,7 @@ import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
+import kotlin.test.assertEquals
 
 @DataJpaTest
 @Import(TestcontainersConfiguration::class, JpaConfig::class, QueryDslConfig::class)

@@ -5,5 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
 interface UserBadgeRepository : JpaRepository<UserBadge, Long> {
-    fun findTopByUserPublicIdOrderByIdDesc(userPublicId: UUID): UserBadge?
+    fun findByIdAndUserPublicId(
+        id: Long,
+        userPublicId: UUID,
+    ): UserBadge?
 }

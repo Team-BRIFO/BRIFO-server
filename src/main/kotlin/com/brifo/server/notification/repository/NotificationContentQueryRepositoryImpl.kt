@@ -73,7 +73,8 @@ class NotificationContentQueryRepositoryImpl(
                 briefing.publicId.eq(briefingPublicId),
                 briefing.direction.isNotNull,
                 briefing.confidenceRate.isNotNull,
-            ).fetchFirst()
+            ).orderBy(briefingNewsCard.id.asc())
+            .fetchFirst()
 
     override fun findNewsCardContents(
         userPublicId: UUID,

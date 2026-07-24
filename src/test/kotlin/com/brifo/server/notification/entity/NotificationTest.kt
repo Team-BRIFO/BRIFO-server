@@ -1,11 +1,10 @@
 package com.brifo.server.notification.entity
 
 import com.brifo.server.user.entity.User
-import org.junit.jupiter.api.Assertions.assertDoesNotThrow
-import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import java.util.UUID
+import kotlin.test.assertFailsWith
 
 class NotificationTest {
     private val user = mock(User::class.java)
@@ -22,20 +21,18 @@ class NotificationTest {
             )
 
         requiredTypes.forEach { targetType ->
-            assertThrows(IllegalArgumentException::class.java) {
+            assertFailsWith<IllegalArgumentException> {
                 notification(targetType, null)
             }
-            assertDoesNotThrow {
-                notification(targetType, UUID.randomUUID())
-            }
+            notification(targetType, UUID.randomUUID())
         }
     }
 
     @Test
     fun `목록과 이동 없는 대상은 공개 ID를 허용하지 않는다`() {
         listOf(NotificationTargetType.NEWS_CARD_LIST, NotificationTargetType.NONE).forEach { targetType ->
-            assertDoesNotThrow { notification(targetType, null) }
-            assertThrows(IllegalArgumentException::class.java) {
+            notification(targetType, null)
+            assertFailsWith<IllegalArgumentException> {
                 notification(targetType, UUID.randomUUID())
             }
         }
