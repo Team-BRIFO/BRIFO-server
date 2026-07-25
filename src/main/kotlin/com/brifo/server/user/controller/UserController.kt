@@ -10,6 +10,7 @@ import com.brifo.server.user.dto.response.GetMyPageResponse
 import com.brifo.server.user.dto.response.GetUserHomeResponse
 import com.brifo.server.user.dto.response.GetUserProfileResponse
 import com.brifo.server.user.service.UserService
+import com.brifo.server.user.service.UserQueryService
 import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -25,6 +26,7 @@ import java.util.UUID
 @RequestMapping("/api")
 class UserController(
     private val userService: UserService,
+    private val userQueryService: UserQueryService,
 ) {
     @PatchMapping("/onboarding/profile")
     fun updateOnboardingProfile(
@@ -49,7 +51,7 @@ class UserController(
     ): ApiResponse<GetUserProfileResponse> =
         ApiResponse.success(
             SuccessCode.OK,
-            userService.getUserProfile(userId),
+            userQueryService.getUserProfile(userId),
         )
 
     @GetMapping("/users/me")
@@ -58,7 +60,7 @@ class UserController(
     ): ApiResponse<GetMyPageResponse> =
         ApiResponse.success(
             SuccessCode.OK,
-            userService.getMyPage(userId),
+            userQueryService.getMyPage(userId),
         )
 
     @PatchMapping("/users/me/profile")
@@ -84,6 +86,6 @@ class UserController(
     ): ApiResponse<GetUserHomeResponse> =
         ApiResponse.success(
             SuccessCode.OK,
-            userService.getUserHome(userId),
+            userQueryService.getUserHome(userId),
         )
 }
