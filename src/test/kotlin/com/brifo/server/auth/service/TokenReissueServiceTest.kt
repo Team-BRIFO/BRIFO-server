@@ -1,13 +1,11 @@
 package com.brifo.server.auth.service
 
 import com.brifo.server.auth.code.AuthErrorCode
-import com.brifo.server.auth.dto.request.ReissueRequest
+import com.brifo.server.auth.dto.request.RefreshTokenRequest
 import com.brifo.server.auth.dto.response.TokenInfo
 import com.brifo.server.auth.entity.RevokedRefreshToken
 import com.brifo.server.auth.exception.AuthException
 import com.brifo.server.auth.repository.RevokedRefreshTokenRepository
-import com.brifo.server.user.entity.OAuthProvider
-import com.brifo.server.user.entity.User
 import com.brifo.server.user.repository.UserRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -39,19 +37,12 @@ class TokenReissueServiceTest {
         val expiresAt = Instant.parse("2026-07-27T00:00:00Z")
         val claims = JwtTokenProvider.AuthTokenClaims(userId, REFRESH_TOKEN_ID, expiresAt)
         val newTokens = TokenInfo("new-access-token", "new-refresh-token", 3600, 604800)
-        val user =
-            User.create(
-                provider = OAuthProvider.KAKAO,
-                socialId = "social-id",
-                email = "user@example.com",
-                nickname = "brifo",
-            )
         `when`(jwtTokenProvider.parseRefreshToken(REFRESH_TOKEN)).thenReturn(claims)
         `when`(revokedRefreshTokenRepository.existsByTokenId(REFRESH_TOKEN_ID)).thenReturn(false)
-        `when`(userRepository.findByPublicId(userId)).thenReturn(user)
+        `when`(userRepository.existsByPublicId(userId)).thenReturn(true)
         `when`(jwtTokenProvider.issueLoginTokens(userId)).thenReturn(newTokens)
 
-        val response = service().reissue(ReissueRequest(REFRESH_TOKEN))
+        val response = service().reissue(RefreshTokenRequest(REFRESH_TOKEN))
 
         assertEquals(newTokens, response.token)
         val savedToken = org.mockito.ArgumentCaptor.forClass(RevokedRefreshToken::class.java)
@@ -85,7 +76,7 @@ class TokenReissueServiceTest {
 
         val exception =
             assertThrows(AuthException::class.java) {
-                service().reissue(ReissueRequest(REFRESH_TOKEN))
+                service().reissue(RefreshTokenRequest(REFRESH_TOKEN))
             }
 
         assertEquals(AuthErrorCode.REFRESH_TOKEN_UNUSABLE, exception.errorCode)
@@ -105,11 +96,11 @@ class TokenReissueServiceTest {
             )
         `when`(jwtTokenProvider.parseRefreshToken(REFRESH_TOKEN)).thenReturn(claims)
         `when`(revokedRefreshTokenRepository.existsByTokenId(REFRESH_TOKEN_ID)).thenReturn(false)
-        `when`(userRepository.findByPublicId(userId)).thenReturn(null)
+        `when`(userRepository.existsByPublicId(userId)).thenReturn(false)
 
         val exception =
             assertThrows(AuthException::class.java) {
-                service().reissue(ReissueRequest(REFRESH_TOKEN))
+                service().reissue(RefreshTokenRequest(REFRESH_TOKEN))
             }
 
         assertEquals(AuthErrorCode.AUTH_USER_NOT_FOUND, exception.errorCode)

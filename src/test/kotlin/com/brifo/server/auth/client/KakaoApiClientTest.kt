@@ -3,6 +3,7 @@ package com.brifo.server.auth.client
 import com.brifo.server.auth.code.AuthErrorCode
 import com.brifo.server.auth.exception.AuthException
 import com.brifo.server.global.config.KakaoProperties
+import com.brifo.server.user.entity.OAuthProvider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
@@ -45,11 +46,12 @@ class KakaoApiClientTest {
                 ),
             )
 
-        val user = client.getUser("authorization-code", REDIRECT_URI)
+        val user = client.authenticate("authorization-code", REDIRECT_URI)
 
-        assertEquals(1234567890L, user.id)
-        assertEquals("user@kakao.com", user.kakaoAccount?.email)
-        assertEquals("brifo", user.kakaoAccount?.profile?.nickname)
+        assertEquals(OAuthProvider.KAKAO, user.provider)
+        assertEquals("1234567890", user.socialId)
+        assertEquals("user@kakao.com", user.email)
+        assertEquals("brifo", user.nickname)
         server.verify()
     }
 
@@ -57,7 +59,7 @@ class KakaoApiClientTest {
     fun `등록되지 않은 Redirect URI는 카카오 호출 전에 거부한다`() {
         val exception =
             assertThrows(AuthException::class.java) {
-                client.getUser("authorization-code", "https://attacker.example/callback")
+                client.authenticate("authorization-code", "https://attacker.example/callback")
             }
 
         assertEquals(AuthErrorCode.OAUTH_REDIRECT_URI_MISMATCH, exception.errorCode)
@@ -76,7 +78,7 @@ class KakaoApiClientTest {
 
         val exception =
             assertThrows(AuthException::class.java) {
-                client.getUser("expired-code", REDIRECT_URI)
+                client.authenticate("expired-code", REDIRECT_URI)
             }
 
         assertEquals(AuthErrorCode.OAUTH_INVALID_AUTHORIZATION_CODE, exception.errorCode)
@@ -94,10 +96,10 @@ class KakaoApiClientTest {
 
         val exception =
             assertThrows(AuthException::class.java) {
-                client.getUser("authorization-code", REDIRECT_URI)
+                client.authenticate("authorization-code", REDIRECT_URI)
             }
 
-        assertEquals(AuthErrorCode.OAUTH_INVALID_TOKEN, exception.errorCode)
+        assertEquals(AuthErrorCode.INVALID_TOKEN, exception.errorCode)
         server.verify()
     }
 

@@ -1,13 +1,13 @@
 package com.brifo.server.auth.controller
 
-import com.brifo.server.auth.dto.request.LogoutRequest
-import com.brifo.server.auth.dto.request.ReissueRequest
+import com.brifo.server.auth.dto.request.RefreshTokenRequest
 import com.brifo.server.auth.dto.response.ReissueResponse
 import com.brifo.server.auth.dto.response.TokenInfo
 import com.brifo.server.auth.service.KakaoLoginService
 import com.brifo.server.auth.service.LogoutService
 import com.brifo.server.auth.service.NaverLoginService
 import com.brifo.server.auth.service.TokenReissueService
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -16,11 +16,15 @@ import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
+import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
 class AuthControllerTest {
@@ -43,11 +47,21 @@ class AuthControllerTest {
         mockMvc =
             MockMvcBuilders
                 .standaloneSetup(AuthController(kakaoLoginService, naverLoginService, logoutService, tokenReissueService))
+                .setCustomArgumentResolvers(AuthenticationPrincipalArgumentResolver())
                 .build()
     }
 
+    @AfterEach
+    fun tearDown() {
+        SecurityContextHolder.clearContext()
+    }
+
     @Test
-    fun `로그아웃은 Access Token과 Refresh Token을 검증하고 성공 응답을 반환한다`() {
+    fun `로그아웃은 인증 사용자와 Refresh Token을 검증하고 성공 응답을 반환한다`() {
+        val userPublicId = UUID.randomUUID()
+        SecurityContextHolder.getContext().authentication =
+            UsernamePasswordAuthenticationToken(userPublicId, null, emptyList())
+
         mockMvc
             .perform(
                 post("/api/auth/logout")
@@ -60,14 +74,14 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.message").value("요청에 성공했습니다."))
             .andExpect(jsonPath("$.result").doesNotExist())
 
-        verify(logoutService).logout("Bearer access-token", LogoutRequest("refresh-token"))
+        verify(logoutService).logout(userPublicId, RefreshTokenRequest("refresh-token"))
     }
 
     @Test
     fun `Refresh Token으로 새 토큰 쌍을 발급한다`() {
         val tokens = TokenInfo("new-access-token", "new-refresh-token", 3600, 604800)
         org.mockito.Mockito
-            .`when`(tokenReissueService.reissue(ReissueRequest("refresh-token")))
+            .`when`(tokenReissueService.reissue(RefreshTokenRequest("refresh-token")))
             .thenReturn(ReissueResponse(tokens))
 
         mockMvc

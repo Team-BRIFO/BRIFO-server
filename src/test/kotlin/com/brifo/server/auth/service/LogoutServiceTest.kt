@@ -1,7 +1,7 @@
 package com.brifo.server.auth.service
 
 import com.brifo.server.auth.code.AuthErrorCode
-import com.brifo.server.auth.dto.request.LogoutRequest
+import com.brifo.server.auth.dto.request.RefreshTokenRequest
 import com.brifo.server.auth.entity.RevokedRefreshToken
 import com.brifo.server.auth.exception.AuthException
 import com.brifo.server.auth.repository.RevokedRefreshTokenRepository
@@ -27,36 +27,21 @@ class LogoutServiceTest {
     private lateinit var revokedRefreshTokenRepository: RevokedRefreshTokenRepository
 
     @Test
-    fun `같은 사용자의 Access Token과 Refresh Token이면 Refresh Token을 폐기한다`() {
-        val userId = UUID.randomUUID()
+    fun `인증 사용자와 Refresh Token 사용자가 같으면 Refresh Token을 폐기한다`() {
+        val userPublicId = UUID.randomUUID()
         val expiresAt = Instant.parse("2026-07-27T00:00:00Z")
         val service = service()
-        `when`(jwtTokenProvider.parseAccessToken(ACCESS_TOKEN))
-            .thenReturn(JwtTokenProvider.AuthTokenClaims(userId, "access-jti", expiresAt))
-        `when`(jwtTokenProvider.parseRefreshTokenForLogout(REFRESH_TOKEN))
-            .thenReturn(JwtTokenProvider.AuthTokenClaims(userId, REFRESH_TOKEN_ID, expiresAt))
+        `when`(jwtTokenProvider.parseRefreshToken(REFRESH_TOKEN))
+            .thenReturn(JwtTokenProvider.AuthTokenClaims(userPublicId, REFRESH_TOKEN_ID, expiresAt))
         `when`(revokedRefreshTokenRepository.existsByTokenId(REFRESH_TOKEN_ID)).thenReturn(false)
 
-        service.logout("Bearer $ACCESS_TOKEN", LogoutRequest(REFRESH_TOKEN))
+        service.logout(userPublicId, RefreshTokenRequest(REFRESH_TOKEN))
 
         val savedToken = org.mockito.ArgumentCaptor.forClass(RevokedRefreshToken::class.java)
         verify(revokedRefreshTokenRepository).saveAndFlush(savedToken.capture())
         assertEquals(REFRESH_TOKEN_ID, savedToken.value.tokenId)
-        assertEquals(userId, savedToken.value.userPublicId)
+        assertEquals(userPublicId, savedToken.value.userPublicId)
         assertEquals(expiresAt, savedToken.value.expiresAt)
-    }
-
-    @Test
-    fun `Authorization 헤더가 없으면 인증 필요 오류를 반환한다`() {
-        val service = service()
-
-        val exception =
-            assertThrows(AuthException::class.java) {
-                service.logout(null, LogoutRequest(REFRESH_TOKEN))
-            }
-
-        assertEquals(AuthErrorCode.UNAUTHORIZED, exception.errorCode)
-        verifyNoInteractions(jwtTokenProvider, revokedRefreshTokenRepository)
     }
 
     @Test
@@ -65,7 +50,7 @@ class LogoutServiceTest {
 
         val exception =
             assertThrows(AuthException::class.java) {
-                service.logout("Bearer $ACCESS_TOKEN", null)
+                service.logout(UUID.randomUUID(), null)
             }
 
         assertEquals(AuthErrorCode.REFRESH_TOKEN_REQUIRED, exception.errorCode)
@@ -76,14 +61,12 @@ class LogoutServiceTest {
     fun `두 토큰의 사용자가 다르면 불일치 오류를 반환한다`() {
         val service = service()
         val expiresAt = Instant.parse("2026-07-27T00:00:00Z")
-        `when`(jwtTokenProvider.parseAccessToken(ACCESS_TOKEN))
-            .thenReturn(JwtTokenProvider.AuthTokenClaims(UUID.randomUUID(), "access-jti", expiresAt))
-        `when`(jwtTokenProvider.parseRefreshTokenForLogout(REFRESH_TOKEN))
+        `when`(jwtTokenProvider.parseRefreshToken(REFRESH_TOKEN))
             .thenReturn(JwtTokenProvider.AuthTokenClaims(UUID.randomUUID(), REFRESH_TOKEN_ID, expiresAt))
 
         val exception =
             assertThrows(AuthException::class.java) {
-                service.logout("Bearer $ACCESS_TOKEN", LogoutRequest(REFRESH_TOKEN))
+                service.logout(UUID.randomUUID(), RefreshTokenRequest(REFRESH_TOKEN))
             }
 
         assertEquals(AuthErrorCode.REFRESH_TOKEN_MISMATCH, exception.errorCode)
@@ -92,18 +75,16 @@ class LogoutServiceTest {
 
     @Test
     fun `이미 폐기된 Refresh Token이면 사용할 수 없는 토큰 오류를 반환한다`() {
-        val userId = UUID.randomUUID()
+        val userPublicId = UUID.randomUUID()
         val expiresAt = Instant.parse("2026-07-27T00:00:00Z")
         val service = service()
-        `when`(jwtTokenProvider.parseAccessToken(ACCESS_TOKEN))
-            .thenReturn(JwtTokenProvider.AuthTokenClaims(userId, "access-jti", expiresAt))
-        `when`(jwtTokenProvider.parseRefreshTokenForLogout(REFRESH_TOKEN))
-            .thenReturn(JwtTokenProvider.AuthTokenClaims(userId, REFRESH_TOKEN_ID, expiresAt))
+        `when`(jwtTokenProvider.parseRefreshToken(REFRESH_TOKEN))
+            .thenReturn(JwtTokenProvider.AuthTokenClaims(userPublicId, REFRESH_TOKEN_ID, expiresAt))
         `when`(revokedRefreshTokenRepository.existsByTokenId(REFRESH_TOKEN_ID)).thenReturn(true)
 
         val exception =
             assertThrows(AuthException::class.java) {
-                service.logout("Bearer $ACCESS_TOKEN", LogoutRequest(REFRESH_TOKEN))
+                service.logout(userPublicId, RefreshTokenRequest(REFRESH_TOKEN))
             }
 
         assertEquals(AuthErrorCode.REFRESH_TOKEN_UNUSABLE, exception.errorCode)
@@ -114,7 +95,6 @@ class LogoutServiceTest {
     private fun service() = LogoutService(jwtTokenProvider, revokedRefreshTokenRepository)
 
     companion object {
-        private const val ACCESS_TOKEN = "access-token"
         private const val REFRESH_TOKEN = "refresh-token"
         private const val REFRESH_TOKEN_ID = "00000000-0000-0000-0000-000000000001"
     }

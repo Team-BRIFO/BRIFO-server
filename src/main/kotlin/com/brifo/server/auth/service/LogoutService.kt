@@ -1,16 +1,15 @@
 package com.brifo.server.auth.service
 
-import com.brifo.server.auth.dto.request.LogoutRequest
+import com.brifo.server.auth.dto.request.RefreshTokenRequest
 import com.brifo.server.auth.entity.RevokedRefreshToken
-import com.brifo.server.auth.exception.InvalidTokenException
 import com.brifo.server.auth.exception.RefreshTokenMismatchException
 import com.brifo.server.auth.exception.RefreshTokenRequiredException
-import com.brifo.server.auth.exception.UnauthorizedException
 import com.brifo.server.auth.exception.UnusableRefreshTokenException
 import com.brifo.server.auth.repository.RevokedRefreshTokenRepository
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.UUID
 
 @Service
 class LogoutService(
@@ -19,18 +18,16 @@ class LogoutService(
 ) {
     @Transactional
     fun logout(
-        authorizationHeader: String?,
-        request: LogoutRequest?,
+        authenticatedUserPublicId: UUID,
+        request: RefreshTokenRequest?,
     ) {
-        val accessToken = extractAccessToken(authorizationHeader)
         val refreshToken =
             request?.refreshToken?.takeIf { it.isNotBlank() }
                 ?: throw RefreshTokenRequiredException()
 
-        val accessClaims = jwtTokenProvider.parseAccessToken(accessToken)
-        val refreshClaims = jwtTokenProvider.parseRefreshTokenForLogout(refreshToken)
+        val refreshClaims = jwtTokenProvider.parseRefreshToken(refreshToken)
 
-        if (accessClaims.userId != refreshClaims.userId) {
+        if (authenticatedUserPublicId != refreshClaims.userPublicId) {
             throw RefreshTokenMismatchException()
         }
         if (revokedRefreshTokenRepository.existsByTokenId(refreshClaims.tokenId)) {
@@ -41,29 +38,12 @@ class LogoutService(
             revokedRefreshTokenRepository.saveAndFlush(
                 RevokedRefreshToken.create(
                     tokenId = refreshClaims.tokenId,
-                    userPublicId = refreshClaims.userId,
+                    userPublicId = refreshClaims.userPublicId,
                     expiresAt = refreshClaims.expiresAt,
                 ),
             )
-        } catch (exception: DataIntegrityViolationException) {
+        } catch (_: DataIntegrityViolationException) {
             throw UnusableRefreshTokenException()
         }
-    }
-
-    private fun extractAccessToken(authorizationHeader: String?): String {
-        val header = authorizationHeader?.trim()
-        if (header.isNullOrEmpty()) {
-            throw UnauthorizedException()
-        }
-        if (!header.startsWith(BEARER_PREFIX, ignoreCase = true)) {
-            throw InvalidTokenException()
-        }
-
-        return header.substring(BEARER_PREFIX.length).trim().takeIf { it.isNotEmpty() }
-            ?: throw InvalidTokenException()
-    }
-
-    companion object {
-        private const val BEARER_PREFIX = "Bearer "
     }
 }

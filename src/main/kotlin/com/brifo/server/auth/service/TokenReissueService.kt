@@ -1,6 +1,6 @@
 package com.brifo.server.auth.service
 
-import com.brifo.server.auth.dto.request.ReissueRequest
+import com.brifo.server.auth.dto.request.RefreshTokenRequest
 import com.brifo.server.auth.dto.response.ReissueResponse
 import com.brifo.server.auth.entity.RevokedRefreshToken
 import com.brifo.server.auth.exception.AuthUserNotFoundException
@@ -19,7 +19,7 @@ class TokenReissueService(
     private val userRepository: UserRepository,
 ) {
     @Transactional
-    fun reissue(request: ReissueRequest?): ReissueResponse {
+    fun reissue(request: RefreshTokenRequest?): ReissueResponse {
         val refreshToken =
             request?.refreshToken?.takeIf { it.isNotBlank() }
                 ?: throw RefreshTokenRequiredException()
@@ -28,7 +28,7 @@ class TokenReissueService(
         if (revokedRefreshTokenRepository.existsByTokenId(claims.tokenId)) {
             throw UnusableRefreshTokenException()
         }
-        if (userRepository.findByPublicId(claims.userId) == null) {
+        if (!userRepository.existsByPublicId(claims.userPublicId)) {
             throw AuthUserNotFoundException()
         }
 
@@ -36,14 +36,14 @@ class TokenReissueService(
             revokedRefreshTokenRepository.saveAndFlush(
                 RevokedRefreshToken.create(
                     tokenId = claims.tokenId,
-                    userPublicId = claims.userId,
+                    userPublicId = claims.userPublicId,
                     expiresAt = claims.expiresAt,
                 ),
             )
-        } catch (exception: DataIntegrityViolationException) {
+        } catch (_: DataIntegrityViolationException) {
             throw UnusableRefreshTokenException()
         }
 
-        return ReissueResponse(token = jwtTokenProvider.issueLoginTokens(claims.userId))
+        return ReissueResponse(token = jwtTokenProvider.issueLoginTokens(claims.userPublicId))
     }
 }

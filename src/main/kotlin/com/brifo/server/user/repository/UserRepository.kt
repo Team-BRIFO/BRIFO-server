@@ -10,6 +10,8 @@ import java.util.UUID
 interface UserRepository : JpaRepository<User, Long> {
     fun findByPublicId(publicId: UUID): User?
 
+    fun existsByPublicId(publicId: UUID): Boolean
+
     fun findByProviderAndSocialId(
         provider: OAuthProvider,
         socialId: String,

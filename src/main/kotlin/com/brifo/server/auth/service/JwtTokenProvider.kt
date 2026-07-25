@@ -2,11 +2,10 @@ package com.brifo.server.auth.service
 
 import com.brifo.server.auth.dto.response.TokenInfo
 import com.brifo.server.auth.exception.AuthException
+import com.brifo.server.auth.exception.InvalidJwtTokenException
 import com.brifo.server.auth.exception.InvalidRefreshTokenException
-import com.brifo.server.auth.exception.InvalidTokenException
 import com.brifo.server.auth.exception.RefreshTokenExpiredException
 import com.brifo.server.global.config.JwtProperties
-import com.brifo.server.user.entity.OAuthProvider
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.ExpiredJwtException
 import io.jsonwebtoken.JwtException
@@ -35,24 +34,19 @@ class JwtTokenProvider(
             .clock { Date.from(Instant.now(clock)) }
             .build()
 
-    fun issueLoginTokens(userId: UUID): TokenInfo =
+    fun issueLoginTokens(userPublicId: UUID): TokenInfo =
         TokenInfo(
-            accessToken = createToken(userId.toString(), TokenType.ACCESS, properties.accessTokenExpiration),
-            refreshToken = createToken(userId.toString(), TokenType.REFRESH, properties.refreshTokenExpiration),
+            accessToken = createToken(userPublicId.toString(), TokenType.ACCESS, properties.accessTokenExpiration),
+            refreshToken = createToken(userPublicId.toString(), TokenType.REFRESH, properties.refreshTokenExpiration),
             accessTokenExpiresIn = properties.accessTokenExpiration.seconds,
             refreshTokenExpiresIn = properties.refreshTokenExpiration.seconds,
         )
 
-    fun issueSignupToken(
-        provider: OAuthProvider,
-        socialId: String,
-        email: String?,
-    ): String =
+    fun issueSignupToken(userPublicId: UUID): String =
         createToken(
-            subject = socialId,
+            subject = userPublicId.toString(),
             tokenType = TokenType.SIGNUP,
             expiration = properties.signupTokenExpiration,
-            additionalClaims = mapOf(PROVIDER_CLAIM to provider.name, EMAIL_CLAIM to email),
         )
 
     fun parseSignupToken(token: String): SignupTokenClaims {
@@ -60,29 +54,25 @@ class JwtTokenProvider(
             parseClaims(
                 token = token,
                 expectedType = TokenType.SIGNUP,
-                invalidException = { InvalidTokenException() },
-                expiredException = { InvalidTokenException() },
+                invalidException = { InvalidJwtTokenException() },
+                expiredException = { InvalidJwtTokenException() },
             )
-        val socialId = claims.subject?.takeIf { it.isNotBlank() } ?: throw InvalidTokenException()
-        val provider =
-            claims
-                .get(PROVIDER_CLAIM, String::class.java)
-                ?.takeIf { it.isNotBlank() }
-                ?: throw InvalidTokenException()
-
-        return SignupTokenClaims(
-            socialId = socialId,
-            provider = provider,
-            email = claims.get(EMAIL_CLAIM, String::class.java),
-        )
+        val subject = claims.subject?.takeIf { it.isNotBlank() } ?: throw InvalidJwtTokenException()
+        val userPublicId =
+            try {
+                UUID.fromString(subject)
+            } catch (exception: IllegalArgumentException) {
+                throw InvalidJwtTokenException()
+            }
+        return SignupTokenClaims(userPublicId)
     }
 
     fun parseAccessToken(token: String): AuthTokenClaims =
         parseAuthToken(
             token = token,
             expectedType = TokenType.ACCESS,
-            invalidException = { InvalidTokenException() },
-            expiredException = { InvalidTokenException() },
+            invalidException = { InvalidJwtTokenException() },
+            expiredException = { InvalidJwtTokenException() },
         )
 
     fun parseRefreshToken(token: String): AuthTokenClaims =
@@ -93,14 +83,6 @@ class JwtTokenProvider(
             expiredException = { RefreshTokenExpiredException() },
         )
 
-    fun parseRefreshTokenForLogout(token: String): AuthTokenClaims =
-        parseAuthToken(
-            token = token,
-            expectedType = TokenType.REFRESH,
-            invalidException = { InvalidTokenException() },
-            expiredException = { InvalidTokenException() },
-        )
-
     private fun parseAuthToken(
         token: String,
         expectedType: TokenType,
@@ -108,13 +90,14 @@ class JwtTokenProvider(
         expiredException: () -> AuthException,
     ): AuthTokenClaims {
         val claims = parseClaims(token, expectedType, invalidException, expiredException)
+        val subject = claims.subject?.takeIf { it.isNotBlank() } ?: throw invalidException()
         return try {
             AuthTokenClaims(
-                userId = UUID.fromString(claims.subject),
+                userPublicId = UUID.fromString(subject),
                 tokenId = claims.id?.takeIf { it.isNotBlank() } ?: throw IllegalArgumentException(),
                 expiresAt = requireNotNull(claims.expiration).toInstant(),
             )
-        } catch (exception: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             throw invalidException()
         }
     }
@@ -123,7 +106,6 @@ class JwtTokenProvider(
         subject: String,
         tokenType: TokenType,
         expiration: Duration,
-        additionalClaims: Map<String, Any?> = emptyMap(),
     ): String {
         val issuedAt = Instant.now(clock)
         val builder =
@@ -135,10 +117,6 @@ class JwtTokenProvider(
                 .issuedAt(Date.from(issuedAt))
                 .expiration(Date.from(issuedAt.plus(expiration)))
                 .claim(TOKEN_TYPE_CLAIM, tokenType.name)
-
-        additionalClaims.forEach { (name, value) ->
-            if (value != null) builder.claim(name, value)
-        }
 
         return builder.signWith(signingKey).compact()
     }
@@ -157,11 +135,11 @@ class JwtTokenProvider(
             return claims
         } catch (exception: AuthException) {
             throw exception
-        } catch (exception: ExpiredJwtException) {
+        } catch (_: ExpiredJwtException) {
             throw expiredException()
-        } catch (exception: JwtException) {
+        } catch (_: JwtException) {
             throw invalidException()
-        } catch (exception: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             throw invalidException()
         }
     }
@@ -181,13 +159,11 @@ class JwtTokenProvider(
     }
 
     data class SignupTokenClaims(
-        val socialId: String,
-        val provider: String,
-        val email: String?,
+        val userPublicId: UUID,
     )
 
     data class AuthTokenClaims(
-        val userId: UUID,
+        val userPublicId: UUID,
         val tokenId: String,
         val expiresAt: Instant,
     )
@@ -201,7 +177,5 @@ class JwtTokenProvider(
     companion object {
         private const val MINIMUM_KEY_SIZE_BYTES = 32
         private const val TOKEN_TYPE_CLAIM = "tokenType"
-        private const val PROVIDER_CLAIM = "provider"
-        private const val EMAIL_CLAIM = "email"
     }
 }

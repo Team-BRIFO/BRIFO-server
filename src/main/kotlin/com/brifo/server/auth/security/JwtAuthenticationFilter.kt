@@ -27,7 +27,7 @@ class JwtAuthenticationFilter(
                 val claims = jwtTokenProvider.parseAccessToken(accessToken)
                 val authentication =
                     UsernamePasswordAuthenticationToken(
-                        claims.userId,
+                        claims.userPublicId,
                         null,
                         emptyList(),
                     ).apply {
@@ -46,7 +46,7 @@ class JwtAuthenticationFilter(
     private fun resolveAccessToken(request: HttpServletRequest): String? {
         val authorization = request.getHeader(HttpHeaders.AUTHORIZATION)?.trim() ?: return null
         if (!authorization.startsWith(BEARER_PREFIX, ignoreCase = true)) {
-            request.setAttribute(AUTH_ERROR_CODE_ATTRIBUTE, AuthErrorCode.OAUTH_INVALID_TOKEN)
+            request.setAttribute(AUTH_ERROR_CODE_ATTRIBUTE, AuthErrorCode.INVALID_TOKEN)
             return null
         }
 
@@ -55,7 +55,7 @@ class JwtAuthenticationFilter(
             .trim()
             .takeIf { it.isNotEmpty() }
             ?: run {
-                request.setAttribute(AUTH_ERROR_CODE_ATTRIBUTE, AuthErrorCode.OAUTH_INVALID_TOKEN)
+                request.setAttribute(AUTH_ERROR_CODE_ATTRIBUTE, AuthErrorCode.INVALID_TOKEN)
                 null
             }
     }

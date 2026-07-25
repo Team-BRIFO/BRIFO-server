@@ -4,12 +4,14 @@ import com.brifo.server.auth.dto.external.KakaoApiErrorResponse
 import com.brifo.server.auth.dto.external.KakaoOAuthErrorResponse
 import com.brifo.server.auth.dto.external.KakaoTokenResponse
 import com.brifo.server.auth.dto.external.KakaoUserResponse
+import com.brifo.server.auth.dto.internal.OAuthUserProfile
 import com.brifo.server.auth.exception.AuthException
 import com.brifo.server.auth.exception.InvalidAuthorizationCodeException
-import com.brifo.server.auth.exception.InvalidTokenException
-import com.brifo.server.auth.exception.KakaoServerException
+import com.brifo.server.auth.exception.InvalidOAuthTokenException
+import com.brifo.server.auth.exception.OAuthProviderServerException
 import com.brifo.server.auth.exception.OAuthRedirectUriMismatchException
 import com.brifo.server.global.config.KakaoProperties
+import com.brifo.server.user.entity.OAuthProvider
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
@@ -17,6 +19,7 @@ import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.client.HttpClientErrorException
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientException
+import org.springframework.web.client.body
 import tools.jackson.databind.ObjectMapper
 
 @Component
@@ -25,13 +28,19 @@ class KakaoApiClient(
     private val properties: KakaoProperties,
     private val objectMapper: ObjectMapper,
 ) {
-    fun getUser(
+    fun authenticate(
         authorizationCode: String,
         redirectUri: String,
-    ): KakaoUserResponse {
+    ): OAuthUserProfile {
         validateRedirectUri(redirectUri)
         val accessToken = exchangeToken(authorizationCode, redirectUri)
-        return retrieveUser(accessToken)
+        val response = retrieveUser(accessToken)
+        return OAuthUserProfile(
+            provider = OAuthProvider.KAKAO,
+            socialId = response.id.toString(),
+            email = response.kakaoAccount?.email,
+            nickname = response.kakaoAccount?.profile?.nickname,
+        )
     }
 
     private fun validateRedirectUri(redirectUri: String) {
@@ -62,13 +71,13 @@ class KakaoApiClient(
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(form)
                 .retrieve()
-                .body(KakaoTokenResponse::class.java)
+                .body<KakaoTokenResponse>()
                 ?.accessToken
-                ?: throw KakaoServerException()
+                ?: throw OAuthProviderServerException()
         } catch (exception: HttpClientErrorException) {
             throw mapTokenError(exception)
-        } catch (exception: RestClientException) {
-            throw KakaoServerException()
+        } catch (_: RestClientException) {
+            throw OAuthProviderServerException()
         }
     }
 
@@ -79,16 +88,16 @@ class KakaoApiClient(
                 .uri(KAKAO_USER_URI)
                 .headers { it.setBearerAuth(accessToken) }
                 .retrieve()
-                .body(KakaoUserResponse::class.java)
-                ?: throw KakaoServerException()
+                .body<KakaoUserResponse>()
+                ?: throw OAuthProviderServerException()
         } catch (exception: HttpClientErrorException) {
             val error = parseError(exception.responseBodyAsString, KakaoApiErrorResponse::class.java)
             if (exception.statusCode.value() == 401 || error?.code == KAKAO_INVALID_TOKEN_CODE) {
-                throw InvalidTokenException()
+                throw InvalidOAuthTokenException()
             }
-            throw KakaoServerException()
-        } catch (exception: RestClientException) {
-            throw KakaoServerException()
+            throw OAuthProviderServerException()
+        } catch (_: RestClientException) {
+            throw OAuthProviderServerException()
         }
     }
 
@@ -101,7 +110,7 @@ class KakaoApiClient(
         return when {
             isRedirectMismatch -> OAuthRedirectUriMismatchException()
             error?.error == "invalid_grant" -> InvalidAuthorizationCodeException()
-            else -> KakaoServerException()
+            else -> OAuthProviderServerException()
         }
     }
 

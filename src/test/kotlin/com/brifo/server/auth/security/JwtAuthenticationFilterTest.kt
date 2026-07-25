@@ -1,7 +1,7 @@
 package com.brifo.server.auth.security
 
 import com.brifo.server.auth.code.AuthErrorCode
-import com.brifo.server.auth.exception.InvalidTokenException
+import com.brifo.server.auth.exception.InvalidJwtTokenException
 import com.brifo.server.auth.service.JwtTokenProvider
 import jakarta.servlet.FilterChain
 import org.junit.jupiter.api.AfterEach
@@ -61,13 +61,13 @@ class JwtAuthenticationFilterTest {
         val request = MockHttpServletRequest().apply { addHeader(HttpHeaders.AUTHORIZATION, "Bearer invalid-token") }
         val response = MockHttpServletResponse()
         val filterChain = FilterChain { _, _ -> }
-        `when`(jwtTokenProvider.parseAccessToken("invalid-token")).thenThrow(InvalidTokenException())
+        `when`(jwtTokenProvider.parseAccessToken("invalid-token")).thenThrow(InvalidJwtTokenException())
 
         filter.doFilter(request, response, filterChain)
 
         assertNull(SecurityContextHolder.getContext().authentication)
         assertSame(
-            AuthErrorCode.OAUTH_INVALID_TOKEN,
+            AuthErrorCode.INVALID_TOKEN,
             request.getAttribute(JwtAuthenticationFilter.AUTH_ERROR_CODE_ATTRIBUTE),
         )
     }
@@ -81,7 +81,7 @@ class JwtAuthenticationFilterTest {
 
         assertNull(SecurityContextHolder.getContext().authentication)
         assertSame(
-            AuthErrorCode.OAUTH_INVALID_TOKEN,
+            AuthErrorCode.INVALID_TOKEN,
             request.getAttribute(JwtAuthenticationFilter.AUTH_ERROR_CODE_ATTRIBUTE),
         )
     }

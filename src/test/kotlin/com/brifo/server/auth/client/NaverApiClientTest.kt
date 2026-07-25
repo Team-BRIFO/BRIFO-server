@@ -3,6 +3,7 @@ package com.brifo.server.auth.client
 import com.brifo.server.auth.code.AuthErrorCode
 import com.brifo.server.auth.exception.AuthException
 import com.brifo.server.global.config.NaverProperties
+import com.brifo.server.user.entity.OAuthProvider
 import org.hamcrest.Matchers.containsString
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -49,9 +50,10 @@ class NaverApiClientTest {
                 ),
             )
 
-        val user = client.getUser("authorization-code", "state-value", REDIRECT_URI)
+        val user = client.authenticate("authorization-code", "state-value", REDIRECT_URI)
 
-        assertEquals("naver-id", user.id)
+        assertEquals(OAuthProvider.NAVER, user.provider)
+        assertEquals("naver-id", user.socialId)
         assertEquals("user@naver.com", user.email)
         assertEquals("brifo", user.nickname)
         server.verify()
@@ -61,7 +63,7 @@ class NaverApiClientTest {
     fun `등록되지 않은 Redirect URI는 네이버 호출 전에 거부한다`() {
         val exception =
             assertThrows(AuthException::class.java) {
-                client.getUser("authorization-code", "state-value", "https://attacker.example/callback")
+                client.authenticate("authorization-code", "state-value", "https://attacker.example/callback")
             }
 
         assertEquals(AuthErrorCode.OAUTH_REDIRECT_URI_MISMATCH, exception.errorCode)
@@ -81,7 +83,7 @@ class NaverApiClientTest {
 
         val exception =
             assertThrows(AuthException::class.java) {
-                client.getUser("expired-code", "state-value", REDIRECT_URI)
+                client.authenticate("expired-code", "state-value", REDIRECT_URI)
             }
 
         assertEquals(AuthErrorCode.OAUTH_INVALID_AUTHORIZATION_CODE, exception.errorCode)
@@ -104,10 +106,10 @@ class NaverApiClientTest {
 
         val exception =
             assertThrows(AuthException::class.java) {
-                client.getUser("authorization-code", "state-value", REDIRECT_URI)
+                client.authenticate("authorization-code", "state-value", REDIRECT_URI)
             }
 
-        assertEquals(AuthErrorCode.OAUTH_INVALID_TOKEN, exception.errorCode)
+        assertEquals(AuthErrorCode.INVALID_TOKEN, exception.errorCode)
         server.verify()
     }
 
@@ -124,10 +126,10 @@ class NaverApiClientTest {
 
         val exception =
             assertThrows(AuthException::class.java) {
-                client.getUser("authorization-code", "state-value", REDIRECT_URI)
+                client.authenticate("authorization-code", "state-value", REDIRECT_URI)
             }
 
-        assertEquals(AuthErrorCode.NAVER_SERVER_ERROR, exception.errorCode)
+        assertEquals(AuthErrorCode.OAUTH_PROVIDER_SERVER_ERROR, exception.errorCode)
         server.verify()
     }
 

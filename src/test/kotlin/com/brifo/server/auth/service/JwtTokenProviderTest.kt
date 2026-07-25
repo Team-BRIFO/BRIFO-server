@@ -3,7 +3,6 @@ package com.brifo.server.auth.service
 import com.brifo.server.auth.code.AuthErrorCode
 import com.brifo.server.auth.exception.AuthException
 import com.brifo.server.global.config.JwtProperties
-import com.brifo.server.user.entity.OAuthProvider
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.io.Decoders
 import io.jsonwebtoken.security.Keys
@@ -58,8 +57,8 @@ class JwtTokenProviderTest {
         val accessClaims = provider.parseAccessToken(tokens.accessToken)
         val refreshClaims = provider.parseRefreshToken(tokens.refreshToken)
 
-        assertEquals(userId, accessClaims.userId)
-        assertEquals(userId, refreshClaims.userId)
+        assertEquals(userId, accessClaims.userPublicId)
+        assertEquals(userId, refreshClaims.userPublicId)
         assertEquals(Instant.parse("2026-07-08T01:00:00Z"), accessClaims.expiresAt)
         assertEquals(Instant.parse("2026-07-15T00:00:00Z"), refreshClaims.expiresAt)
     }
@@ -94,41 +93,46 @@ class JwtTokenProviderTest {
     }
 
     @Test
-    fun `회원가입 토큰은 카카오 정보와 SIGNUP 종류를 검증한다`() {
-        val token = provider.issueSignupToken(OAuthProvider.KAKAO, "1234567890", "user@kakao.com")
+    fun `회원가입 토큰은 사용자 공개 ID를 담는다`() {
+        val userId = UUID.randomUUID()
+        val token = provider.issueSignupToken(userId)
 
         val claims = provider.parseSignupToken(token)
 
-        assertEquals("1234567890", claims.socialId)
-        assertEquals("KAKAO", claims.provider)
-        assertEquals("user@kakao.com", claims.email)
+        assertEquals(userId, claims.userPublicId)
     }
 
     @Test
-    fun `회원가입 토큰은 네이버 공급자 정보를 보존한다`() {
-        val token = provider.issueSignupToken(OAuthProvider.NAVER, "naver-social-id", "user@naver.com")
+    fun `회원가입 토큰에는 공급자와 개인정보를 포함하지 않는다`() {
+        val token = provider.issueSignupToken(UUID.randomUUID())
+        val key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(TEST_SECRET_BASE64))
+        val claims =
+            Jwts
+                .parser()
+                .verifyWith(key)
+                .clock { Date.from(Instant.now(clock)) }
+                .build()
+                .parseSignedClaims(token)
+                .payload
 
-        val claims = provider.parseSignupToken(token)
-
-        assertEquals("naver-social-id", claims.socialId)
-        assertEquals("NAVER", claims.provider)
-        assertEquals("user@naver.com", claims.email)
+        assertEquals(null, claims["provider"])
+        assertEquals(null, claims["email"])
     }
 
     @Test
     fun `위조된 회원가입 토큰은 거부한다`() {
-        val token = provider.issueSignupToken(OAuthProvider.KAKAO, "1234567890", null)
+        val token = provider.issueSignupToken(UUID.randomUUID())
         val parts = token.split(".").toMutableList()
         parts[2] = (if (parts[2].first() == 'a') "b" else "a") + parts[2].drop(1)
         val tamperedToken = parts.joinToString(".")
 
         val exception = assertThrows(AuthException::class.java) { provider.parseSignupToken(tamperedToken) }
 
-        assertEquals(AuthErrorCode.OAUTH_INVALID_TOKEN, exception.errorCode)
+        assertEquals(AuthErrorCode.INVALID_TOKEN, exception.errorCode)
     }
 
     @Test
-    fun `공급자 클레임이 없는 회원가입 토큰은 거부한다`() {
+    fun `subject가 UUID가 아닌 회원가입 토큰은 거부한다`() {
         val key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(TEST_SECRET_BASE64))
         val issuedAt = Instant.now(clock)
         val token =
@@ -136,7 +140,7 @@ class JwtTokenProviderTest {
                 .builder()
                 .id(UUID.randomUUID().toString())
                 .issuer(properties.issuer)
-                .subject("social-id")
+                .subject("not-a-uuid")
                 .issuedAt(Date.from(issuedAt))
                 .expiration(Date.from(issuedAt.plus(properties.signupTokenExpiration)))
                 .claim("tokenType", "SIGNUP")
@@ -145,7 +149,27 @@ class JwtTokenProviderTest {
 
         val exception = assertThrows(AuthException::class.java) { provider.parseSignupToken(token) }
 
-        assertEquals(AuthErrorCode.OAUTH_INVALID_TOKEN, exception.errorCode)
+        assertEquals(AuthErrorCode.INVALID_TOKEN, exception.errorCode)
+    }
+
+    @Test
+    fun `subject가 없는 Access Token은 유효하지 않은 토큰으로 처리한다`() {
+        val key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(TEST_SECRET_BASE64))
+        val issuedAt = Instant.now(clock)
+        val token =
+            Jwts
+                .builder()
+                .id(UUID.randomUUID().toString())
+                .issuer(properties.issuer)
+                .issuedAt(Date.from(issuedAt))
+                .expiration(Date.from(issuedAt.plus(properties.accessTokenExpiration)))
+                .claim("tokenType", "ACCESS")
+                .signWith(key)
+                .compact()
+
+        val exception = assertThrows(AuthException::class.java) { provider.parseAccessToken(token) }
+
+        assertEquals(AuthErrorCode.INVALID_TOKEN, exception.errorCode)
     }
 
     @Test
