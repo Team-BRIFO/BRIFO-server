@@ -6,4 +6,6 @@ import java.util.UUID
 
 interface StockRepository : JpaRepository<Stock, Long> {
     fun findByPublicId(publicId: UUID): Stock?
+
+    fun findAllByPublicIdInAndIsActiveTrue(publicIds: Collection<UUID>): List<Stock>
 }

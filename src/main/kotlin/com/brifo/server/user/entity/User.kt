@@ -82,6 +82,28 @@ class User private constructor(
     var deletedAt: LocalDateTime? = null
         protected set
 
+    fun updateOnboardingProfile(
+        nickname: String,
+        companyName: String?,
+    ) {
+        this.nickname = nickname
+        if (companyName != null) {
+            this.companyName = companyName
+        }
+    }
+
+    fun updateProfile(
+        nickname: String,
+        companyName: String,
+    ) {
+        this.nickname = nickname
+        this.companyName = companyName
+    }
+
+    fun completeOnboarding(completedAt: LocalDateTime) {
+        onboardingCompletedAt = completedAt
+    }
+
     fun markLoggedIn(at: LocalDateTime) {
         lastLoginAt = at
     }
