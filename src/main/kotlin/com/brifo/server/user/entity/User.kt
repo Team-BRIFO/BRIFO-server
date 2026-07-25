@@ -102,6 +102,8 @@ class User private constructor(
 
     fun completeOnboarding(completedAt: LocalDateTime) {
         onboardingCompletedAt = completedAt
+    }
+
     fun markLoggedIn(at: LocalDateTime) {
         lastLoginAt = at
     }
