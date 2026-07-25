@@ -62,7 +62,12 @@ class SecurityConfig(
                         "/v3/api-docs/**",
                         "/actuator/health",
                         "/actuator/info",
-                        "/api/auth/login/**",
+                    ).permitAll()
+                it
+                    .requestMatchers(
+                        HttpMethod.POST,
+                        "/api/auth/login/kakao",
+                        "/api/auth/login/naver",
                         "/api/auth/reissue",
                     ).permitAll()
                 it.anyRequest().authenticated()
