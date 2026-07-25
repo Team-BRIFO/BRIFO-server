@@ -1,3 +1,7 @@
+import java.security.SecureRandom
+import java.util.Base64
+import java.util.UUID
+
 plugins {
     kotlin("jvm") version "2.2.21"
     kotlin("plugin.spring") version "2.2.21"
@@ -29,6 +33,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
+    implementation("io.jsonwebtoken:jjwt-api:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2")
@@ -86,4 +93,23 @@ spotless {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+
+    val randomSecret =
+        ByteArray(32)
+            .also { SecureRandom().nextBytes(it) }
+            .let { Base64.getEncoder().encodeToString(it) }
+
+    environment("JWT_SECRET_BASE64", providers.environmentVariable("JWT_SECRET_BASE64").orElse(randomSecret).get())
+    environment("KAKAO_CLIENT_ID", providers.environmentVariable("KAKAO_CLIENT_ID").orElse(UUID.randomUUID().toString()).get())
+    environment("KAKAO_CLIENT_SECRET", providers.environmentVariable("KAKAO_CLIENT_SECRET").orElse("").get())
+    environment(
+        "KAKAO_REDIRECT_URIS",
+        providers.environmentVariable("KAKAO_REDIRECT_URIS").orElse("http://localhost:3000/oauth/callback/kakao").get(),
+    )
+    environment("NAVER_CLIENT_ID", providers.environmentVariable("NAVER_CLIENT_ID").orElse(UUID.randomUUID().toString()).get())
+    environment("NAVER_CLIENT_SECRET", providers.environmentVariable("NAVER_CLIENT_SECRET").orElse(UUID.randomUUID().toString()).get())
+    environment(
+        "NAVER_REDIRECT_URIS",
+        providers.environmentVariable("NAVER_REDIRECT_URIS").orElse("http://localhost:3000/oauth/callback/naver").get(),
+    )
 }
