@@ -8,6 +8,10 @@ import java.util.UUID
 interface AgentRepository :
     JpaRepository<Agent, Long>,
     AgentQueryRepository {
+    fun findAllByUserPublicIdAndPublicIdInOrderByIdAsc(
+        userPublicId: UUID,
+        publicIds: Collection<UUID>,
+    ): List<Agent>
     fun findByPublicId(publicId: UUID): Agent?
 
     fun findByPublicIdAndUserPublicId(

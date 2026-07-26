@@ -82,7 +82,10 @@ class BriefingRequestTransactionService(
             throw StockNotFoundException()
         }
 
-        val agents = agentRepository.findOwnedAgents(command.userPublicId, command.agentPublicIds)
+        val agents = agentRepository.findAllByUserPublicIdAndPublicIdInOrderByIdAsc(
+            command.userPublicId,
+            command.agentPublicIds,
+        )
         // 요청한 모든 에이전트를 사용자가 소유하고 있는지 검증한다.
         if (agents.size != command.agentPublicIds.size) {
             throw AgentNotFoundException()
