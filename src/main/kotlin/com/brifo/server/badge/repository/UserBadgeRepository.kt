@@ -24,4 +24,9 @@ interface UserBadgeRepository : JpaRepository<UserBadge, Long> {
         @Param("userPublicId") userPublicId: UUID,
         @Param("badgeId") badgeId: Long,
     ): Int
+  
+    fun findByIdAndUserPublicId(
+        id: Long,
+        userPublicId: UUID,
+    ): UserBadge?
 }

@@ -11,9 +11,9 @@ import jakarta.persistence.Id
 import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
 import org.hibernate.annotations.Generated
-import org.hibernate.generator.EventType
 import org.hibernate.annotations.SQLDelete
 import org.hibernate.annotations.SQLRestriction
+import org.hibernate.generator.EventType
 import org.springframework.data.annotation.LastModifiedDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -82,15 +82,51 @@ class User private constructor(
     var deletedAt: LocalDateTime? = null
         protected set
 
+    fun changeAp(deltaAp: Int) {
+        val changedBalance = balanceAp + deltaAp
+        require(changedBalance >= 0) { "insufficient AP balance" }
+        balanceAp = changedBalance
+    }
+
+    fun updateOnboardingProfile(
+        nickname: String,
+        companyName: String?,
+    ) {
+        this.nickname = nickname
+        if (companyName != null) {
+            this.companyName = companyName
+        }
+    }
+
+    fun updateProfile(
+        nickname: String,
+        companyName: String,
+    ) {
+        this.nickname = nickname
+        this.companyName = companyName
+    }
+
+    fun completeOnboarding(completedAt: LocalDateTime) {
+        onboardingCompletedAt = completedAt
+    }
+
+    fun markLoggedIn(at: LocalDateTime) {
+        lastLoginAt = at
+    }
+
+    fun grantAp(amount: Int) {
+        require(amount > 0) { "AP grant amount must be positive." }
+        balanceAp += amount
+    }
+
     fun spendAp(amount: Int) {
         require(amount > 0) { "amount must be positive" }
-        require(balanceAp >= amount) { "insufficient AP balance" }
-        balanceAp -= amount
+        changeAp(-amount)
     }
 
     fun refundAp(amount: Int) {
         require(amount > 0) { "amount must be positive" }
-        balanceAp += amount
+        changeAp(amount)
     }
 
     companion object {
