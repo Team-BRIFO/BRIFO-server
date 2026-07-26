@@ -1,6 +1,8 @@
 package com.brifo.server.stock.service
 
+import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.common.CursorPage
+import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.stock.dto.request.GetStocksRequest
 import com.brifo.server.stock.dto.response.GetStocksResponse
 import com.brifo.server.stock.repository.StockRepository
@@ -37,6 +39,10 @@ class StockService(
             )
         }
 
+        if (request.size !in MIN_SEARCH_SIZE..MAX_SEARCH_SIZE) {
+            throw BusinessException(ErrorCode.INVALID_REQUEST)
+        }
+
         val stocks =
             stockRepository.searchStocks(
                 keyword = keyword,
@@ -64,5 +70,10 @@ class StockService(
                     hasNext = hasNext,
                 ),
         )
+    }
+
+    private companion object {
+        const val MIN_SEARCH_SIZE = 1
+        const val MAX_SEARCH_SIZE = 50
     }
 }

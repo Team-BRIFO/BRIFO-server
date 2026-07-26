@@ -1,5 +1,6 @@
 package com.brifo.server.stock.service
 
+import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.stock.dto.request.GetStocksRequest
 import com.brifo.server.stock.dto.response.GetStocksResponse
 import com.brifo.server.stock.repository.StockRepository
@@ -7,6 +8,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
@@ -45,7 +47,7 @@ class StockServiceUnitTest {
                 GetStocksRequest(
                     keyword = "   ",
                     cursor = UUID.randomUUID(),
-                    size = 1,
+                    size = 0,
                 ),
             )
 
@@ -120,6 +122,20 @@ class StockServiceUnitTest {
         assertTrue(response.page.items.isEmpty())
         assertFalse(response.page.hasNext)
         assertNull(response.page.nextCursor)
+    }
+
+    @Test
+    fun `검색 모드에서 size가 허용 범위를 벗어나면 예외를 던진다`() {
+        listOf(0, 51).forEach { size ->
+            assertThrows<BusinessException> {
+                stockService.getStocks(
+                    GetStocksRequest(
+                        keyword = "삼성",
+                        size = size,
+                    ),
+                )
+            }
+        }
     }
 
     private fun stockItem(

@@ -49,18 +49,31 @@ class StockControllerTest {
     }
 
     @Test
-    fun `size가 0 또는 51이면 COMMON_400을 반환한다`() {
+    fun `인기 모드에서는 범위를 벗어난 size도 무시한다`() {
         listOf("0", "51").forEach { size ->
+            val request = GetStocksRequest(size = size.toInt())
+            `when`(stockService.getStocks(request)).thenReturn(popularResponse())
+
             mockMvc
                 .perform(
                     get("/api/stocks")
                         .param("userId", "7")
-                        .param("keyword", "삼성")
                         .param("size", size),
-                ).andExpect(status().isBadRequest)
-                .andExpect(jsonPath("$.code").value("COMMON_400"))
+                ).andExpect(status().isOk)
         }
     }
+
+    private fun popularResponse(): GetStocksResponse =
+        GetStocksResponse(
+            mode = GetStocksResponse.Mode.POPULAR,
+            keyword = null,
+            page =
+                CursorPage(
+                    items = emptyList(),
+                    nextCursor = null,
+                    hasNext = false,
+                ),
+        )
 
     private fun searchResponse(): GetStocksResponse =
         GetStocksResponse(
