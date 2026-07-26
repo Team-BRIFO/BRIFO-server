@@ -2,11 +2,9 @@ package com.brifo.server.notification.entity
 
 enum class NotificationTargetType {
     DECISION,
-    AP_TRANSACTION,
     BRIEFING,
     AGENT,
-    ATTENDANCE_REWARD,
-    USER_BADGE,
-    POLICY,
+    STOCK_BRIEFINGS,
+    NEWS_CARD_LIST,
     NONE,
 }
