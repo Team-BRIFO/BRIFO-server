@@ -14,6 +14,8 @@ interface AgentRepository :
     ): List<Agent>
     fun findByPublicId(publicId: UUID): Agent?
 
+    fun findAllByUserPublicIdOrderByAgentTypeAsc(userPublicId: UUID): List<Agent>
+      
     fun findByPublicIdAndUserPublicId(
         publicId: UUID,
         userPublicId: UUID,
