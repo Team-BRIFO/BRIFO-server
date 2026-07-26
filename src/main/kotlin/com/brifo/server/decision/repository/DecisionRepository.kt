@@ -11,4 +11,8 @@ interface DecisionRepository :
         publicId: UUID,
         userPublicId: UUID,
     ): Boolean
+    
+    fun findByPublicId(publicId: UUID): Decision?
+
+    fun countByBriefingAgentUserId(userId: Long): Long
 }

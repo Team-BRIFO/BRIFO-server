@@ -1,0 +1,169 @@
+package com.brifo.server.user.controller
+
+import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
+import com.brifo.server.user.dto.request.UpdateUserProfileRequest
+import com.brifo.server.user.dto.response.GetMyPageResponse
+import com.brifo.server.user.dto.response.GetUserHomeResponse
+import com.brifo.server.user.dto.response.GetUserProfileResponse
+import com.brifo.server.user.service.UserQueryService
+import com.brifo.server.user.service.UserService
+import org.junit.jupiter.api.Test
+import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
+import org.springframework.http.MediaType
+import org.springframework.test.context.bean.override.mockito.MockitoBean
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.util.UUID
+
+@WebMvcTest(UserController::class)
+@AutoConfigureMockMvc(addFilters = false)
+class UserControllerTest {
+    @Autowired
+    private lateinit var mockMvc: MockMvc
+
+    @MockitoBean
+    private lateinit var userService: UserService
+
+    @MockitoBean
+    private lateinit var userQueryService: UserQueryService
+
+    @Test
+    fun `온보딩 프로필 요청을 서비스에 전달한다`() {
+        val userId = UUID.randomUUID()
+        val request = UpdateOnboardingProfileRequest("brifo", "회사")
+
+        mockMvc
+            .perform(
+                patch("/api/onboarding/profile")
+                    .param("userId", userId.toString())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"nickname":"brifo","companyName":"회사"}"""),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.code").value("USER_200_01"))
+
+        verify(userService).updateOnboardingProfile(userId, request)
+    }
+
+    @Test
+    fun `온보딩 완료 요청을 서비스에 전달한다`() {
+        val userId = UUID.randomUUID()
+
+        mockMvc
+            .perform(post("/api/onboarding/complete").param("userId", userId.toString()))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.code").value("USER_200_02"))
+
+        verify(userService).completeOnboarding(userId)
+    }
+
+    @Test
+    fun `마이페이지 응답을 직렬화한다`() {
+        val userId = UUID.randomUUID()
+        `when`(userQueryService.getMyPage(userId)).thenReturn(
+            GetMyPageResponse("brifo", "회사", 1_250, 450, 67, 48, 5, 24),
+        )
+
+        mockMvc
+            .perform(get("/api/users/me").param("userId", userId.toString()))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.code").value("COMMON_200"))
+            .andExpect(jsonPath("$.result.nickname").value("brifo"))
+            .andExpect(jsonPath("$.result.decisionAccuracyRate").value(67))
+
+        verify(userQueryService).getMyPage(userId)
+    }
+
+    @Test
+    fun `홈 조회 요청을 조회 서비스에 전달한다`() {
+        val userId = UUID.randomUUID()
+        `when`(userQueryService.getUserHome(userId)).thenReturn(
+            GetUserHomeResponse(
+                user = GetUserHomeResponse.User("brifo", "회사", 0),
+                agents = emptyList(),
+                todayDecisions = GetUserHomeResponse.TodayDecisions(0),
+                todayNewsCards = GetUserHomeResponse.TodayNewsCards(null, emptyList()),
+            ),
+        )
+
+        mockMvc
+            .perform(get("/api/users/me/home").param("userId", userId.toString()))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.code").value("COMMON_200"))
+
+        verify(userQueryService).getUserHome(userId)
+    }
+
+    @Test
+    fun `프로필 조회 응답을 직렬화한다`() {
+        val userId = UUID.randomUUID()
+        val stockId = UUID.randomUUID()
+        `when`(userQueryService.getUserProfile(userId)).thenReturn(
+            GetUserProfileResponse(
+                nickname = "brifo",
+                companyName = "회사",
+                stocks = listOf(GetUserProfileResponse.Stock(stockId, "삼성전자")),
+            ),
+        )
+
+        mockMvc
+            .perform(get("/api/users/me/profile").param("userId", userId.toString()))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.result.stocks[0].stockId").value(stockId.toString()))
+            .andExpect(jsonPath("$.result.stocks[0].name").value("삼성전자"))
+
+        verify(userQueryService).getUserProfile(userId)
+    }
+
+    @Test
+    fun `프로필 수정 요청을 서비스에 전달한다`() {
+        val userId = UUID.randomUUID()
+        val stockId = UUID.randomUUID()
+        val request = UpdateUserProfileRequest("brifo", "회사", listOf(stockId))
+
+        mockMvc
+            .perform(
+                patch("/api/users/me/profile")
+                    .param("userId", userId.toString())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """{"nickname":"brifo","companyName":"회사","stockIds":["$stockId"]}""",
+                    ),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.code").value("USER_200_03"))
+
+        verify(userService).updateUserProfile(userId, request)
+    }
+
+    @Test
+    fun `회원 탈퇴 요청을 서비스에 전달한다`() {
+        val userId = UUID.randomUUID()
+
+        mockMvc
+            .perform(delete("/api/users/me").param("userId", userId.toString()))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.code").value("USER_200_04"))
+
+        verify(userService).deleteUser(userId)
+    }
+
+    @Test
+    fun `잘못된 사용자 ID 형식은 서비스 호출 전에 거절한다`() {
+        mockMvc
+            .perform(
+                patch("/api/users/me/profile")
+                    .param("userId", "invalid-uuid")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"nickname":"brifo","companyName":"회사","stockIds":[]}"""),
+            ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.code").value("COMMON_400"))
+    }
+}

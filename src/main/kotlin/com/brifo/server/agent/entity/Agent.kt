@@ -27,7 +27,7 @@ class Agent private constructor(
     agentType: AgentType,
     modelName: String,
     nickname: String,
-    description: String,
+    description: String?,
     dailySalary: Int,
 ) : BaseEntity() {
     @Id
@@ -60,8 +60,8 @@ class Agent private constructor(
     var nickname: String = nickname
         protected set
 
-    @Column(name = "description", nullable = false, length = 255)
-    var description: String = description
+    @Column(name = "description", length = 255)
+    var description: String? = description
         protected set
 
     @Column(name = "level", nullable = false)
@@ -87,7 +87,7 @@ class Agent private constructor(
             agentType: AgentType,
             modelName: String,
             nickname: String,
-            description: String,
+            description: String?,
             dailySalary: Int,
         ): Agent {
             return Agent(

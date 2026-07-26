@@ -3,6 +3,8 @@ package com.brifo.server.policy.entity
 import com.brifo.server.global.common.BaseEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
@@ -18,6 +20,7 @@ import java.util.UUID
 @Entity
 @Table(name = "policies")
 class Policy private constructor(
+    code: PolicyCode,
     title: String,
     content: String,
     isRequired: Boolean,
@@ -32,6 +35,11 @@ class Policy private constructor(
     @Column(name = "public_id", nullable = false, insertable = false, updatable = false)
     @Generated(event = [EventType.INSERT])
     var publicId: UUID? = null
+        protected set
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "code", nullable = false, updatable = false, length = 50)
+    var code: PolicyCode = code
         protected set
 
     @Column(name = "title", nullable = false, length = 100)
@@ -61,11 +69,13 @@ class Policy private constructor(
 
     companion object {
         fun create(
+            code: PolicyCode,
             title: String,
             content: String,
             isRequired: Boolean,
         ): Policy {
             return Policy(
+                code = code,
                 title = title,
                 content = content,
                 isRequired = isRequired,

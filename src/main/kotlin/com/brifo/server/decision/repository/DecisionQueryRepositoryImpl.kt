@@ -17,6 +17,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory
 import org.springframework.stereotype.Repository
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Repository
@@ -163,4 +164,18 @@ class DecisionQueryRepositoryImpl(
             .orderBy(decision.createdAt.desc(), decision.id.desc())
             .limit(limit)
             .fetch()
+
+    override fun countByUserIdWithinPeriod(
+        userId: Long,
+        from: LocalDateTime,
+        to: LocalDateTime,
+    ): Long =
+        queryFactory
+            .select(decision.count())
+            .from(decision)
+            .where(
+                decision.briefing.agent.user.id.eq(userId),
+                decision.createdAt.goe(from),
+                decision.createdAt.lt(to),
+            ).fetchOne() ?: 0L
 }

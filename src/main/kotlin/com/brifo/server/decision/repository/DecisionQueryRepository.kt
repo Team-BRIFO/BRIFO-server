@@ -3,6 +3,7 @@ package com.brifo.server.decision.repository
 import com.brifo.server.decision.dto.response.GetDecisionResultResponse
 import com.brifo.server.decision.dto.response.GetDecisionsResponse
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 
 interface DecisionQueryRepository {
@@ -26,4 +27,10 @@ interface DecisionQueryRepository {
         userPublicId: UUID,
         limit: Long,
     ): List<UUID>
+
+    fun countByUserIdWithinPeriod(
+        userId: Long,
+        from: LocalDateTime,
+        to: LocalDateTime,
+    ): Long
 }
