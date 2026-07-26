@@ -32,10 +32,13 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+          mask-aws-account-id: true
 
       - name: Login to Amazon ECR
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: true
 
       - uses: docker/setup-buildx-action@v3
 
@@ -76,10 +79,6 @@ jobs:
 
             case "${status}" in
               Success)
-                aws ssm list-command-invocations \
-                  --command-id "${command_id}" \
-                  --query "CommandInvocations[].{InstanceId:InstanceId,Status:Status,StatusDetails:StatusDetails}" \
-                  --output table
                 echo "Deployment succeeded."
                 break
                 ;;
@@ -87,14 +86,7 @@ jobs:
                 sleep 5
                 ;;
               *)
-                aws ssm list-command-invocations \
-                  --command-id "${command_id}" \
-                  --details \
-                  --query 'CommandInvocations[].{
-                    InstanceId:InstanceId,
-                    Status:Status,
-                    Output:CommandPlugins[0].Output
-                  }'
+                echo "Deployment failed with status: ${status}."
                 exit 1
                 ;;
             esac
