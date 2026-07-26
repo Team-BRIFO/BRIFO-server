@@ -1,5 +1,6 @@
 package com.brifo.server.decision.dto.response
 
+import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.decision.entity.DecisionDirection
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -12,14 +13,20 @@ data class GetDecisionsResponse(
         val decisionId: UUID,
         val direction: DecisionDirection,
         val confidenceLevel: Int,
-        val isSettled: Boolean,
+        val agent: Agent,
         val stock: Stock,
+    )
+
+    data class Agent(
+        val agentId: UUID,
+        val agentType: AgentType,
     )
 
     data class Stock(
         val stockId: UUID,
         val name: String,
-        val changeRate: BigDecimal,
-        val tradeDate: LocalDate,
+        val price: Long?,
+        val changeRate: BigDecimal?,
+        val tradeDate: LocalDate?,
     )
 }

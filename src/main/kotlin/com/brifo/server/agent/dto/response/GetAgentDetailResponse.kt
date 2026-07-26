@@ -10,7 +10,7 @@ data class GetAgentDetailResponse(
     val level: Int,
     val exp: Int,
     val modelName: String,
-    val description: String,
+    val description: String?,
     val accuracyRate: Int,
     val totalAnalyses: Int,
     val contributedAp: Int,

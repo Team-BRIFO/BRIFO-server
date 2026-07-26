@@ -5,4 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface AttendanceRewardRepository : JpaRepository<AttendanceReward, Long> {
     fun findTopByUserIdOrderByCreatedAtDesc(userId: Long): AttendanceReward?
+    fun findTopByUserIdOrderByCreatedAtDescIdDesc(userId: Long): AttendanceReward?
 }
