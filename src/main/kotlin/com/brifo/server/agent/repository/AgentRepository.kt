@@ -10,6 +10,11 @@ interface AgentRepository :
     AgentQueryRepository {
     fun findByPublicId(publicId: UUID): Agent?
 
+    fun findByPublicIdAndUserPublicId(
+        publicId: UUID,
+        userPublicId: UUID,
+    ): Agent?
+    
     fun existsByUser(user: User): Boolean
 
     fun findAllByUserId(userId: Long): List<Agent>
