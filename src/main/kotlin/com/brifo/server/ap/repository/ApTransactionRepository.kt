@@ -8,6 +8,11 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 interface ApTransactionRepository : JpaRepository<ApTransaction, Long>, ApTransactionQueryRepository {
+    fun existsByUserIdAndReason(
+        userId: Long,
+        reason: ApTransactionReason,
+    ): Boolean
+
     fun findByPublicId(publicId: UUID): ApTransaction?
 
     @Query(

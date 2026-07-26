@@ -82,6 +82,12 @@ class User private constructor(
     var deletedAt: LocalDateTime? = null
         protected set
 
+    fun changeAp(deltaAp: Int) {
+        val changedBalance = balanceAp + deltaAp
+        require(changedBalance >= 0) { "insufficient AP balance" }
+        balanceAp = changedBalance
+    }
+
     fun updateOnboardingProfile(
         nickname: String,
         companyName: String?,
@@ -115,13 +121,12 @@ class User private constructor(
 
     fun spendAp(amount: Int) {
         require(amount > 0) { "amount must be positive" }
-        require(balanceAp >= amount) { "insufficient AP balance" }
-        balanceAp -= amount
+        changeAp(-amount)
     }
 
     fun refundAp(amount: Int) {
         require(amount > 0) { "amount must be positive" }
-        balanceAp += amount
+        changeAp(amount)
     }
 
     companion object {

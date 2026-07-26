@@ -6,7 +6,7 @@ import java.util.UUID
 
 interface DecisionResultRepository : JpaRepository<DecisionResult, Long> {
     fun existsByDecisionPublicId(decisionPublicId: UUID): Boolean
-    
+
     fun countByDecisionBriefingAgentUserId(userId: Long): Long
 
     fun countByDecisionBriefingAgentUserIdAndIsCorrect(
