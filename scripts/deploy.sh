@@ -13,6 +13,8 @@ CONTAINER_NAME="brifo-server"
 HOST_PORT="8080"
 CONTAINER_PORT="8080"
 HEALTH_CHECK_TIMEOUT_SECONDS="60"
+DB_CA_CERT_HOST_PATH="/home/ec2-user/ssl/global-bundle.pem"
+DB_CA_CERT_CONTAINER_PATH="/app/ssl/global-bundle.pem"
 
 IMAGE_TAG="${1:?Usage: deploy.sh <image-tag>}"
 HEALTH_URL="http://127.0.0.1:${HOST_PORT}/actuator/health"
@@ -33,6 +35,7 @@ run_container() {
     --name "${CONTAINER_NAME}" \
     --restart unless-stopped \
     --publish "${HOST_PORT}:${CONTAINER_PORT}" \
+    --volume "${DB_CA_CERT_HOST_PATH}:${DB_CA_CERT_CONTAINER_PATH}:ro" \
     --env SPRING_PROFILES_ACTIVE=dev \
     --env DB_URL="${DB_URL}" \
     --env DB_USERNAME="${DB_USERNAME}" \
@@ -70,6 +73,11 @@ for command in aws docker curl; do
     exit 1
   fi
 done
+
+if [[ ! -r "${DB_CA_CERT_HOST_PATH}" ]]; then
+  echo "PostgreSQL CA certificate is not readable: ${DB_CA_CERT_HOST_PATH}" >&2
+  exit 1
+fi
 
 AWS_ACCOUNT_ID="$(
   aws sts get-caller-identity \
