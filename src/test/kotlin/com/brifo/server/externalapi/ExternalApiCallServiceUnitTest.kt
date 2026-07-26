@@ -447,7 +447,7 @@ class ExternalApiCallServiceUnitTest {
             provider = "TEST_PROVIDER",
             apiName = "TEST_API",
             policy = ExternalApiCallPolicy.KIS_CURRENT_PRICE,
-            idempotent = idempotent,
+            retryEnabled = idempotent,
             refreshToken = refreshToken,
             request = request,
         )

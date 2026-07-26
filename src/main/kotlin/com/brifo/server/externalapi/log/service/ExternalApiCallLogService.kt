@@ -1,5 +1,6 @@
 package com.brifo.server.externalapi.log.service
 
+import com.brifo.server.externalapi.ExternalApiCallContext
 import com.brifo.server.externalapi.log.dto.ExternalApiCallLogSaveData
 import com.brifo.server.externalapi.log.entity.ExternalApiCallLog
 import com.brifo.server.externalapi.log.entity.ExternalApiCallStatus
@@ -60,6 +61,8 @@ class ExternalApiCallLogService(
     fun saveLog(
         provider: String,
         apiName: String,
+        // 외부 호출의 idempotencyKey와 관련 ID
+        context: ExternalApiCallContext = ExternalApiCallContext(),
         requestPayload: Any?,
         responsePayload: Any?,
         responseStatusCode: Int?,
@@ -76,6 +79,12 @@ class ExternalApiCallLogService(
                 provider = provider,
                 apiName = apiName,
                 status = status,
+                // ExternalApiCallContext의 값을 실제 로그 저장 DTO에 연결
+                userId = context.userId,
+                stockId = context.stockId,
+                newsId = context.newsId,
+                briefingId = context.briefingId,
+                idempotencyKey = context.idempotencyKey,
                 requestPayloadRedacted = redactPayload(requestPayload),
                 responsePayloadRedacted = if (exception == null) {
                     redactPayload(responsePayload)
