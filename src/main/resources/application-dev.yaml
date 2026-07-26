@@ -9,6 +9,21 @@ spring:
       include-binding-errors: always
 
 app:
+  auth:
+    kakao:
+      client-id: disabled
+      client-secret: disabled
+      redirect-uris:
+        - disabled
+      connect-timeout: 3s
+      read-timeout: 5s
+    naver:
+      client-id: disabled
+      client-secret: disabled
+      redirect-uris:
+        - disabled
+      connect-timeout: 3s
+      read-timeout: 5s
   cors:
     allowed-origins:
       - http://localhost:3000
@@ -24,3 +39,7 @@ logging:
   level:
     org.hibernate.SQL: DEBUG
     org.hibernate.orm.jdbc.bind: TRACE
+
+external:
+  kis:
+    base-url: ${KIS_BASE_URL:disabled}

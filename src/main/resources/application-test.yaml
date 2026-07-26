@@ -4,6 +4,23 @@ spring:
       hibernate:
         format_sql: false
 
+app:
+  auth:
+    kakao:
+      client-id: ${KAKAO_CLIENT_ID}
+      client-secret: ${KAKAO_CLIENT_SECRET:}
+      redirect-uris:
+        - disabled
+      connect-timeout: 3s
+      read-timeout: 5s
+    naver:
+      client-id: ${NAVER_CLIENT_ID}
+      client-secret: ${NAVER_CLIENT_SECRET}
+      redirect-uris:
+        - disabled
+      connect-timeout: 3s
+      read-timeout: 5s
+
 springdoc:
   api-docs:
     enabled: false
@@ -14,3 +31,7 @@ logging:
   level:
     org.hibernate.SQL: OFF
     org.hibernate.orm.jdbc.bind: OFF
+
+external:
+  kis:
+    base-url: disabled
