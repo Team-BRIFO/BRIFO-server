@@ -6,11 +6,12 @@ import com.brifo.server.news.entity.News
 import com.brifo.server.news.entity.NewsCard
 import com.brifo.server.news.exception.NewsCardNotFoundException
 import com.brifo.server.news.repository.NewsCardRepository
-import com.brifo.server.news.repository.NewsCardTermQueryRepository
 import com.brifo.server.news.repository.NewsDailyStockPriceRepository
 import com.brifo.server.stock.entity.Stock
+import com.brifo.server.term.repository.NewsCardTermRepository
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -22,7 +23,7 @@ class NewsServiceUnitTest {
     // DB 대신 사용할 가짜 Repository를 만든다.
     private val newsCardRepository = mock(NewsCardRepository::class.java)
     private val priceRepository = mock(NewsDailyStockPriceRepository::class.java)
-    private val termRepository = mock(NewsCardTermQueryRepository::class.java)
+    private val termRepository = mock(NewsCardTermRepository::class.java)
 
     // 가짜 Repository를 주입해 Service만 테스트한다.
     private val newsService = NewsService(newsCardRepository, priceRepository, termRepository)
@@ -71,6 +72,11 @@ class NewsServiceUnitTest {
                 newsService.getNewsCard(cardId)
             }
 
+        verify(priceRepository)
+            .findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDesc(
+                2L,
+                publishedDate,
+            )
         assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, exception.errorCode)
     }
 }
