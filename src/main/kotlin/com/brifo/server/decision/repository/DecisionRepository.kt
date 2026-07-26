@@ -8,4 +8,6 @@ interface DecisionRepository :
     JpaRepository<Decision, Long>,
     DecisionQueryRepository {
     fun findByPublicId(publicId: UUID): Decision?
+
+    fun countByBriefingAgentUserId(userId: Long): Long
 }
