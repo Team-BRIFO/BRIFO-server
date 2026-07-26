@@ -8,7 +8,7 @@ import java.util.UUID
 
 data class GetNewsCardResponse(
     val stock: Stock,
-    val newsCard: NewsCard,
+    val newsCard: List<NewsCard>,
 ) {
     data class Stock(
         val stockId: UUID,
