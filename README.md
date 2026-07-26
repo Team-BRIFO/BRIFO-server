@@ -94,6 +94,7 @@ src/main/kotlin/com/brifo/server/
     ├── agent/              # 사원(루키/프로/탱커), 급여 로그
     ├── stock/              # 종목, 사용자 종목, 일별 시세
     ├── news/               # 뉴스/카드뉴스
+    ├── externalapi/        # 외부 API (KIS, NAVER, DART, KRX)
     ├── term/               # 주식 용어(glossary), 학습 기록
     ├── briefing/           # 사원 브리핑
     ├── decision/           # 예측/의사결정

@@ -1,0 +1,13 @@
+INSERT INTO notification_types (code)
+VALUES ('NEWS_CARD_ARRIVED'),
+       ('AGENT_SALARY_PAID')
+ON CONFLICT (code) DO NOTHING;
+
+DELETE FROM notification_types
+WHERE code IN (
+    'SETTLEMENT_COMPLETED',
+    'AP_CHANGED',
+    'AP_INSUFFICIENT',
+    'POLICY_REAGREEMENT',
+    'WEEKLY_STOCK_RESET'
+);

@@ -1,0 +1,16 @@
+package com.brifo.server.badge.code
+
+enum class BadgeCode {
+    B01,
+    B02,
+    B03,
+    B04,
+    B05,
+    B06,
+    B07,
+    B08,
+    B09,
+    B10,
+    B11,
+    B12,
+}
