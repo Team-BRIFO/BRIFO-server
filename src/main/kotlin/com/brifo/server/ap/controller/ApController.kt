@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.ModelAttribute
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.util.UUID
 
 @RestController
 @RequestMapping("/api/ap")
@@ -22,19 +24,39 @@ class ApController(
 ) {
     @GetMapping("/transactions")
     fun getApTransactions(
+        @RequestParam userId: UUID,
         @Valid @ModelAttribute request: GetApTransactionsRequest,
-    ): ApiResponse<GetApTransactionsResponse> = TODO("AP 거래 목록 조회 서비스 구현 필요")
+    ): ApiResponse<GetApTransactionsResponse> =
+        ApiResponse.success(
+            code = com.brifo.server.global.code.SuccessCode.OK,
+            result = apService.getApTransactions(userId, request),
+        )
 
     @PostMapping("/attendance-rewards")
-    fun createAttendanceReward(): ApiResponse<CreateAttendanceRewardResponse> =
-        TODO("출석 보상 지급 서비스 구현 필요")
+    fun createAttendanceReward(
+        @RequestParam userId: UUID,
+    ): ApiResponse<CreateAttendanceRewardResponse> =
+        ApiResponse.success(
+            code = com.brifo.server.ap.code.ApSuccessCode.ATTENDANCE_REWARD_CLAIMED,
+            result = apService.createAttendanceReward(userId),
+        )
 
     @PostMapping("/tutorial-rewards")
-    fun createTutorialReward(): ApiResponse<ApBalanceResponse> =
-        TODO("튜토리얼 보상 지급 서비스 구현 필요")
+    fun createTutorialReward(
+        @RequestParam userId: UUID,
+    ): ApiResponse<ApBalanceResponse> =
+        ApiResponse.success(
+            code = com.brifo.server.ap.code.ApSuccessCode.TUTORIAL_REWARD_CLAIMED,
+            result = apService.createTutorialReward(userId),
+        )
 
     @PostMapping("/credit-loans")
     fun createCreditLoan(
+        @RequestParam userId: UUID,
         @Valid @RequestBody request: CreateCreditLoanRequest,
-    ): ApiResponse<ApBalanceResponse> = TODO("신용대출 AP 지급 서비스 구현 필요")
+    ): ApiResponse<ApBalanceResponse> =
+        ApiResponse.success(
+            code = com.brifo.server.ap.code.ApSuccessCode.CREDIT_LOAN_CLAIMED,
+            result = apService.createCreditLoan(userId, request),
+        )
 }

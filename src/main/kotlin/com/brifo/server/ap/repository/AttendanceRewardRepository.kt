@@ -9,4 +9,6 @@ interface AttendanceRewardRepository : JpaRepository<AttendanceReward, Long> {
         id: Long,
         userPublicId: UUID,
     ): AttendanceReward?
+    fun findTopByUserIdOrderByCreatedAtDesc(userId: Long): AttendanceReward?
+    fun findTopByUserIdOrderByCreatedAtDescIdDesc(userId: Long): AttendanceReward?
 }

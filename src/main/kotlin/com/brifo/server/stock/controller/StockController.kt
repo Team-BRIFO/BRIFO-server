@@ -1,6 +1,7 @@
 package com.brifo.server.stock.controller
 
 import com.brifo.server.global.common.ApiResponse
+import com.brifo.server.global.code.SuccessCode
 import com.brifo.server.stock.dto.request.GetStocksRequest
 import com.brifo.server.stock.dto.request.UpdateStockInterestsRequest
 import com.brifo.server.stock.dto.response.GetStocksResponse
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.ModelAttribute
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -20,8 +22,13 @@ class StockController(
 ) {
     @GetMapping("/stocks")
     fun getStocks(
-        @ModelAttribute request: GetStocksRequest,
-    ): ApiResponse<GetStocksResponse> = TODO("종목 조회 서비스 구현 필요")
+        @RequestParam userId: Long,
+        @Valid @ModelAttribute request: GetStocksRequest,
+    ): ApiResponse<GetStocksResponse> =
+        ApiResponse.success(
+            code = SuccessCode.OK,
+            result = stockService.getStocks(request),
+        )
 
     @PatchMapping("/onboarding/interests")
     fun updateOnboardingInterests(

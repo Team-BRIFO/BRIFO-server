@@ -1,6 +1,7 @@
 package com.brifo.server.policy.controller
 
 import com.brifo.server.global.common.ApiResponse
+import com.brifo.server.global.code.SuccessCode
 import com.brifo.server.policy.dto.request.AgreePoliciesRequest
 import com.brifo.server.policy.dto.response.GetPendingPoliciesResponse
 import com.brifo.server.policy.dto.response.GetPoliciesResponse
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
@@ -22,24 +24,47 @@ class PolicyController(
     private val policyService: PolicyService,
 ) {
     @GetMapping("/policies")
-    fun getPolicies(): ApiResponse<GetPoliciesResponse> = TODO("약관 목록 조회 서비스 구현 필요")
+    fun getPolicies(
+        @RequestParam userId: UUID,
+    ): ApiResponse<GetPoliciesResponse> =
+        ApiResponse.success(
+            code = SuccessCode.OK,
+            result = policyService.getPolicies(userId),
+        )
 
     @GetMapping("/policies/{policyId}")
     fun getPolicyDetail(
         @PathVariable policyId: UUID,
-    ): ApiResponse<GetPolicyDetailResponse> = TODO("약관 상세 조회 서비스 구현 필요")
+    ): ApiResponse<GetPolicyDetailResponse> =
+        ApiResponse.success(
+            code = SuccessCode.OK,
+            result = policyService.getPolicyDetail(policyId),
+        )
 
     @PostMapping("/users/me/policies")
     fun agreePolicies(
+        @RequestParam userId: UUID,
         @Valid @RequestBody request: AgreePoliciesRequest,
-    ): ApiResponse<Nothing> = TODO("약관 동의 서비스 구현 필요")
+    ): ApiResponse<Nothing> {
+        policyService.agreePolicies(userId, request.policyIds)
+        return ApiResponse.success(SuccessCode.OK)
+    }
 
     @GetMapping("/users/me/policies/pending")
-    fun getPendingPolicies(): ApiResponse<GetPendingPoliciesResponse> =
-        TODO("재동의 필요 약관 조회 서비스 구현 필요")
+    fun getPendingPolicies(
+        @RequestParam userId: UUID,
+    ): ApiResponse<GetPendingPoliciesResponse> =
+        ApiResponse.success(
+            code = SuccessCode.OK,
+            result = policyService.getPendingPolicies(userId),
+        )
 
     @DeleteMapping("/users/me/policies/{policyId}")
     fun revokePolicy(
+        @RequestParam userId: UUID,
         @PathVariable policyId: UUID,
-    ): ApiResponse<Nothing> = TODO("선택 약관 철회 서비스 구현 필요")
+    ): ApiResponse<Nothing> {
+        policyService.revokePolicy(userId, policyId)
+        return ApiResponse.success(SuccessCode.OK)
+    }
 }

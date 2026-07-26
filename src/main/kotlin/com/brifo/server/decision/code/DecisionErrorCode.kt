@@ -18,4 +18,14 @@ enum class DecisionErrorCode(
         "DECISION_409_01",
         "이미 예측을 등록했습니다.",
     ),
+    DECISION_REQUEST_CLOSED(
+        HttpStatus.CONFLICT,
+        "DECISION_409_02",
+        "오늘의 결정 등록 시간이 마감되었습니다.",
+    ),
+    DECISION_NOT_SETTLED(
+        HttpStatus.CONFLICT,
+        "DECISION_409_03",
+        "아직 정산되지 않은 예측입니다.",
+    ),
 }
