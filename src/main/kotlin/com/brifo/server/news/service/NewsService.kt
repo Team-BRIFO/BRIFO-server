@@ -5,8 +5,8 @@ import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.news.dto.response.GetNewsCardResponse
 import com.brifo.server.news.exception.NewsCardNotFoundException
 import com.brifo.server.news.repository.NewsCardRepository
-import com.brifo.server.news.repository.NewsCardTermQueryRepository
 import com.brifo.server.news.repository.NewsDailyStockPriceRepository
+import com.brifo.server.term.repository.NewsCardTermRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.RoundingMode
@@ -17,7 +17,7 @@ import java.util.UUID
 class NewsService(
     private val newsCardRepository: NewsCardRepository,
     private val newsDailyStockPriceRepository: NewsDailyStockPriceRepository,
-    private val newsCardTermRepository: NewsCardTermQueryRepository,
+    private val newsCardTermRepository: NewsCardTermRepository,
 ) {
     @Transactional(readOnly = true)
     fun getNewsCard(cardId: UUID): GetNewsCardResponse {
