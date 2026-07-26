@@ -161,7 +161,7 @@ class NotificationContentQueryRepositoryTest {
                 Decision.create(
                     briefing = briefings.first(),
                     direction = DecisionDirection.UP,
-                    confidenceLevel = 3.toShort(),
+                    confidenceLevel = 3,
                 ),
             )
         val dailyPrice =
