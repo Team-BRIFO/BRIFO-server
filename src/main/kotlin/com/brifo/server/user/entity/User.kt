@@ -86,6 +86,8 @@ class User private constructor(
         val changedBalance = balanceAp + deltaAp
         require(changedBalance >= 0) { "insufficient AP balance" }
         balanceAp = changedBalance
+    }
+
     fun updateOnboardingProfile(
         nickname: String,
         companyName: String?,

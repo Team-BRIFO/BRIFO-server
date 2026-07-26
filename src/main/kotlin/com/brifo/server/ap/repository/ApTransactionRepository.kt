@@ -11,9 +11,9 @@ interface ApTransactionRepository : JpaRepository<ApTransaction, Long>, ApTransa
     fun existsByUserIdAndReason(
         userId: Long,
         reason: ApTransactionReason,
-    ): Boolean  
-  
-  fun findByPublicId(publicId: UUID): ApTransaction?
+    ): Boolean
+
+    fun findByPublicId(publicId: UUID): ApTransaction?
 
     @Query(
         """
