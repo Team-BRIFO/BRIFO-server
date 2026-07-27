@@ -84,30 +84,6 @@ class BriefingTest {
         assertEquals(BriefingDirection.UP, briefing.direction)
     }
 
-    @Test
-    fun `실패한 브리핑은 같은 엔티티를 재사용해 대기 상태가 된다`() {
-        val stock = Stock.create("005930", "삼성전자", "반도체")
-        val displayDate = LocalDate.of(2026, 7, 18)
-        val retryCards = listOf(
-            newsCard(stock, "재시도 첫 번째 뉴스", displayDate),
-            newsCard(stock, "재시도 두 번째 뉴스", displayDate),
-        )
-        val briefing = Briefing.create(
-            listOf(
-                newsCard(stock, "최초 첫 번째 뉴스", displayDate),
-                newsCard(stock, "최초 두 번째 뉴스", displayDate),
-            ),
-            agent(),
-        )
-
-        briefing.startAnalysis()
-        briefing.fail()
-        briefing.retry(retryCards)
-
-        assertEquals(BriefingStatus.PENDING, briefing.status)
-        assertEquals(retryCards, briefing.newsCards)
-    }
-
     private fun agent(): Agent {
         val user = User.create(
             provider = OAuthProvider.KAKAO,

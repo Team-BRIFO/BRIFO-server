@@ -116,19 +116,15 @@ class BriefingRequestTransactionService(
         )
 
     private fun validateRetry(
-        briefings: List<Briefing>,
+        latestBriefings: List<Briefing>,
         command: BriefingRequestTask.Command,
     ) {
-        // 최초 요청에 없던 에이전트를 재시도로 새로 추가하지 않는지 검증한다.
-        if (briefings.size != command.agentPublicIds.size) {
-            throw BriefingAgentNotInInitialRequestException()
-        }
         // 요청 대상 브리핑이 모두 실패 상태여서 재시도 가능한지 검증한다.
-        if (briefings.any { it.status != BriefingStatus.FAILED }) {
+        if (latestBriefings.any { it.status != BriefingStatus.FAILED }) {
             throw BriefingAlreadyRequestedException()
         }
 
-        val retryAfterSeconds = briefings.maxOf { briefing ->
+        val retryAfterSeconds = latestBriefings.maxOf { briefing ->
             val retryAt = briefing.updatedAt!!.plusSeconds(RETRY_COOLDOWN_SECONDS)
             ceil(
                 Duration.between(command.requestedAt, retryAt)
@@ -152,9 +148,19 @@ class BriefingRequestTransactionService(
             return createBriefings(agents, newsCards)
         }
 
-        val requestedBriefings = dailyBriefings.filter { it.agent.publicId in command.agentPublicIds }
-        validateRetry(requestedBriefings, command)
-        return requestedBriefings.onEach { it.retry(newsCards) }
+        val latestBriefingByAgentId =
+            dailyBriefings
+                .groupBy { requireNotNull(it.agent.publicId) }
+                .mapValues { (_, briefings) ->
+                    briefings.maxBy { requireNotNull(it.id) }
+                }
+        val latestRequestedBriefings =
+            command.agentPublicIds.map { agentPublicId ->
+                latestBriefingByAgentId[agentPublicId]
+                    ?: throw BriefingAgentNotInInitialRequestException()
+            }
+        validateRetry(latestRequestedBriefings, command)
+        return createBriefings(agents, newsCards)
     }
 
     private fun createBriefings(
