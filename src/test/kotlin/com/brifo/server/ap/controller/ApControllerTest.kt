@@ -1,5 +1,6 @@
 package com.brifo.server.ap.controller
 
+import com.brifo.server.authenticatedUserId
 import com.brifo.server.ap.dto.request.CreateCreditLoanRequest
 import com.brifo.server.ap.dto.request.GetApTransactionsRequest
 import com.brifo.server.ap.dto.response.ApBalanceResponse
@@ -20,17 +21,19 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean
 import java.time.LocalDateTime
 import java.util.UUID
 
 class ApControllerTest {
     private val service = mock(ApService::class.java)
-    private val userId = UUID.randomUUID()
+    private val userId = authenticatedUserId()
     private val mockMvc: MockMvc = run {
         val validator = LocalValidatorFactoryBean().also { it.afterPropertiesSet() }
         MockMvcBuilders
             .standaloneSetup(ApController(service))
+            .setCustomArgumentResolvers(AuthenticationPrincipalArgumentResolver())
             .setControllerAdvice(GlobalExceptionHandler(MockEnvironment()))
             .setValidator(validator)
             .build()
@@ -72,11 +75,11 @@ class ApControllerTest {
     }
 
     @Test
-    fun `필수 userId 누락과 잘못된 UUID는 400이다`() {
+    fun `요청 파라미터의 userId는 인증 사용자 결정에 사용하지 않는다`() {
         mockMvc.perform(get("/api/ap/transactions"))
-            .andExpect(status().isBadRequest)
+            .andExpect(status().isOk)
         mockMvc.perform(get("/api/ap/transactions").param("userId", "invalid"))
-            .andExpect(status().isBadRequest)
+            .andExpect(status().isOk)
     }
 
     @Test

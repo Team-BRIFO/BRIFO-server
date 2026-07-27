@@ -1,5 +1,6 @@
 package com.brifo.server.user.controller
 
+import com.brifo.server.authenticatedUserId
 import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
 import com.brifo.server.user.dto.request.UpdateUserProfileRequest
 import com.brifo.server.user.dto.response.GetMyPageResponse
@@ -55,7 +56,7 @@ class UserControllerTest {
 
     @Test
     fun `온보딩 완료 요청을 서비스에 전달한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
 
         mockMvc
             .perform(post("/api/onboarding/complete").param("userId", userId.toString()))
@@ -104,7 +105,7 @@ class UserControllerTest {
 
     @Test
     fun `프로필 조회 응답을 직렬화한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
         val stockId = UUID.randomUUID()
         `when`(userQueryService.getUserProfile(userId)).thenReturn(
             GetUserProfileResponse(
@@ -125,7 +126,7 @@ class UserControllerTest {
 
     @Test
     fun `프로필 수정 요청을 서비스에 전달한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
         val stockId = UUID.randomUUID()
         val request = UpdateUserProfileRequest("brifo", "회사", listOf(stockId))
 
@@ -145,7 +146,7 @@ class UserControllerTest {
 
     @Test
     fun `회원 탈퇴 요청을 서비스에 전달한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
 
         mockMvc
             .perform(delete("/api/users/me").param("userId", userId.toString()))
@@ -156,14 +157,15 @@ class UserControllerTest {
     }
 
     @Test
-    fun `잘못된 사용자 ID 형식은 서비스 호출 전에 거절한다`() {
+    fun `요청 파라미터의 userId는 인증 사용자 결정에 사용하지 않는다`() {
+        authenticatedUserId()
+        val stockId = UUID.randomUUID()
         mockMvc
             .perform(
                 patch("/api/users/me/profile")
                     .param("userId", "invalid-uuid")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"nickname":"brifo","companyName":"회사","stockIds":[]}"""),
-            ).andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("COMMON_400"))
+                    .content("""{"nickname":"brifo","companyName":"회사","stockIds":["$stockId"]}"""),
+            ).andExpect(status().isOk)
     }
 }

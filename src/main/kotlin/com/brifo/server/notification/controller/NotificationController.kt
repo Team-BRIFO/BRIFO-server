@@ -6,10 +6,10 @@ import com.brifo.server.notification.dto.request.GetNotificationsRequest
 import com.brifo.server.notification.dto.response.GetNotificationsResponse
 import com.brifo.server.notification.service.NotificationService
 import jakarta.validation.Valid
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.ModelAttribute
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
@@ -20,11 +20,11 @@ class NotificationController(
 ) {
     @GetMapping
     fun getNotifications(
-        @RequestParam userId: UUID,
+        @AuthenticationPrincipal userPublicId: UUID,
         @Valid @ModelAttribute request: GetNotificationsRequest,
     ): ApiResponse<GetNotificationsResponse> =
         ApiResponse.success(
             code = SuccessCode.OK,
-            result = notificationService.getNotifications(userId, request),
+            result = notificationService.getNotifications(userPublicId, request),
         )
 }

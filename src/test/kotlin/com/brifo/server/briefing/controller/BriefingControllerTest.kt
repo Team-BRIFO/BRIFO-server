@@ -1,5 +1,6 @@
 package com.brifo.server.briefing.controller
 
+import com.brifo.server.authenticatedUserId
 import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.briefing.dto.response.BriefingStockResponse
 import com.brifo.server.briefing.dto.response.CreateBriefingResponse
@@ -21,6 +22,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -29,11 +31,12 @@ import java.util.UUID
 class BriefingControllerTest {
     private val queryService = mock(BriefingQueryService::class.java)
     private val requestOrchestrator = mock(BriefingRequestOrchestrator::class.java)
-    private val userId = UUID.randomUUID()
+    private val userId = authenticatedUserId()
     private val mockMvc: MockMvc = run {
         val validator = LocalValidatorFactoryBean().also { it.afterPropertiesSet() }
         MockMvcBuilders
             .standaloneSetup(BriefingController(queryService, requestOrchestrator))
+            .setCustomArgumentResolvers(AuthenticationPrincipalArgumentResolver())
             .setControllerAdvice(GlobalExceptionHandler(MockEnvironment()))
             .setValidator(validator)
             .build()

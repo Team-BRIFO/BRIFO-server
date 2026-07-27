@@ -1,5 +1,6 @@
 package com.brifo.server.notification.controller
 
+import com.brifo.server.authenticatedUserId
 import com.brifo.server.global.common.CursorPage
 import com.brifo.server.notification.dto.request.GetNotificationsRequest
 import com.brifo.server.notification.dto.response.GetNotificationsResponse
@@ -27,7 +28,7 @@ class NotificationControllerTest {
 
     @Test
     fun `목록 조회는 기본 size와 UUID userId를 받는다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
         val response = GetNotificationsResponse(CursorPage(emptyList(), null, false))
         `when`(notificationService.getNotifications(userId, GetNotificationsRequest())).thenReturn(response)
 
@@ -40,8 +41,8 @@ class NotificationControllerTest {
     }
 
     @Test
-    fun `잘못된 size cursor userId는 COMMON_400이다`() {
-        val userId = UUID.randomUUID()
+    fun `잘못된 size와 cursor는 COMMON_400이고 userId 요청 파라미터는 무시한다`() {
+        val userId = authenticatedUserId()
         listOf("0", "51").forEach { size ->
             mockMvc
                 .perform(
@@ -54,8 +55,7 @@ class NotificationControllerTest {
 
         mockMvc
             .perform(get("/api/notifications").param("userId", "invalid"))
-            .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("COMMON_400"))
+            .andExpect(status().isOk)
 
         mockMvc
             .perform(
@@ -67,7 +67,6 @@ class NotificationControllerTest {
 
         mockMvc
             .perform(get("/api/notifications"))
-            .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("COMMON_400"))
+            .andExpect(status().isOk)
     }
 }
