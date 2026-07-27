@@ -64,6 +64,33 @@ class JwtTokenProviderTest {
     }
 
     @Test
+    fun `인증 토큰은 한 번의 파싱으로 Access와 Signup 종류를 구분한다`() {
+        val userId = UUID.randomUUID()
+        val accessToken = provider.issueLoginTokens(userId).accessToken
+        val signupToken = provider.issueSignupToken(userId)
+
+        val accessClaims = provider.parseAuthenticationToken(accessToken)
+        val signupClaims = provider.parseAuthenticationToken(signupToken)
+
+        assertEquals(userId, accessClaims.userPublicId)
+        assertEquals(JwtTokenProvider.AuthenticationTokenType.ACCESS, accessClaims.tokenType)
+        assertEquals(userId, signupClaims.userPublicId)
+        assertEquals(JwtTokenProvider.AuthenticationTokenType.SIGNUP, signupClaims.tokenType)
+    }
+
+    @Test
+    fun `Refresh Token은 필터 인증 토큰으로 사용할 수 없다`() {
+        val refreshToken = provider.issueLoginTokens(UUID.randomUUID()).refreshToken
+
+        val exception =
+            assertThrows(AuthException::class.java) {
+                provider.parseAuthenticationToken(refreshToken)
+            }
+
+        assertEquals(AuthErrorCode.INVALID_TOKEN, exception.errorCode)
+    }
+
+    @Test
     fun `Access Token을 Refresh Token으로 사용하면 거부한다`() {
         val accessToken = provider.issueLoginTokens(UUID.randomUUID()).accessToken
 

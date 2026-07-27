@@ -70,7 +70,35 @@ class SecurityConfig(
                         "/api/auth/login/naver",
                         "/api/auth/reissue",
                     ).permitAll()
-                it.anyRequest().authenticated()
+                it
+                    .requestMatchers(
+                        HttpMethod.PATCH,
+                        "/api/onboarding/profile",
+                    ).hasAuthority(JwtAuthenticationFilter.SIGNUP_AUTHORITY)
+                it
+                    .requestMatchers(
+                        HttpMethod.POST,
+                        "/api/onboarding/complete",
+                    ).hasAuthority(JwtAuthenticationFilter.SIGNUP_AUTHORITY)
+                it
+                    .requestMatchers(
+                        HttpMethod.GET,
+                        "/api/policies",
+                        "/api/policies/*",
+                        "/api/stocks",
+                    ).hasAnyAuthority(
+                        JwtAuthenticationFilter.ACCESS_AUTHORITY,
+                        JwtAuthenticationFilter.SIGNUP_AUTHORITY,
+                    )
+                it
+                    .requestMatchers(
+                        HttpMethod.POST,
+                        "/api/users/me/policies",
+                    ).hasAnyAuthority(
+                        JwtAuthenticationFilter.ACCESS_AUTHORITY,
+                        JwtAuthenticationFilter.SIGNUP_AUTHORITY,
+                    )
+                it.anyRequest().hasAuthority(JwtAuthenticationFilter.ACCESS_AUTHORITY)
             }.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .build()
 
