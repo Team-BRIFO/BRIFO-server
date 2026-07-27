@@ -1,8 +1,7 @@
 package com.brifo.server.auth.service
 
-import com.brifo.server.ap.entity.ApTransaction
 import com.brifo.server.ap.entity.ApTransactionReason
-import com.brifo.server.ap.repository.ApTransactionRepository
+import com.brifo.server.ap.service.ApTransactionService
 import com.brifo.server.auth.dto.internal.OAuthUserProfile
 import com.brifo.server.auth.dto.response.OAuthLoginResponse
 import com.brifo.server.auth.dto.response.UserInfo
@@ -16,7 +15,7 @@ import java.time.LocalDateTime
 @Service
 class OAuthLoginService(
     private val userRepository: UserRepository,
-    private val apTransactionRepository: ApTransactionRepository,
+    private val apTransactionService: ApTransactionService,
     private val jwtTokenProvider: JwtTokenProvider,
     private val clock: Clock,
 ) {
@@ -45,14 +44,11 @@ class OAuthLoginService(
                 nickname = profile.nickname?.takeIf { it.isNotBlank() },
                 email = profile.email?.takeIf { it.isNotBlank() },
             )
-        user.grantAp(INITIAL_AP)
         userRepository.saveAndFlush(user)
-        apTransactionRepository.save(
-            ApTransaction.create(
-                user = user,
-                amount = INITIAL_AP,
-                reason = ApTransactionReason.INITIAL_GRANT,
-            ),
+        apTransactionService.change(
+            userId = requireNotNull(user.publicId),
+            deltaAp = INITIAL_AP,
+            reason = ApTransactionReason.INITIAL_GRANT,
         )
         return user
     }

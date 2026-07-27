@@ -3,9 +3,10 @@ package com.brifo.server.briefing.service.sync
 import com.brifo.server.agent.entity.Agent
 import com.brifo.server.agent.exception.AgentNotFoundException
 import com.brifo.server.agent.repository.AgentRepository
-import com.brifo.server.ap.entity.ApTransaction
+import com.brifo.server.ap.entity.ApTransactionReason
+import com.brifo.server.ap.entity.ApTransactionTargetType
 import com.brifo.server.ap.exception.InsufficientApBalanceException
-import com.brifo.server.ap.repository.ApTransactionRepository
+import com.brifo.server.ap.service.ApTransactionService
 import com.brifo.server.briefing.entity.Briefing
 import com.brifo.server.briefing.entity.BriefingStatus
 import com.brifo.server.briefing.exception.BriefingAgentNotInInitialRequestException
@@ -33,7 +34,7 @@ class BriefingRequestTransactionService(
     private val agentRepository: AgentRepository,
     private val newsCardRepository: NewsCardRepository,
     private val briefingRepository: BriefingRepository,
-    private val apTransactionRepository: ApTransactionRepository,
+    private val apTransactionService: ApTransactionService,
 ) {
     @Transactional
     fun request(command: BriefingRequestTask.Command): BriefingRequestTask.Result {
@@ -159,20 +160,21 @@ class BriefingRequestTransactionService(
         if (user.balanceAp < totalSalaryCost) {
             throw InsufficientApBalanceException()
         }
-        user.spendAp(totalSalaryCost)
-
         briefingRepository.saveAll(briefings)
         briefingRepository.flush()
 
-        apTransactionRepository.saveAll(
-            briefings.map { briefing ->
-                ApTransaction.salary(
-                    user = user,
-                    briefingId = briefing.id!!,
-                    salaryCost = briefing.agent.dailySalary,
-                )
-            },
-        )
+        briefings.forEach { briefing ->
+            apTransactionService.change(
+                userId = requireNotNull(user.publicId),
+                deltaAp = -briefing.agent.dailySalary,
+                reason = ApTransactionReason.SALARY,
+                target =
+                    ApTransactionService.Target(
+                        type = ApTransactionTargetType.BRIEFING,
+                        id = requireNotNull(briefing.id),
+                    ),
+            )
+        }
 
         return totalSalaryCost
     }

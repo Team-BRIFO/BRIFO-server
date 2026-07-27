@@ -1,7 +1,9 @@
 package com.brifo.server.briefing.service.async
 
-import com.brifo.server.ap.entity.ApTransaction
+import com.brifo.server.ap.entity.ApTransactionReason
+import com.brifo.server.ap.entity.ApTransactionTargetType
 import com.brifo.server.ap.repository.ApTransactionRepository
+import com.brifo.server.ap.service.ApTransactionService
 import com.brifo.server.briefing.entity.BriefingStatus
 import com.brifo.server.briefing.exception.BriefingNotFoundException
 import com.brifo.server.briefing.repository.BriefingRepository
@@ -20,6 +22,7 @@ class BriefingAnalysisTransactionService(
     private val decisionRepository: DecisionRepository,
     private val userRepository: UserRepository,
     private val apTransactionRepository: ApTransactionRepository,
+    private val apTransactionService: ApTransactionService,
 ) {
     @Transactional
     fun start(command: BriefingAnalysisTask.Command): BriefingAnalysisTask.Context? {
@@ -99,7 +102,7 @@ class BriefingAnalysisTransactionService(
         val ownerPublicId = briefingRepository.findOwnerPublicId(briefingPublicId)
             ?: throw BriefingNotFoundException()
         // AP 환불을 직렬화하기 위해 사용자 행을 먼저 잠근다.
-        val user = userRepository.findForUpdateByPublicId(ownerPublicId) ?: throw UserNotFoundException()
+        userRepository.findForUpdateByPublicId(ownerPublicId) ?: throw UserNotFoundException()
         // 중복 실패와 환불을 막기 위해 브리핑 행을 잠근다.
         val briefing = briefingRepository.findForUpdateByPublicId(briefingPublicId)
             ?: throw BriefingNotFoundException()
@@ -116,13 +119,15 @@ class BriefingAnalysisTransactionService(
 
         val refundAmount = -salaryBalance
         briefing.fail()
-        user.refundAp(refundAmount)
-        apTransactionRepository.save(
-            ApTransaction.salaryRefund(
-                user = user,
-                briefingId = briefingId,
-                refundAmount = refundAmount,
-            ),
+        apTransactionService.change(
+            userId = ownerPublicId,
+            deltaAp = refundAmount,
+            reason = ApTransactionReason.SALARY_REFUND,
+            target =
+                ApTransactionService.Target(
+                    type = ApTransactionTargetType.BRIEFING,
+                    id = briefingId,
+                ),
         )
     }
 
