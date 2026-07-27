@@ -80,7 +80,7 @@ class NotificationCreationService(
         when (code) {
             NotificationCode.DECISION_RESULT -> decisionResultContent(userId, requireNotNull(targetId))
             NotificationCode.BRIEFING_READY -> briefingReadyContent(userId, requireNotNull(targetId))
-            NotificationCode.NEWS_CARD_ARRIVED -> newsCardArrivedContent(userId)
+            NotificationCode.NEWS_CARD_ARRIVED -> newsCardArrivedContent(userId, requireNotNull(targetId))
             NotificationCode.BADGE_AWARDED -> badgeAwardedContent(userId, requireNotNull(eventId))
             NotificationCode.ATTENDANCE_REWARDED -> attendanceRewardedContent(userId, requireNotNull(eventId))
             NotificationCode.AGENT_SALARY_PAID -> agentSalaryPaidContent(userId, requireNotNull(targetId))
@@ -112,8 +112,11 @@ class NotificationCreationService(
         )
     }
 
-    private fun newsCardArrivedContent(userId: UUID): Content {
-        val cards = notificationRepository.findNewsCardContents(userId, today())
+    private fun newsCardArrivedContent(
+        userId: UUID,
+        stockId: UUID,
+    ): Content {
+        val cards = notificationRepository.findNewsCardContents(userId, stockId, today())
         require(cards.isNotEmpty()) { "No news cards found for notification" }
         val stockNames = cards.map { it.stockName }.distinct().joinToString(" · ")
         return Content(
@@ -229,7 +232,7 @@ class NotificationCreationService(
                 NotificationCode.DECISION_RESULT to NotificationTargetType.DECISION,
                 NotificationCode.BRIEFING_READY to NotificationTargetType.BRIEFING,
                 NotificationCode.NEWS_CARD_ARRIVED to NotificationTargetType.NEWS_CARD_LIST,
-                NotificationCode.BADGE_AWARDED to NotificationTargetType.NONE,
+                NotificationCode.BADGE_AWARDED to NotificationTargetType.BADGE,
                 NotificationCode.ATTENDANCE_REWARDED to NotificationTargetType.NONE,
                 NotificationCode.AGENT_SALARY_PAID to NotificationTargetType.STOCK_BRIEFINGS,
                 NotificationCode.AGENT_LEVEL_UP to NotificationTargetType.AGENT,

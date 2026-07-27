@@ -16,6 +16,9 @@ import com.brifo.server.briefing.repository.BriefingRepository
 import com.brifo.server.news.entity.NewsCard
 import com.brifo.server.news.exception.NewsCardNotFoundException
 import com.brifo.server.news.repository.NewsCardRepository
+import com.brifo.server.notification.entity.NotificationCode
+import com.brifo.server.notification.entity.NotificationTargetType
+import com.brifo.server.notification.service.NotificationCreationService
 import com.brifo.server.stock.exception.StockNotFoundException
 import com.brifo.server.stock.repository.UserStockRepository
 import com.brifo.server.user.entity.User
@@ -35,6 +38,7 @@ class BriefingRequestTransactionService(
     private val newsCardRepository: NewsCardRepository,
     private val briefingRepository: BriefingRepository,
     private val apTransactionService: ApTransactionService,
+    private val notificationCreationService: NotificationCreationService,
 ) {
     @Transactional
     fun request(command: BriefingRequestTask.Command): BriefingRequestTask.Result {
@@ -56,6 +60,15 @@ class BriefingRequestTransactionService(
             user = lockedRequest.user,
             agents = lockedRequest.agents,
             briefings = briefings,
+        )
+        notificationCreationService.create(
+            userId = command.userPublicId,
+            code = NotificationCode.AGENT_SALARY_PAID,
+            target =
+                NotificationCreationService.Target(
+                    type = NotificationTargetType.STOCK_BRIEFINGS,
+                    id = command.stockPublicId,
+                ),
         )
 
         return createResult(briefings, totalSalaryCost)

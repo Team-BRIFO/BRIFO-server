@@ -16,8 +16,10 @@ class NotificationTest {
             listOf(
                 NotificationTargetType.DECISION,
                 NotificationTargetType.BRIEFING,
+                NotificationTargetType.BADGE,
                 NotificationTargetType.AGENT,
                 NotificationTargetType.STOCK_BRIEFINGS,
+                NotificationTargetType.NEWS_CARD_LIST,
             )
 
         requiredTypes.forEach { targetType ->
@@ -30,7 +32,7 @@ class NotificationTest {
 
     @Test
     fun `목록과 이동 없는 대상은 공개 ID를 허용하지 않는다`() {
-        listOf(NotificationTargetType.NEWS_CARD_LIST, NotificationTargetType.NONE).forEach { targetType ->
+        listOf(NotificationTargetType.NONE).forEach { targetType ->
             notification(targetType, null)
             assertFailsWith<IllegalArgumentException> {
                 notification(targetType, UUID.randomUUID())

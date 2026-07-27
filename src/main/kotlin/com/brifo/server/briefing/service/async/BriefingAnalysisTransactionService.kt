@@ -8,6 +8,9 @@ import com.brifo.server.briefing.entity.BriefingStatus
 import com.brifo.server.briefing.exception.BriefingNotFoundException
 import com.brifo.server.briefing.repository.BriefingRepository
 import com.brifo.server.decision.repository.DecisionRepository
+import com.brifo.server.notification.entity.NotificationCode
+import com.brifo.server.notification.entity.NotificationTargetType
+import com.brifo.server.notification.service.NotificationCreationService
 import com.brifo.server.user.exception.UserNotFoundException
 import com.brifo.server.user.repository.UserRepository
 import org.springframework.stereotype.Service
@@ -23,6 +26,7 @@ class BriefingAnalysisTransactionService(
     private val userRepository: UserRepository,
     private val apTransactionRepository: ApTransactionRepository,
     private val apTransactionService: ApTransactionService,
+    private val notificationCreationService: NotificationCreationService,
 ) {
     @Transactional
     fun start(command: BriefingAnalysisTask.Command): BriefingAnalysisTask.Context? {
@@ -93,6 +97,15 @@ class BriefingAnalysisTransactionService(
             headline = completion.headline,
             summary = completion.summary,
             personalComment = completion.personalComment,
+        )
+        notificationCreationService.create(
+            userId = requireNotNull(briefing.agent.user.publicId),
+            code = NotificationCode.BRIEFING_READY,
+            target =
+                NotificationCreationService.Target(
+                    type = NotificationTargetType.BRIEFING,
+                    id = completion.briefingPublicId,
+                ),
         )
     }
 

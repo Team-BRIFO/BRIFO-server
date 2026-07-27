@@ -16,6 +16,7 @@ interface NotificationContentQueryRepository {
 
     fun findNewsCardContents(
         userPublicId: UUID,
+        stockPublicId: UUID,
         displayDate: LocalDate,
     ): List<NotificationContentProjection.NewsCard>
 
