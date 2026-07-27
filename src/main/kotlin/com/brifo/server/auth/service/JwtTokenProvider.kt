@@ -77,15 +77,11 @@ class JwtTokenProvider(
 
     fun parseAuthenticationToken(token: String): AuthenticationTokenClaims {
         val claims =
-            try {
-                parser.parseSignedClaims(token).payload
-            } catch (_: ExpiredJwtException) {
-                throw InvalidJwtTokenException()
-            } catch (_: JwtException) {
-                throw InvalidJwtTokenException()
-            } catch (_: IllegalArgumentException) {
-                throw InvalidJwtTokenException()
-            }
+            parseVerifiedClaims(
+                token = token,
+                invalidException = { InvalidJwtTokenException() },
+                expiredException = { InvalidJwtTokenException() },
+            )
 
         val tokenType =
             when (claims.get(TOKEN_TYPE_CLAIM, String::class.java)) {
@@ -155,14 +151,20 @@ class JwtTokenProvider(
         invalidException: () -> AuthException,
         expiredException: () -> AuthException,
     ): Claims {
+        val claims = parseVerifiedClaims(token, invalidException, expiredException)
+        if (claims.get(TOKEN_TYPE_CLAIM, String::class.java) != expectedType.name) {
+            throw invalidException()
+        }
+        return claims
+    }
+
+    private fun parseVerifiedClaims(
+        token: String,
+        invalidException: () -> AuthException,
+        expiredException: () -> AuthException,
+    ): Claims {
         try {
-            val claims = parser.parseSignedClaims(token).payload
-            if (claims.get(TOKEN_TYPE_CLAIM, String::class.java) != expectedType.name) {
-                throw invalidException()
-            }
-            return claims
-        } catch (exception: AuthException) {
-            throw exception
+            return parser.parseSignedClaims(token).payload
         } catch (_: ExpiredJwtException) {
             throw expiredException()
         } catch (_: JwtException) {
