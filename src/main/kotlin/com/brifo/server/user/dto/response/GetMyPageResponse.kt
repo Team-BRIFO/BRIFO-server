@@ -1,5 +1,7 @@
 package com.brifo.server.user.dto.response
 
+import java.util.UUID
+
 data class GetMyPageResponse(
     val nickname: String,
     val companyName: String,
@@ -9,4 +11,10 @@ data class GetMyPageResponse(
     val totalDecision: Int,
     val consecutiveDays: Int,
     val learnedTermCount: Int,
-)
+    val stocks: List<Stock>,
+) {
+    data class Stock(
+        val stockId: UUID,
+        val name: String,
+    )
+}

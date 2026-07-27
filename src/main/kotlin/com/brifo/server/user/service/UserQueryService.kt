@@ -7,6 +7,7 @@ import com.brifo.server.ap.repository.ApTransactionRepository
 import com.brifo.server.ap.repository.AttendanceRewardRepository
 import com.brifo.server.decision.repository.DecisionRepository
 import com.brifo.server.decision.repository.DecisionResultRepository
+import com.brifo.server.stock.repository.PendingUserStockRepository
 import com.brifo.server.stock.repository.UserStockRepository
 import com.brifo.server.term.repository.UserLearnedTermRepository
 import com.brifo.server.user.dto.response.GetMyPageResponse
@@ -31,6 +32,7 @@ import kotlin.math.roundToInt
 class UserQueryService(
     private val userRepository: UserRepository,
     private val userStockRepository: UserStockRepository,
+    private val pendingUserStockRepository: PendingUserStockRepository,
     private val agentRepository: AgentRepository,
     private val apTransactionRepository: ApTransactionRepository,
     private val attendanceRewardRepository: AttendanceRewardRepository,
@@ -75,6 +77,14 @@ class UserQueryService(
                     today,
                 ),
             learnedTermCount = Math.toIntExact(userLearnedTermRepository.countByUserId(userId)),
+            stocks =
+                userStockRepository.findAllByUser(user).map {
+                    val stock = it.stock
+                    GetMyPageResponse.Stock(
+                        stockId = requireNotNull(stock.publicId) { "Persisted stock must have a public id." },
+                        name = stock.name,
+                    )
+                },
         )
     }
 
@@ -111,19 +121,26 @@ class UserQueryService(
                             ),
                     ),
                 ),
-            todayNewsCards = mapTodayNewsCards(batchTime, newsCards),
+            todayNewsCards = mapTodayNewsCards(newsCards),
         )
     }
 
     @Transactional(readOnly = true)
     fun getUserProfile(userPublicId: UUID): GetUserProfileResponse {
         val user = findCompletedUser(userPublicId)
+        val pendingStocks = pendingUserStockRepository.findAllByUser(user)
+        val stocks =
+            if (pendingStocks.isNotEmpty()) {
+                pendingStocks.map { it.stock }
+            } else {
+                userStockRepository.findAllByUser(user).map { it.stock }
+            }
+
         return GetUserProfileResponse(
             nickname = requireNotNull(user.nickname) { "Onboarded user must have a nickname." },
             companyName = user.companyName,
             stocks =
-                userStockRepository.findAllByUser(user).map {
-                    val stock = it.stock
+                stocks.map { stock ->
                     GetUserProfileResponse.Stock(
                         stockId = requireNotNull(stock.publicId) { "Persisted stock must have a public id." },
                         name = stock.name,

@@ -10,8 +10,10 @@ import com.brifo.server.ap.repository.AttendanceRewardRepository
 import com.brifo.server.decision.repository.DecisionRepository
 import com.brifo.server.decision.repository.DecisionResultRepository
 import com.brifo.server.news.entity.NewsSource
+import com.brifo.server.stock.entity.PendingUserStock
 import com.brifo.server.stock.entity.Stock
 import com.brifo.server.stock.entity.UserStock
+import com.brifo.server.stock.repository.PendingUserStockRepository
 import com.brifo.server.stock.repository.UserStockRepository
 import com.brifo.server.term.repository.UserLearnedTermRepository
 import com.brifo.server.user.entity.User
@@ -38,6 +40,7 @@ import java.util.UUID
 class UserQueryServiceTest {
     private val userRepository = mock(UserRepository::class.java)
     private val userStockRepository = mock(UserStockRepository::class.java)
+    private val pendingUserStockRepository = mock(PendingUserStockRepository::class.java)
     private val agentRepository = mock(AgentRepository::class.java)
     private val apTransactionRepository = mock(ApTransactionRepository::class.java)
     private val attendanceRewardRepository = mock(AttendanceRewardRepository::class.java)
@@ -55,6 +58,7 @@ class UserQueryServiceTest {
             UserQueryService(
                 userRepository,
                 userStockRepository,
+                pendingUserStockRepository,
                 agentRepository,
                 apTransactionRepository,
                 attendanceRewardRepository,
@@ -191,6 +195,30 @@ class UserQueryServiceTest {
     }
 
     @Test
+    fun `프로필 조회는 적용 예정 관심 종목을 우선 반환한다`() {
+        val userId = UUID.randomUUID()
+        val user = completedUser()
+        val currentStock = mock(Stock::class.java)
+        val currentUserStock = mock(UserStock::class.java)
+        val pendingStockId = UUID.randomUUID()
+        val pendingStock = mock(Stock::class.java)
+        val pendingUserStock = mock(PendingUserStock::class.java)
+        `when`(userRepository.findByPublicId(userId)).thenReturn(user)
+        `when`(pendingUserStockRepository.findAllByUser(user)).thenReturn(listOf(pendingUserStock))
+        `when`(pendingUserStock.stock).thenReturn(pendingStock)
+        `when`(pendingStock.publicId).thenReturn(pendingStockId)
+        `when`(pendingStock.name).thenReturn("SK하이닉스")
+        `when`(currentUserStock.stock).thenReturn(currentStock)
+        `when`(userStockRepository.findAllByUser(user)).thenReturn(listOf(currentUserStock))
+
+        val response = queryService.getUserProfile(userId)
+
+        assertEquals(listOf(pendingStockId), response.stocks.map { it.stockId })
+        assertEquals(listOf("SK하이닉스"), response.stocks.map { it.name })
+        verify(userStockRepository, never()).findAllByUser(user)
+    }
+
+    @Test
     fun `존재하지 않는 사용자는 조회 의존성을 호출하지 않는다`() {
         val userId = UUID.randomUUID()
         `when`(userRepository.findByPublicId(userId)).thenReturn(null)
@@ -199,7 +227,7 @@ class UserQueryServiceTest {
             queryService.getUserProfile(userId)
         }
 
-        verifyNoInteractions(userStockRepository, validationService)
+        verifyNoInteractions(userStockRepository, pendingUserStockRepository, validationService)
     }
 
     private fun completedUser(): User =

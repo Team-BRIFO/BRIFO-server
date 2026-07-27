@@ -39,15 +39,16 @@ class UserControllerTest {
 
     @Test
     fun `온보딩 프로필 요청을 서비스에 전달한다`() {
-        val userId = UUID.randomUUID()
-        val request = UpdateOnboardingProfileRequest("brifo", "회사")
+        val userId = authenticatedUserId()
+        val stockId = UUID.randomUUID()
+        val request = UpdateOnboardingProfileRequest("brifo", "회사", listOf(stockId))
 
         mockMvc
             .perform(
                 patch("/api/onboarding/profile")
                     .param("userId", userId.toString())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"nickname":"brifo","companyName":"회사"}"""),
+                    .content("""{"nickname":"brifo","companyName":"회사","stockIds":["$stockId"]}"""),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.code").value("USER_200_01"))
 
@@ -68,9 +69,20 @@ class UserControllerTest {
 
     @Test
     fun `마이페이지 응답을 직렬화한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
+        val stockId = UUID.randomUUID()
         `when`(userQueryService.getMyPage(userId)).thenReturn(
-            GetMyPageResponse("brifo", "회사", 1_250, 450, 67, 48, 5, 24),
+            GetMyPageResponse(
+                "brifo",
+                "회사",
+                1_250,
+                450,
+                67,
+                48,
+                5,
+                24,
+                listOf(GetMyPageResponse.Stock(stockId, "삼성전자")),
+            ),
         )
 
         mockMvc
@@ -79,13 +91,15 @@ class UserControllerTest {
             .andExpect(jsonPath("$.code").value("COMMON_200"))
             .andExpect(jsonPath("$.result.nickname").value("brifo"))
             .andExpect(jsonPath("$.result.decisionAccuracyRate").value(67))
+            .andExpect(jsonPath("$.result.stocks[0].stockId").value(stockId.toString()))
+            .andExpect(jsonPath("$.result.stocks[0].name").value("삼성전자"))
 
         verify(userQueryService).getMyPage(userId)
     }
 
     @Test
     fun `홈 조회 요청을 조회 서비스에 전달한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
         `when`(userQueryService.getUserHome(userId)).thenReturn(
             GetUserHomeResponse(
                 user = GetUserHomeResponse.User("brifo", "회사", 0),

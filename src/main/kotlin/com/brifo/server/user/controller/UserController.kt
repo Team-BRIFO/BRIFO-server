@@ -41,8 +41,8 @@ class UserController(
     fun completeOnboarding(
         @AuthenticationPrincipal userPublicId: UUID,
     ): ApiResponse<CompleteOnboardingResponse> {
-        userService.completeOnboarding(userId)
-        return ApiResponse.success(UserSuccessCode.ONBOARDING_COMPLETED)
+        val result = userService.completeOnboarding(userPublicId)
+        return ApiResponse.success(UserSuccessCode.ONBOARDING_COMPLETED, result)
     }
 
     @GetMapping("/users/me/profile")
