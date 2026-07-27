@@ -48,7 +48,7 @@ class AgentRepositoryJpaTest @Autowired constructor(
     }
 
     @Test
-    fun `상세 Projection은 DECISION_WIN만 기여 AP로 합산하고 소유권과 완료 근무일을 필터링한다`() {
+    fun `상세 Projection은 적중으로 얻은 AP를 합산하고 소유권과 완료 근무일을 필터링한다`() {
         val scenario = BriefingDatabaseFixture(entityManager).requestScenario(LocalDate.of(2026, 7, 23), agentCount = 1)
         val decisions = createSettledDecisions(scenario, correctResults = listOf(true, false))
         entityManager.persist(
@@ -82,7 +82,7 @@ class AgentRepositoryJpaTest @Autowired constructor(
 
         assertEquals(2L, detail?.totalAnalyses)
         assertEquals(1L, detail?.correctAnalyses)
-        assertEquals(40L, detail?.contributedAp)
+        assertEquals(70L, detail?.contributedAp)
         assertEquals(1, repository.findCompletedWorkDates(agent.id!!).size)
         assertNull(repository.findAgentDetail(java.util.UUID.randomUUID(), agent.publicId!!))
     }

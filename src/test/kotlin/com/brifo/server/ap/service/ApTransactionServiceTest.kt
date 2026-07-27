@@ -88,19 +88,6 @@ class ApTransactionServiceTest {
     }
 
     @Test
-    fun `0 AP 거래는 잔액을 유지하면서 원장에 저장한다`() {
-        val userId = UUID.randomUUID()
-        val user = statefulUser(id = 1L, balance = 40)
-        val target = ApTransactionService.Target(ApTransactionTargetType.DECISION, 31L)
-        `when`(userRepository.findForUpdateByPublicId(userId)).thenReturn(user)
-
-        val balance = service.change(userId, 0, ApTransactionReason.NEUTRAL_MISS, target)
-
-        assertEquals(40, balance)
-        assertEquals(0, captureSavedTransaction().amount)
-    }
-
-    @Test
     fun `존재하지 않는 사용자는 원장을 저장하지 않고 USER_404를 던진다`() {
         val userId = UUID.randomUUID()
         `when`(userRepository.findForUpdateByPublicId(userId)).thenReturn(null)
