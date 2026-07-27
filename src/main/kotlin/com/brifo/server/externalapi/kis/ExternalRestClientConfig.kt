@@ -1,21 +1,21 @@
 package com.brifo.server.externalapi.kis
 
 import com.brifo.server.externalapi.ExternalApiCallPolicy
-import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.client.SimpleClientHttpRequestFactory
 import org.springframework.web.client.RestClient
 
 @Configuration
+@EnableConfigurationProperties(KisProperties::class)
 class ExternalRestClientConfig {
+    // 현재가와 토큰 호출에 사용
     @Bean("kisCurrentPriceRestClient")
     fun kisCurrentPriceRestClient(
-        @Value("\${external.kis.base-url}")
-        baseUrl: String,
+        properties: KisProperties,
     ): RestClient {
-        val policy =
-            ExternalApiCallPolicy.KIS_CURRENT_PRICE
+        val policy = ExternalApiCallPolicy.KIS_CURRENT_PRICE
 
         val requestFactory =
             SimpleClientHttpRequestFactory().apply {
@@ -25,7 +25,27 @@ class ExternalRestClientConfig {
 
         return RestClient
             .builder()
-            .baseUrl(baseUrl)
+            .baseUrl(properties.baseUrl)
+            .requestFactory(requestFactory)
+            .build()
+    }
+
+    // 종가 조회는 기존 정책의 5초 timeout 사용
+    @Bean("kisDailyPriceRestClient")
+    fun kisDailyPriceRestClient(
+        properties: KisProperties,
+    ): RestClient {
+        val policy = ExternalApiCallPolicy.KIS_CLOSING_PRICE
+
+        val requestFactory =
+            SimpleClientHttpRequestFactory().apply {
+                setConnectTimeout(policy.timeout)
+                setReadTimeout(policy.timeout)
+            }
+
+        return RestClient
+            .builder()
+            .baseUrl(properties.baseUrl)
             .requestFactory(requestFactory)
             .build()
     }

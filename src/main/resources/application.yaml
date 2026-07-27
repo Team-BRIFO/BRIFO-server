@@ -38,3 +38,9 @@ app:
       access-token-expiration: 1h
       refresh-token-expiration: 7d
       signup-token-expiration: 10m
+
+external:
+  kis:
+    base-url: https://openapi.koreainvestment.com:9443
+    app-key: ${KIS_APP_KEY}
+    app-secret: ${KIS_APP_SECRET}
