@@ -33,6 +33,7 @@ import org.mockito.Mockito.`when`
 import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.UUID
@@ -121,7 +122,6 @@ class UserQueryServiceTest {
     fun `홈 조회는 에이전트 순서와 오늘 범위 및 카드뉴스를 반영한다`() {
         val userId = UUID.randomUUID()
         val user = completedUser()
-        val batchTime = LocalDateTime.of(2026, 7, 21, 8, 0)
         val card = newsCard()
         val agents =
             listOf(
@@ -136,46 +136,39 @@ class UserQueryServiceTest {
             LocalDateTime.of(2026, 7, 21, 0, 0),
             LocalDateTime.of(2026, 7, 22, 0, 0),
         )).thenReturn(2)
-        `when`(userHomeQueryRepository.findLatestCompletedBatchTime(
-            LocalDateTime.of(2026, 7, 21, 0, 0),
-            LocalDateTime.of(2026, 7, 22, 0, 0),
-        )).thenReturn(batchTime)
         `when`(userHomeQueryRepository.findTodayNewsCards(
             7L,
-            LocalDateTime.of(2026, 7, 21, 0, 0),
-            LocalDateTime.of(2026, 7, 22, 0, 0),
+            LocalDate.of(2026, 7, 21),
         )).thenReturn(listOf(card))
 
         val response = queryService.getUserHome(userId)
 
         assertEquals(listOf(AgentType.ROOKIE, AgentType.TANKER, AgentType.PRO), response.agents.map { it.agentType })
         assertEquals(2, response.todayDecisions.count)
-        assertEquals(batchTime, response.todayNewsCards.batchTime)
+        assertEquals(null, response.todayNewsCards.batchTime)
         assertEquals(card.cardId, response.todayNewsCards.items.single().cardId)
-        assertEquals(card.changeRate, response.todayNewsCards.items.single().stock.changeRate)
+        assertEquals(BigDecimal("1.3"), response.todayNewsCards.items.single().stock.changeRate)
     }
 
     @Test
-    fun `오늘 완료된 배치가 없으면 카드뉴스를 조회하지 않는다`() {
+    fun `배치 시각이 없어도 오늘 카드뉴스를 조회한다`() {
         val userId = UUID.randomUUID()
         val user = completedUser()
         val agents = requiredAgents()
         `when`(userRepository.findByPublicId(userId)).thenReturn(user)
         `when`(agentRepository.findAllByUserId(7L)).thenReturn(agents)
+        `when`(userHomeQueryRepository.findTodayNewsCards(7L, LocalDate.of(2026, 7, 21)))
+            .thenReturn(emptyList())
 
         val response = queryService.getUserHome(userId)
 
         assertEquals(null, response.todayNewsCards.batchTime)
         assertEquals(emptyList<Any>(), response.todayNewsCards.items)
-        verify(userHomeQueryRepository, never()).findTodayNewsCards(
-            7L,
-            LocalDateTime.of(2026, 7, 21, 0, 0),
-            LocalDateTime.of(2026, 7, 22, 0, 0),
-        )
+        verify(userHomeQueryRepository).findTodayNewsCards(7L, LocalDate.of(2026, 7, 21))
     }
 
     @Test
-    fun `프로필 조회는 현재 적용 중인 관심 종목을 반환한다`() {
+    fun `적용 예정 관심 종목이 없으면 프로필 조회는 현재 관심 종목을 반환한다`() {
         val userId = UUID.randomUUID()
         val user = completedUser()
         val stockId = UUID.randomUUID()
@@ -257,6 +250,6 @@ class UserQueryServiceTest {
             source = NewsSource.NAVER,
             stockId = UUID.randomUUID(),
             stockName = "삼성전자",
-            changeRate = BigDecimal("1.3"),
+            changeRate = BigDecimal("1.34"),
         )
 }

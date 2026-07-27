@@ -20,6 +20,7 @@ import com.brifo.server.user.repository.UserHomeQueryRepository
 import com.brifo.server.user.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.RoundingMode
 import java.time.Clock
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -92,15 +93,10 @@ class UserQueryService(
     fun getUserHome(userPublicId: UUID): GetUserHomeResponse {
         val user = findCompletedUser(userPublicId)
         val userId = requireNotNull(user.id) { "Persisted user must have an id." }
-        val todayStart = LocalDate.now(clock).atStartOfDay()
+        val today = LocalDate.now(clock)
+        val todayStart = today.atStartOfDay()
         val tomorrowStart = todayStart.plusDays(1)
-        val batchTime = userHomeQueryRepository.findLatestCompletedBatchTime(todayStart, tomorrowStart)
-        val newsCards =
-            if (batchTime == null) {
-                emptyList()
-            } else {
-                userHomeQueryRepository.findTodayNewsCards(userId, todayStart, tomorrowStart)
-            }
+        val newsCards = userHomeQueryRepository.findTodayNewsCards(userId, today)
 
         return GetUserHomeResponse(
             user =
@@ -188,18 +184,22 @@ class UserQueryService(
     }
 
     private fun mapTodayNewsCards(
-        batchTime: LocalDateTime?,
         newsCards: List<UserHomeNewsCard>,
     ): GetUserHomeResponse.TodayNewsCards =
         GetUserHomeResponse.TodayNewsCards(
-            batchTime = batchTime,
+            batchTime = null,
             items =
                 newsCards.map {
                     GetUserHomeResponse.TodayNewsCards.Item(
                         cardId = it.cardId,
                         headline = it.headline,
                         news = GetUserHomeResponse.TodayNewsCards.News(it.newsId, it.publishedAt, it.source),
-                        stock = GetUserHomeResponse.TodayNewsCards.Stock(it.stockId, it.stockName, it.changeRate),
+                        stock =
+                            GetUserHomeResponse.TodayNewsCards.Stock(
+                                it.stockId,
+                                it.stockName,
+                                it.changeRate?.setScale(1, RoundingMode.HALF_UP),
+                            ),
                     )
                 },
         )
