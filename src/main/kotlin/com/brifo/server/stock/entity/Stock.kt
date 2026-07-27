@@ -17,6 +17,7 @@ class Stock private constructor(
     code: String,
     name: String,
     sector: String,
+    logoUrl: String?,
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "stockIdGenerator")
@@ -42,6 +43,10 @@ class Stock private constructor(
     var sector: String = sector
         protected set
 
+    @Column(name = "logo_url", columnDefinition = "TEXT")
+    var logoUrl: String? = logoUrl
+        protected set
+
     @Column(name = "is_active", nullable = false)
     var isActive: Boolean = true
         protected set
@@ -51,11 +56,13 @@ class Stock private constructor(
             code: String,
             name: String,
             sector: String,
+            logoUrl: String? = null,
         ): Stock {
             return Stock(
                 code = code,
                 name = name,
                 sector = sector,
+                logoUrl = logoUrl,
             )
         }
     }

@@ -38,7 +38,14 @@ class DiaryService(
         val items = rows.take(request.size).map { row ->
             GetDiariesResponse.Item(
                 diaryId = row.diaryId,
-                stock = GetDiariesResponse.Stock(row.stockId, row.stockName),
+                stock = GetDiariesResponse.Stock(
+                    stockId = row.stockId,
+                    name = row.stockName,
+                    price = row.price.setScale(0, RoundingMode.HALF_UP).longValueExact(),
+                    changeRate = row.changeRate.setScale(1, RoundingMode.HALF_UP),
+                    tradeDate = row.tradeDate,
+                    logoUrl = row.logoUrl,
+                ),
                 decision = GetDiariesResponse.Decision(row.direction, row.apDelta, row.isCorrect),
             )
         }
@@ -66,7 +73,7 @@ class DiaryService(
             stock = GetDiaryDetailResponse.Stock(
                 stockId = row.stockId,
                 name = row.stockName,
-                changeRate = row.changeRate.setScale(0, RoundingMode.HALF_UP).intValueExact(),
+                changeRate = row.changeRate.setScale(1, RoundingMode.HALF_UP),
             ),
             agent = GetDiaryDetailResponse.Agent(row.agentId, row.agentType, row.agentNickname),
             briefing = GetDiaryDetailResponse.Briefing(
@@ -93,10 +100,14 @@ class DiaryService(
         val days = rows.groupBy { it.decidedAt.toLocalDate() }.map { (date, dateRows) ->
             GetDiaryCalendarResponse.Day(
                 date = date,
-                direction = GetDiaryCalendarResponse.Direction(
-                    up = dateRows.any { it.direction == DecisionDirection.UP },
-                    down = dateRows.any { it.direction == DecisionDirection.DOWN },
-                    neutral = dateRows.any { it.direction == DecisionDirection.NEUTRAL },
+                outcome = GetDiaryCalendarResponse.Outcome(
+                    decisionWin = dateRows.any {
+                        it.direction != DecisionDirection.NEUTRAL && it.isCorrect
+                    },
+                    decisionLoss = dateRows.any { !it.isCorrect },
+                    neutralHit = dateRows.any {
+                        it.direction == DecisionDirection.NEUTRAL && it.isCorrect
+                    },
                 ),
             )
         }
