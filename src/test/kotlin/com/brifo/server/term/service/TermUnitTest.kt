@@ -1,11 +1,15 @@
 package com.brifo.server.term.service
 
+import com.brifo.server.badge.code.BadgeCode
+import com.brifo.server.badge.service.BadgeAwardService
 import com.brifo.server.term.dto.request.GetMyTermsRequest
 import com.brifo.server.term.dto.response.GetMyTermsResponse
 import com.brifo.server.term.entity.GlossaryTerm
 import com.brifo.server.term.exception.TermNotFoundException
 import com.brifo.server.term.repository.GlossaryTermRepository
 import com.brifo.server.term.repository.UserLearnedTermRepository
+import com.brifo.server.user.entity.User
+import com.brifo.server.user.repository.UserRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -22,13 +26,21 @@ import java.util.UUID
 class TermUnitTest {
     private lateinit var glossaryTermRepository: GlossaryTermRepository
     private lateinit var userLearnedTermRepository: UserLearnedTermRepository
+    private lateinit var userRepository: UserRepository
+    private lateinit var badgeAwardService: BadgeAwardService
     private lateinit var termService: TermService
+    private val userPublicId = UUID.randomUUID()
 
     @BeforeEach
     fun setUp() {
         glossaryTermRepository = mock(GlossaryTermRepository::class.java)
         userLearnedTermRepository = mock(UserLearnedTermRepository::class.java)
-        termService = TermService(glossaryTermRepository, userLearnedTermRepository)
+        userRepository = mock(UserRepository::class.java)
+        badgeAwardService = mock(BadgeAwardService::class.java)
+        val user = mock(User::class.java)
+        `when`(user.id).thenReturn(7L)
+        `when`(userRepository.findByPublicId(userPublicId)).thenReturn(user)
+        termService = TermService(glossaryTermRepository, userLearnedTermRepository, userRepository, badgeAwardService)
     }
 
     @Test
@@ -38,7 +50,7 @@ class TermUnitTest {
         `when`(glossaryTermRepository.findByPublicId(publicId)).thenReturn(term)
         `when`(userLearnedTermRepository.existsByUserIdAndTermId(7L, 31L)).thenReturn(true)
 
-        val response = termService.getTerm(userId = 7L, termId = publicId)
+        val response = termService.getTerm(userPublicId = userPublicId, termId = publicId)
 
         assertEquals(publicId, response.termId)
         assertEquals("PER", response.term)
@@ -53,10 +65,10 @@ class TermUnitTest {
         `when`(glossaryTermRepository.findByPublicId(publicId)).thenReturn(null)
 
         assertThrows(TermNotFoundException::class.java) {
-            termService.getTerm(userId = 7L, termId = publicId)
+            termService.getTerm(userPublicId = userPublicId, termId = publicId)
         }
         assertThrows(TermNotFoundException::class.java) {
-            termService.saveTerm(userId = 7L, termId = publicId)
+            termService.saveTerm(userPublicId = userPublicId, termId = publicId)
         }
     }
 
@@ -66,9 +78,21 @@ class TermUnitTest {
         val term = term(id = 31L, publicId = publicId)
         `when`(glossaryTermRepository.findByPublicId(publicId)).thenReturn(term)
 
-        termService.saveTerm(userId = 7L, termId = publicId)
+        termService.saveTerm(userPublicId = userPublicId, termId = publicId)
 
         verify(userLearnedTermRepository).insertIfAbsent(userId = 7L, termId = 31L)
+    }
+
+    @Test
+    fun `학습한 용어가 10개 이상이면 공부하는 사장 뱃지를 지급한다`() {
+        val publicId = UUID.randomUUID()
+        val term = term(id = 31L, publicId = publicId)
+        `when`(glossaryTermRepository.findByPublicId(publicId)).thenReturn(term)
+        `when`(userLearnedTermRepository.countByUserId(7L)).thenReturn(10L)
+
+        termService.saveTerm(userPublicId = userPublicId, termId = publicId)
+
+        verify(badgeAwardService).awardBadge(userPublicId, BadgeCode.B11)
     }
 
     @Test
@@ -77,7 +101,7 @@ class TermUnitTest {
         `when`(userLearnedTermRepository.findPageByUserId(7L, null, 21)).thenReturn(emptyList())
         `when`(userLearnedTermRepository.countByUserId(7L)).thenReturn(0L)
 
-        val response = termService.getMyTerms(userId = 7L, request = request)
+        val response = termService.getMyTerms(userPublicId = userPublicId, request = request)
 
         assertEquals(0, response.learnedTermCount)
         assertTrue(response.page.items.isEmpty())
@@ -91,7 +115,7 @@ class TermUnitTest {
         `when`(userLearnedTermRepository.findPageByUserId(7L, null, 3)).thenReturn(records)
         `when`(userLearnedTermRepository.countByUserId(7L)).thenReturn(5L)
 
-        val response = termService.getMyTerms(7L, GetMyTermsRequest(size = 2))
+        val response = termService.getMyTerms(userPublicId, GetMyTermsRequest(size = 2))
 
         assertEquals(5, response.learnedTermCount)
         assertEquals(2, response.page.items.size)
@@ -106,7 +130,7 @@ class TermUnitTest {
         `when`(userLearnedTermRepository.findPageByUserId(7L, cursor, 3)).thenReturn(records)
         `when`(userLearnedTermRepository.countByUserId(7L)).thenReturn(3L)
 
-        val response = termService.getMyTerms(7L, GetMyTermsRequest(cursor = cursor, size = 2))
+        val response = termService.getMyTerms(userPublicId, GetMyTermsRequest(cursor = cursor, size = 2))
 
         assertEquals(2, response.page.items.size)
         assertTrue(response.page.hasNext)

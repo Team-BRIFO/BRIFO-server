@@ -15,6 +15,9 @@ import com.brifo.server.ap.exception.CreditLoanNotEligibleException
 import com.brifo.server.ap.exception.TutorialRewardAlreadyClaimedException
 import com.brifo.server.ap.repository.ApTransactionRepository
 import com.brifo.server.ap.repository.AttendanceRewardRepository
+import com.brifo.server.badge.code.BadgeCode
+import com.brifo.server.badge.service.BadgeAwardService
+import com.brifo.server.notification.service.NotificationCreationService
 import com.brifo.server.user.entity.User
 import com.brifo.server.user.repository.UserRepository
 import org.junit.jupiter.api.BeforeEach
@@ -44,6 +47,8 @@ class ApServiceTest {
     private lateinit var attendanceRepository: AttendanceRewardRepository
     private lateinit var agentRepository: AgentRepository
     private lateinit var userRepository: UserRepository
+    private lateinit var badgeAwardService: BadgeAwardService
+    private lateinit var notificationCreationService: NotificationCreationService
     private lateinit var service: ApService
 
     @BeforeEach
@@ -53,7 +58,19 @@ class ApServiceTest {
         attendanceRepository = mock(AttendanceRewardRepository::class.java)
         agentRepository = mock(AgentRepository::class.java)
         userRepository = mock(UserRepository::class.java)
-        service = ApService(transactionService, transactionRepository, attendanceRepository, agentRepository, userRepository, clock)
+        badgeAwardService = mock(BadgeAwardService::class.java)
+        notificationCreationService = mock(NotificationCreationService::class.java)
+        service =
+            ApService(
+                transactionService,
+                transactionRepository,
+                attendanceRepository,
+                agentRepository,
+                userRepository,
+                badgeAwardService,
+                notificationCreationService,
+                clock,
+            )
     }
 
     @Test
@@ -104,6 +121,8 @@ class ApServiceTest {
         assertEquals(7, response.consecutiveDays)
         assertTrue(response.bonusRewarded)
         assertEquals(350, response.balanceAp)
+        verify(badgeAwardService).awardBadge(userId, BadgeCode.B05)
+        verify(badgeAwardService).awardBadge(userId, BadgeCode.B06)
     }
 
     @Test
@@ -152,6 +171,7 @@ class ApServiceTest {
         `when`(transactionService.change(userId, 200, ApTransactionReason.TUTORIAL)).thenReturn(200)
 
         assertEquals(200, service.createTutorialReward(userId).balanceAp)
+        verify(badgeAwardService).awardBadge(userId, BadgeCode.B01)
         inOrder(userRepository, transactionRepository, transactionService).apply {
             verify(userRepository).findForUpdateByPublicId(userId)
             verify(transactionRepository).existsByUserIdAndReason(1L, ApTransactionReason.TUTORIAL)
