@@ -19,11 +19,6 @@ object ApiDocumentationModels {
         val errors: List<ErrorSpec>,
     ) {
         constructor(
-            endpoint: Endpoint,
-            vararg errors: ErrorSpec,
-        ) : this(endpoint, errors.toList())
-
-        constructor(
             method: HttpMethod,
             path: String,
             vararg errors: ErrorSpec,
