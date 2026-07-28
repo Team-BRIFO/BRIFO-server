@@ -6,12 +6,16 @@ import com.brifo.server.term.dto.response.GetMyTermsResponse
 import com.brifo.server.term.dto.response.GetTermResponse
 import com.brifo.server.term.exception.TermNotFoundException
 import com.brifo.server.term.service.TermService
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
@@ -24,11 +28,24 @@ import java.util.UUID
 @WebMvcTest(TermController::class)
 @AutoConfigureMockMvc(addFilters = false)
 class TermControllerTest {
+    private val userPublicId = UUID.randomUUID()
+
     @Autowired
     private lateinit var mockMvc: MockMvc
 
     @MockitoBean
     private lateinit var termService: TermService
+
+    @BeforeEach
+    fun setUpAuthentication() {
+        SecurityContextHolder.getContext().authentication =
+            UsernamePasswordAuthenticationToken(userPublicId, null, emptyList())
+    }
+
+    @AfterEach
+    fun clearAuthentication() {
+        SecurityContextHolder.clearContext()
+    }
 
     @Test
     fun `내 용어장 조회는 size 기본값과 경계값을 허용한다`() {
@@ -43,7 +60,7 @@ class TermControllerTest {
                     ),
             )
         listOf(20, 1, 50).forEach { size ->
-            `when`(termService.getMyTerms(userId = 7L, request = GetMyTermsRequest(size = size)))
+            `when`(termService.getMyTerms(userPublicId = userPublicId, request = GetMyTermsRequest(size = size)))
                 .thenReturn(emptyResponse)
         }
 
@@ -91,7 +108,7 @@ class TermControllerTest {
                         hasNext = true,
                     ),
             )
-        `when`(termService.getMyTerms(7L, GetMyTermsRequest(size = 1))).thenReturn(response)
+        `when`(termService.getMyTerms(userPublicId, GetMyTermsRequest(size = 1))).thenReturn(response)
 
         mockMvc
             .perform(
@@ -130,24 +147,22 @@ class TermControllerTest {
     }
 
     @Test
-    fun `userId가 없거나 숫자가 아니면 COMMON_400이다`() {
+    fun `요청 파라미터의 userId는 인증 사용자 결정에 사용하지 않는다`() {
         mockMvc
             .perform(get("/api/users/me/terms"))
-            .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("COMMON_400"))
+            .andExpect(status().isOk)
 
         mockMvc
             .perform(
                 get("/api/users/me/terms")
                     .param("userId", "invalid"),
-            ).andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("COMMON_400"))
+            ).andExpect(status().isOk)
     }
 
     @Test
     fun `용어 상세 조회 성공 응답은 학습 여부를 포함한다`() {
         val termId = UUID.randomUUID()
-        `when`(termService.getTerm(7L, termId)).thenReturn(
+        `when`(termService.getTerm(userPublicId, termId)).thenReturn(
             GetTermResponse(
                 termId = termId,
                 term = "PER",
@@ -180,7 +195,7 @@ class TermControllerTest {
     @Test
     fun `존재하지 않는 용어 상세 조회는 TERM_404이다`() {
         val termId = UUID.randomUUID()
-        `when`(termService.getTerm(7L, termId)).thenThrow(TermNotFoundException())
+        `when`(termService.getTerm(userPublicId, termId)).thenThrow(TermNotFoundException())
 
         mockMvc
             .perform(
@@ -204,6 +219,6 @@ class TermControllerTest {
             .andExpect(jsonPath("$.code").value("COMMON_200"))
             .andExpect(jsonPath("$.result").doesNotExist())
 
-        verify(termService).saveTerm(7L, termId)
+        verify(termService).saveTerm(userPublicId, termId)
     }
 }

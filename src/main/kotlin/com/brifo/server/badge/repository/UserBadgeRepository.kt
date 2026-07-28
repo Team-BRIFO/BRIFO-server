@@ -24,7 +24,23 @@ interface UserBadgeRepository : JpaRepository<UserBadge, Long> {
         @Param("userPublicId") userPublicId: UUID,
         @Param("badgeId") badgeId: Long,
     ): Int
-  
+
+    @Query(
+        value =
+            """
+            SELECT user_badges.id
+            FROM user_badges
+            JOIN users ON users.id = user_badges.user_id
+            WHERE users.public_id = :userPublicId
+              AND user_badges.badge_id = :badgeId
+            """,
+        nativeQuery = true,
+    )
+    fun findIdByUserPublicIdAndBadgeId(
+        @Param("userPublicId") userPublicId: UUID,
+        @Param("badgeId") badgeId: Long,
+    ): Long?
+
     fun findByIdAndUserPublicId(
         id: Long,
         userPublicId: UUID,

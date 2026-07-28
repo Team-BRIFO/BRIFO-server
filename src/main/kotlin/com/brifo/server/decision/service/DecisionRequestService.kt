@@ -5,6 +5,8 @@ import com.brifo.server.briefing.entity.BriefingStatus
 import com.brifo.server.briefing.exception.BriefingNotCompletedException
 import com.brifo.server.briefing.exception.BriefingNotFoundException
 import com.brifo.server.briefing.repository.BriefingRepository
+import com.brifo.server.badge.code.BadgeCode
+import com.brifo.server.badge.service.BadgeAwardService
 import com.brifo.server.decision.dto.response.CreateDecisionResponse
 import com.brifo.server.decision.entity.Decision
 import com.brifo.server.decision.entity.DecisionDirection
@@ -26,6 +28,7 @@ import java.util.UUID
 class DecisionRequestService(
     private val briefingRepository: BriefingRepository,
     private val decisionRepository: DecisionRepository,
+    private val badgeAwardService: BadgeAwardService,
     private val clock: Clock,
 ) {
     @Transactional
@@ -54,6 +57,7 @@ class DecisionRequestService(
                 confidenceLevel = confidenceLevel,
             ),
         )
+        badgeAwardService.awardBadge(userPublicId, BadgeCode.B02)
 
         return CreateDecisionResponse(
             decisionId = decision.publicId!!,

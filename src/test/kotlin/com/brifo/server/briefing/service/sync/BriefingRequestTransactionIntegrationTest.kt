@@ -4,6 +4,7 @@ import com.brifo.server.ServerTestConfiguration
 import com.brifo.server.ap.entity.ApTransactionReason
 import com.brifo.server.ap.repository.ApTransactionRepository
 import com.brifo.server.ap.exception.InsufficientApBalanceException
+import com.brifo.server.briefing.entity.BriefingStatus
 import com.brifo.server.briefing.exception.BriefingAgentNotInInitialRequestException
 import com.brifo.server.briefing.exception.BriefingRetryCooldownException
 import com.brifo.server.briefing.repository.BriefingRepository
@@ -20,6 +21,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -36,7 +38,7 @@ class BriefingRequestTransactionIntegrationTest @Autowired constructor(
 ) {
     @Test
     fun `관심 종목의 카드뉴스 두 개로 최대 세 브리핑을 원자적으로 생성하고 비용을 차감한다`() {
-        val date = LocalDate.of(2026, 7, 18)
+        val date = LocalDate.now(ZoneId.of("Asia/Seoul"))
         val scenario = BriefingDatabaseFixture(entityManager).requestScenario(date)
 
         val result = service.request(command(scenario, date))
@@ -115,7 +117,7 @@ class BriefingRequestTransactionIntegrationTest @Autowired constructor(
     }
 
     @Test
-    fun `재요청은 기존 브리핑을 재사용하고 AP와 급여를 다시 반영한다`() {
+    fun `재요청은 새 브리핑과 급여 거래를 생성하고 기존 실패 브리핑을 보존한다`() {
         val date = LocalDate.now()
         val scenario = BriefingDatabaseFixture(entityManager).requestScenario(date, agentCount = 1)
         service.request(command(scenario, date))
@@ -126,18 +128,32 @@ class BriefingRequestTransactionIntegrationTest @Autowired constructor(
             scenario.stock.publicId!!,
             date,
         ).single()
-        val briefingId = briefing.publicId
+        val failedBriefingId = briefing.publicId
         briefing.startAnalysis()
         briefing.fail()
         entityManager.flush()
 
         val result = service.request(command(scenario, briefing.updatedAt!!.plusSeconds(30)))
         entityManager.flush()
+        entityManager.clear()
 
+        val dailyBriefings = briefingRepository.findDailyBriefings(
+            scenario.user.publicId!!,
+            scenario.stock.publicId!!,
+            date,
+        )
         val salaryTransactions = apTransactionRepository.findAll()
-            .filter { it.reason == ApTransactionReason.SALARY && it.targetId == briefing.id }
-        assertEquals(briefingId, result.requestedAgents.single().briefingId)
+            .filter {
+                it.reason == ApTransactionReason.SALARY &&
+                    it.targetId in dailyBriefings.map { briefing -> briefing.id }
+            }
+        assertEquals(2, dailyBriefings.size)
+        assertEquals(BriefingStatus.FAILED, dailyBriefings.first().status)
+        assertEquals(BriefingStatus.PENDING, dailyBriefings.last().status)
+        assertEquals(failedBriefingId, dailyBriefings.first().publicId)
+        assertEquals(dailyBriefings.last().publicId, result.requestedAgents.single().briefingId)
         assertEquals(2, salaryTransactions.size)
+        assertEquals(2, salaryTransactions.map { it.targetId }.distinct().size)
         assertEquals(80, scenario.user.balanceAp)
     }
 

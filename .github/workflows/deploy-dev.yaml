@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -40,7 +40,7 @@ jobs:
         with:
           mask-password: true
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - name: Build and push
         uses: docker/build-push-action@v7
@@ -57,12 +57,19 @@ jobs:
         run: |
           set -euo pipefail
 
+          if [[ ! "${EC2_DEPLOY_SCRIPT_PATH}" =~ ^/[A-Za-z0-9._/-]+$ ]] ||
+             [[ "${EC2_DEPLOY_SCRIPT_PATH}" =~ (^|/)\.{1,2}(/|$) ]]; then
+            echo "Invalid EC2 deploy script path." >&2
+            exit 1
+          fi
+
           command_id="$(
             aws ssm send-command \
               --targets \
                 "Key=tag:aws:autoscaling:groupName,Values=${ASG_NAME}" \
               --document-name AWS-RunShellScript \
               --parameters "commands=[\"${EC2_DEPLOY_SCRIPT_PATH} ${GITHUB_SHA}\"]" \
+              --timeout-seconds 600 \
               --max-concurrency "100%" \
               --max-errors "0" \
               --query "Command.CommandId" \

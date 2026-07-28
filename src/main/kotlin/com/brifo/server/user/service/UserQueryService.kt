@@ -7,6 +7,7 @@ import com.brifo.server.ap.repository.ApTransactionRepository
 import com.brifo.server.ap.repository.AttendanceRewardRepository
 import com.brifo.server.decision.repository.DecisionRepository
 import com.brifo.server.decision.repository.DecisionResultRepository
+import com.brifo.server.stock.repository.PendingUserStockRepository
 import com.brifo.server.stock.repository.UserStockRepository
 import com.brifo.server.term.repository.UserLearnedTermRepository
 import com.brifo.server.user.dto.response.GetMyPageResponse
@@ -19,6 +20,7 @@ import com.brifo.server.user.repository.UserHomeQueryRepository
 import com.brifo.server.user.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.RoundingMode
 import java.time.Clock
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -31,6 +33,7 @@ import kotlin.math.roundToInt
 class UserQueryService(
     private val userRepository: UserRepository,
     private val userStockRepository: UserStockRepository,
+    private val pendingUserStockRepository: PendingUserStockRepository,
     private val agentRepository: AgentRepository,
     private val apTransactionRepository: ApTransactionRepository,
     private val attendanceRewardRepository: AttendanceRewardRepository,
@@ -75,6 +78,14 @@ class UserQueryService(
                     today,
                 ),
             learnedTermCount = Math.toIntExact(userLearnedTermRepository.countByUserId(userId)),
+            stocks =
+                userStockRepository.findAllByUser(user).map {
+                    val stock = it.stock
+                    GetMyPageResponse.Stock(
+                        stockId = requireNotNull(stock.publicId) { "Persisted stock must have a public id." },
+                        name = stock.name,
+                    )
+                },
         )
     }
 
@@ -82,15 +93,10 @@ class UserQueryService(
     fun getUserHome(userPublicId: UUID): GetUserHomeResponse {
         val user = findCompletedUser(userPublicId)
         val userId = requireNotNull(user.id) { "Persisted user must have an id." }
-        val todayStart = LocalDate.now(clock).atStartOfDay()
+        val today = LocalDate.now(clock)
+        val todayStart = today.atStartOfDay()
         val tomorrowStart = todayStart.plusDays(1)
-        val batchTime = userHomeQueryRepository.findLatestCompletedBatchTime(todayStart, tomorrowStart)
-        val newsCards =
-            if (batchTime == null) {
-                emptyList()
-            } else {
-                userHomeQueryRepository.findTodayNewsCards(userId, todayStart, tomorrowStart)
-            }
+        val newsCards = userHomeQueryRepository.findTodayNewsCards(userId, today)
 
         return GetUserHomeResponse(
             user =
@@ -111,19 +117,26 @@ class UserQueryService(
                             ),
                     ),
                 ),
-            todayNewsCards = mapTodayNewsCards(batchTime, newsCards),
+            todayNewsCards = mapTodayNewsCards(newsCards),
         )
     }
 
     @Transactional(readOnly = true)
     fun getUserProfile(userPublicId: UUID): GetUserProfileResponse {
         val user = findCompletedUser(userPublicId)
+        val pendingStocks = pendingUserStockRepository.findAllByUser(user)
+        val stocks =
+            if (pendingStocks.isNotEmpty()) {
+                pendingStocks.map { it.stock }
+            } else {
+                userStockRepository.findAllByUser(user).map { it.stock }
+            }
+
         return GetUserProfileResponse(
             nickname = requireNotNull(user.nickname) { "Onboarded user must have a nickname." },
             companyName = user.companyName,
             stocks =
-                userStockRepository.findAllByUser(user).map {
-                    val stock = it.stock
+                stocks.map { stock ->
                     GetUserProfileResponse.Stock(
                         stockId = requireNotNull(stock.publicId) { "Persisted stock must have a public id." },
                         name = stock.name,
@@ -171,18 +184,22 @@ class UserQueryService(
     }
 
     private fun mapTodayNewsCards(
-        batchTime: LocalDateTime?,
         newsCards: List<UserHomeNewsCard>,
     ): GetUserHomeResponse.TodayNewsCards =
         GetUserHomeResponse.TodayNewsCards(
-            batchTime = batchTime,
+            batchTime = null,
             items =
                 newsCards.map {
                     GetUserHomeResponse.TodayNewsCards.Item(
                         cardId = it.cardId,
                         headline = it.headline,
                         news = GetUserHomeResponse.TodayNewsCards.News(it.newsId, it.publishedAt, it.source),
-                        stock = GetUserHomeResponse.TodayNewsCards.Stock(it.stockId, it.stockName, it.changeRate),
+                        stock =
+                            GetUserHomeResponse.TodayNewsCards.Stock(
+                                it.stockId,
+                                it.stockName,
+                                it.changeRate?.setScale(1, RoundingMode.HALF_UP),
+                            ),
                     )
                 },
         )

@@ -1,5 +1,6 @@
 package com.brifo.server.diary.controller
 
+import com.brifo.server.authenticatedUserId
 import com.brifo.server.diary.service.DiaryService
 import com.brifo.server.global.error.GlobalExceptionHandler
 import org.junit.jupiter.api.Test
@@ -9,16 +10,18 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean
 import java.util.UUID
 
 class DiaryControllerTest {
     private val service = mock(DiaryService::class.java)
-    private val userId = UUID.randomUUID()
+    private val userId = authenticatedUserId()
     private val mockMvc = run {
         val validator = LocalValidatorFactoryBean().also { it.afterPropertiesSet() }
         MockMvcBuilders
             .standaloneSetup(DiaryController(service))
+            .setCustomArgumentResolvers(AuthenticationPrincipalArgumentResolver())
             .setControllerAdvice(GlobalExceptionHandler(MockEnvironment()))
             .setValidator(validator)
             .build()

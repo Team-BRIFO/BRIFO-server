@@ -41,6 +41,10 @@ class DiaryServiceTest {
         val page = service.getDiaries(userId, GetDiariesRequest(size = 2)).page
 
         assertEquals(rows.take(2).map { it.diaryId }, page.items.map { it.diaryId })
+        assertEquals(72_500L, page.items.first().stock.price)
+        assertEquals(BigDecimal("2.6"), page.items.first().stock.changeRate)
+        assertEquals(LocalDate.of(2026, 7, 20), page.items.first().stock.tradeDate)
+        assertEquals("https://example.com/stocks/1.png", page.items.first().stock.logoUrl)
         assertTrue(page.hasNext)
         assertEquals(rows[1].diaryId, page.nextCursor)
     }
@@ -67,7 +71,7 @@ class DiaryServiceTest {
     }
 
     @Test
-    fun `상세 등락률은 정수로 반올림한다`() {
+    fun `상세 등락률은 소수점 한 자리로 반올림한다`() {
         val diaryId = UUID.randomUUID()
         `when`(repository.findDiaryDetail(userId, diaryId)).thenReturn(
             DiaryDetailRow(
@@ -89,11 +93,11 @@ class DiaryServiceTest {
 
         val detail = service.getDiaryDetail(userId, diaryId)
 
-        assertEquals(3, detail.stock.changeRate)
+        assertEquals(BigDecimal("2.6"), detail.stock.changeRate)
     }
 
     @Test
-    fun `캘린더는 같은 날짜의 결정 방향을 합친다`() {
+    fun `캘린더는 같은 날짜의 결정 결과를 합친다`() {
         val firstDay = LocalDate.of(2026, 7, 1)
         `when`(
             repository.findCalendarRows(
@@ -111,9 +115,9 @@ class DiaryServiceTest {
         val result = service.getDiaryCalendar(userId, GetDiaryCalendarRequest(2026, 7))
 
         assertEquals(1, result.days.size)
-        assertTrue(result.days.single().direction.up)
-        assertTrue(result.days.single().direction.down)
-        assertFalse(result.days.single().direction.neutral)
+        assertTrue(result.days.single().outcome.decisionWin)
+        assertTrue(result.days.single().outcome.decisionLoss)
+        assertFalse(result.days.single().outcome.neutralHit)
         assertEquals(50, result.accuracyRate)
     }
 
@@ -122,6 +126,10 @@ class DiaryServiceTest {
             diaryId = UUID.randomUUID(),
             stockId = UUID.randomUUID(),
             stockName = "종목 $index",
+            price = BigDecimal("72500.00"),
+            changeRate = BigDecimal("2.55"),
+            tradeDate = LocalDate.of(2026, 7, 20),
+            logoUrl = "https://example.com/stocks/$index.png",
             direction = DecisionDirection.UP,
             apDelta = 10,
             isCorrect = true,

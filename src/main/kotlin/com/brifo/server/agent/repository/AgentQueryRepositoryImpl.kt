@@ -101,7 +101,10 @@ class AgentQueryRepositoryImpl(
             .leftJoin(apTransaction).on(
                 apTransaction.targetType.eq(ApTransactionTargetType.DECISION),
                 apTransaction.targetId.eq(decision.id),
-                apTransaction.reason.eq(ApTransactionReason.DECISION_WIN),
+                apTransaction.reason.`in`(
+                    ApTransactionReason.DECISION_WIN,
+                    ApTransactionReason.NEUTRAL_HIT,
+                ),
                 apTransaction.amount.gt(0),
             ).where(
                 agent.user.publicId.eq(userPublicId),

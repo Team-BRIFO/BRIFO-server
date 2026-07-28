@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -116,5 +117,46 @@ class SecurityConfigIntegrationTest @Autowired constructor(
                     .content("{}"),
             ).andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.code").value("AUTH_400_02"))
+    }
+
+    @Test
+    fun `Signup Token은 일반 사용자 API에 접근할 수 없다`() {
+        val signupToken = jwtTokenProvider.issueSignupToken(UUID.randomUUID())
+
+        mockMvc
+            .perform(
+                get("/api/users/me")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer $signupToken"),
+            ).andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.code").value("AUTH_403"))
+    }
+
+    @Test
+    fun `Access Token은 온보딩 API에 접근할 수 없다`() {
+        val accessToken = jwtTokenProvider.issueLoginTokens(UUID.randomUUID()).accessToken
+
+        mockMvc
+            .perform(
+                patch("/api/onboarding/profile")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer $accessToken")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"nickname":"brifo"}"""),
+            ).andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.code").value("AUTH_403"))
+    }
+
+    @Test
+    fun `Signup Token은 온보딩 API 인증을 통과한다`() {
+        val signupToken = jwtTokenProvider.issueSignupToken(UUID.randomUUID())
+        val stockId = UUID.randomUUID()
+
+        mockMvc
+            .perform(
+                patch("/api/onboarding/profile")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer $signupToken")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"nickname":"brifo","stockIds":["$stockId"]}"""),
+            ).andExpect(status().isNotFound)
+            .andExpect(jsonPath("$.code").value("USER_404"))
     }
 }

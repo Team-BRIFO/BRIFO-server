@@ -2,20 +2,15 @@ package com.brifo.server.user.repository
 
 import com.brifo.server.news.entity.NewsSource
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
 interface UserHomeQueryRepository {
     fun findTodayNewsCards(
         userId: Long,
-        todayStart: LocalDateTime,
-        tomorrowStart: LocalDateTime,
+        displayDate: LocalDate,
     ): List<UserHomeNewsCard>
-
-    fun findLatestCompletedBatchTime(
-        todayStart: LocalDateTime,
-        tomorrowStart: LocalDateTime,
-    ): LocalDateTime?
 }
 
 data class UserHomeNewsCard(

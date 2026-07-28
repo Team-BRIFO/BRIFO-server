@@ -10,6 +10,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - brifo-postgres-data:/var/lib/postgresql
+  valkey:
+    image: valkey/valkey:9.1.1-alpine
+    container_name: brifo-valkey
+    ports:
+      - "6379:6379"
 
 volumes:
   brifo-postgres-data:

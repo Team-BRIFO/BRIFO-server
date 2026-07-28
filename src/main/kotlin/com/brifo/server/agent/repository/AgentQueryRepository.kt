@@ -35,7 +35,7 @@ interface AgentQueryRepository {
         val level: Int,
         val exp: Int,
         val modelName: String,
-        val description: String,
+        val description: String?,
         val dailySalary: Int,
         val totalAnalyses: Long,
         val correctAnalyses: Long,

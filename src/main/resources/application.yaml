@@ -20,6 +20,12 @@ spring:
       enabled: false
     jdbc:
       initialize-schema: never
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
 
 management:
   endpoints:
@@ -38,6 +44,8 @@ app:
       access-token-expiration: 1h
       refresh-token-expiration: 7d
       signup-token-expiration: 10m
+  stock-price:
+    cache-ttl: 60s
 
 external:
   kis:

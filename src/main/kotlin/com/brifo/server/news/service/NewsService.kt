@@ -2,7 +2,7 @@ package com.brifo.server.news.service
 
 import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.exception.BusinessException
-import com.brifo.server.news.dto.response.GetNewsCardResponse
+import com.brifo.server.news.dto.response.GetNewsCardsResponse
 import com.brifo.server.news.exception.NewsCardNotFoundException
 import com.brifo.server.news.repository.NewsCardRepository
 import com.brifo.server.news.repository.NewsDailyStockPriceRepository
@@ -10,7 +10,8 @@ import com.brifo.server.term.repository.NewsCardTermRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.RoundingMode
-import java.time.ZoneId
+import java.time.Clock
+import java.time.LocalDate
 import java.util.UUID
 
 @Service
@@ -18,30 +19,28 @@ class NewsService(
     private val newsCardRepository: NewsCardRepository,
     private val newsDailyStockPriceRepository: NewsDailyStockPriceRepository,
     private val newsCardTermRepository: NewsCardTermRepository,
+    private val clock: Clock,
 ) {
     @Transactional(readOnly = true)
-    fun getNewsCard(cardId: UUID): GetNewsCardResponse {
-        val newsCard = newsCardRepository.findByPublicId(cardId) ?: throw NewsCardNotFoundException()
-        val news = newsCard.news
-        val stock = news.stock
-        val publishedDate = news.publishedAt.atZone(SEOUL_ZONE_ID).toLocalDate()
+    fun getNewsCards(stockPublicId: UUID): GetNewsCardsResponse {
+        val displayDate = LocalDate.now(clock)
+        val newsCards = newsCardRepository.findAnalysisCards(stockPublicId, displayDate)
+        if (newsCards.size != REQUIRED_NEWS_CARD_COUNT) {
+            throw NewsCardNotFoundException()
+        }
+        val stock = newsCards.first().news.stock
 
         val price =
             newsDailyStockPriceRepository.findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDesc(
                 stockId = requireNotNull(stock.id),
-                tradeDate = publishedDate,
+                tradeDate = displayDate,
             ) ?: throw BusinessException(
                 errorCode = ErrorCode.INTERNAL_SERVER_ERROR,
                 message = "카드뉴스 기준일의 종목 가격 데이터가 없습니다.",
             )
 
-        val terms =
-            newsCardTermRepository.findAllByNewsCardIdOrderByDisplayOrderAsc(
-                requireNotNull(newsCard.id),
-            )
-
         val stockResponse =
-            GetNewsCardResponse.Stock(
+            GetNewsCardsResponse.Stock(
                 stockId = requireNotNull(stock.publicId),
                 name = stock.name,
                 sector = stock.sector,
@@ -50,34 +49,36 @@ class NewsService(
                 tradeDate = price.tradeDate,
             )
 
-        val termResponses =
-            terms.map {
-                GetNewsCardResponse.Term(
-                    termId = requireNotNull(it.term.publicId),
-                    surface = it.surface ?: it.term.term,
-                    displayOrder = it.displayOrder,
-                )
-            }
-
-        val newsCardResponse =
-            GetNewsCardResponse.NewsCard(
+        val newsCardResponses = newsCards.map { newsCard ->
+            val news = newsCard.news
+            val terms = newsCardTermRepository.findAllByNewsCardIdOrderByDisplayOrderAsc(
+                requireNotNull(newsCard.id),
+            )
+            GetNewsCardsResponse.NewsCard(
                 cardId = requireNotNull(newsCard.publicId),
                 source = news.source,
                 headline = newsCard.headline,
                 importanceBadge = newsCard.importanceBadge,
-                publishedDate = publishedDate,
+                publishedDate = news.publishedAt.toLocalDate(),
                 points = newsCard.points,
                 keywords = newsCard.keywords,
-                terms = termResponses,
+                terms = terms.map {
+                    GetNewsCardsResponse.Term(
+                        termId = requireNotNull(it.term.publicId),
+                        surface = it.surface ?: it.term.term,
+                        displayOrder = it.displayOrder,
+                    )
+                },
             )
+        }
 
-        return GetNewsCardResponse(
+        return GetNewsCardsResponse(
             stock = stockResponse,
-            newsCard = listOf(newsCardResponse),
+            newsCards = newsCardResponses,
         )
     }
 
     private companion object {
-        val SEOUL_ZONE_ID: ZoneId = ZoneId.of("Asia/Seoul")
+        const val REQUIRED_NEWS_CARD_COUNT = 2
     }
 }

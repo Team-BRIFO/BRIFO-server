@@ -188,7 +188,7 @@ class NotificationContentQueryRepositoryTest {
 
         val userId = requireNotNull(user.publicId)
         val stockId = requireNotNull(stock.publicId)
-        val newsCards = notificationRepository.findNewsCardContents(userId, displayDate)
+        val newsCards = notificationRepository.findNewsCardContents(userId, stockId, displayDate)
         val salaries = notificationRepository.findAgentSalaryContents(userId, stockId, displayDate)
         val briefing =
             notificationRepository.findBriefingReadyContent(

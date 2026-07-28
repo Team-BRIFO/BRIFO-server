@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
+import java.util.UUID
 
 @DataJpaTest
 @Import(TestcontainersConfiguration::class, JpaConfig::class, QueryDslConfig::class)
@@ -47,6 +48,7 @@ class NotificationRepositoryTest {
                             title = "새 카드뉴스 ${index}건이 도착했어요",
                             body = "새 소식이 올라왔어요",
                             targetType = NotificationTargetType.NEWS_CARD_LIST,
+                            targetPublicId = UUID.randomUUID(),
                         ),
                     ).also(entityManager::refresh)
             }

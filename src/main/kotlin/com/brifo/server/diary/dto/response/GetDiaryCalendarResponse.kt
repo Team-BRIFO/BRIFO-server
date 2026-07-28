@@ -12,12 +12,12 @@ data class GetDiaryCalendarResponse(
 ) {
     data class Day(
         val date: LocalDate,
-        val direction: Direction,
+        val outcome: Outcome,
     )
 
-    data class Direction(
-        val up: Boolean,
-        val down: Boolean,
-        val neutral: Boolean,
+    data class Outcome(
+        val decisionWin: Boolean,
+        val decisionLoss: Boolean,
+        val neutralHit: Boolean,
     )
 }

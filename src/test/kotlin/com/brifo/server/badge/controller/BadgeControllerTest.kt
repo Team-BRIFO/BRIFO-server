@@ -1,5 +1,6 @@
 package com.brifo.server.badge.controller
 
+import com.brifo.server.authenticatedUserId
 import com.brifo.server.badge.dto.response.GetBadgesResponse
 import com.brifo.server.badge.dto.response.GetOwnedBadgeResponse
 import com.brifo.server.badge.service.BadgeService
@@ -26,7 +27,7 @@ class BadgeControllerTest {
 
     @Test
     fun `뱃지 목록 응답은 보유 여부를 포함한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
         val badgeId = UUID.randomUUID()
         `when`(badgeService.getBadges(userId)).thenReturn(
             GetBadgesResponse(
@@ -55,7 +56,7 @@ class BadgeControllerTest {
 
     @Test
     fun `보유 뱃지 상세 응답은 설명과 보상 AP를 포함한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
         val badgeId = UUID.randomUUID()
         `when`(badgeService.getOwnedBadge(userId, badgeId)).thenReturn(
             GetOwnedBadgeResponse(

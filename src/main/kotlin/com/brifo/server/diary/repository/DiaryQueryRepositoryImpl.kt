@@ -31,6 +31,10 @@ class DiaryQueryRepositoryImpl(
                     diaryEntry.publicId,
                     briefingNewsCard.newsCard.news.stock.publicId,
                     briefingNewsCard.newsCard.news.stock.name,
+                    decisionResult.dailyStockPrice.price,
+                    decisionResult.dailyStockPrice.changeRate,
+                    decisionResult.dailyStockPrice.tradeDate,
+                    decisionResult.dailyStockPrice.stock.logoUrl,
                     decision.direction,
                     apTransaction.amount,
                     decisionResult.isCorrect,
@@ -43,7 +47,10 @@ class DiaryQueryRepositoryImpl(
             .on(
                 apTransaction.targetType.eq(ApTransactionTargetType.DECISION),
                 apTransaction.targetId.eq(decision.id),
-            ).where(predicate)
+            ).where(
+                predicate,
+                decisionResult.dailyStockPrice.stock.eq(briefingNewsCard.newsCard.news.stock),
+            )
             .distinct()
             .orderBy(diaryEntry.publicId.desc())
             .limit(limit)
