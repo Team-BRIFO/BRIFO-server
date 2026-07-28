@@ -59,6 +59,8 @@ dependencies {
 
     implementation("io.github.openfeign.querydsl:querydsl-jpa:7.4.0")
     ksp("io.github.openfeign.querydsl:querydsl-ksp-codegen:7.4.0")
+
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
 }
 
 kotlin {
