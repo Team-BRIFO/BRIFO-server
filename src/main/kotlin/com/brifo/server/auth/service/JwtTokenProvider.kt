@@ -75,6 +75,30 @@ class JwtTokenProvider(
             expiredException = { InvalidJwtTokenException() },
         )
 
+    fun parseAuthenticationToken(token: String): AuthenticationTokenClaims {
+        val claims =
+            parseVerifiedClaims(
+                token = token,
+                invalidException = { InvalidJwtTokenException() },
+                expiredException = { InvalidJwtTokenException() },
+            )
+
+        val tokenType =
+            when (claims.get(TOKEN_TYPE_CLAIM, String::class.java)) {
+                TokenType.ACCESS.name -> AuthenticationTokenType.ACCESS
+                TokenType.SIGNUP.name -> AuthenticationTokenType.SIGNUP
+                else -> throw InvalidJwtTokenException()
+            }
+        val userPublicId =
+            try {
+                UUID.fromString(claims.subject?.takeIf { it.isNotBlank() } ?: throw IllegalArgumentException())
+            } catch (_: IllegalArgumentException) {
+                throw InvalidJwtTokenException()
+            }
+
+        return AuthenticationTokenClaims(userPublicId, tokenType)
+    }
+
     fun parseRefreshToken(token: String): AuthTokenClaims =
         parseAuthToken(
             token = token,
@@ -127,14 +151,20 @@ class JwtTokenProvider(
         invalidException: () -> AuthException,
         expiredException: () -> AuthException,
     ): Claims {
+        val claims = parseVerifiedClaims(token, invalidException, expiredException)
+        if (claims.get(TOKEN_TYPE_CLAIM, String::class.java) != expectedType.name) {
+            throw invalidException()
+        }
+        return claims
+    }
+
+    private fun parseVerifiedClaims(
+        token: String,
+        invalidException: () -> AuthException,
+        expiredException: () -> AuthException,
+    ): Claims {
         try {
-            val claims = parser.parseSignedClaims(token).payload
-            if (claims.get(TOKEN_TYPE_CLAIM, String::class.java) != expectedType.name) {
-                throw invalidException()
-            }
-            return claims
-        } catch (exception: AuthException) {
-            throw exception
+            return parser.parseSignedClaims(token).payload
         } catch (_: ExpiredJwtException) {
             throw expiredException()
         } catch (_: JwtException) {
@@ -167,6 +197,16 @@ class JwtTokenProvider(
         val tokenId: String,
         val expiresAt: Instant,
     )
+
+    data class AuthenticationTokenClaims(
+        val userPublicId: UUID,
+        val tokenType: AuthenticationTokenType,
+    )
+
+    enum class AuthenticationTokenType {
+        ACCESS,
+        SIGNUP,
+    }
 
     private enum class TokenType {
         ACCESS,

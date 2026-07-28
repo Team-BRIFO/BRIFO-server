@@ -18,6 +18,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import kotlin.test.assertEquals
@@ -36,7 +37,7 @@ class BriefingRequestConcurrencyIntegrationTest @Autowired constructor(
 ) {
     @Test
     fun `동일 사용자의 동시 요청은 사용자 락으로 직렬화되어 한 번만 생성하고 차감한다`() {
-        val date = LocalDate.of(2026, 7, 18)
+        val date = LocalDate.now(ZoneId.of("Asia/Seoul"))
         val scenario = transactionTemplate.execute {
             BriefingDatabaseFixture(entityManager).requestScenario(date)
         }!!

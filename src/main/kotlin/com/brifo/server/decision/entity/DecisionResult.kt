@@ -52,6 +52,9 @@ class DecisionResult private constructor(
             dailyStockPrice: DailyStockPrice,
             isCorrect: Boolean,
         ): DecisionResult {
+            require(decision.briefing.newsCards.first().news.stock == dailyStockPrice.stock) {
+                "Decision result price must belong to the briefing stock"
+            }
             return DecisionResult(
                 decision = decision,
                 dailyStockPrice = dailyStockPrice,

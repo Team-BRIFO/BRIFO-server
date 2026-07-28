@@ -120,8 +120,7 @@ class ApTransaction private constructor(
                 ApTransactionReason.BADGE -> ApTransactionTargetType.USER_BADGE
                 ApTransactionReason.DECISION_WIN,
                 ApTransactionReason.DECISION_LOSE,
-                ApTransactionReason.NEUTRAL_HIT,
-                ApTransactionReason.NEUTRAL_MISS -> ApTransactionTargetType.DECISION
+                ApTransactionReason.NEUTRAL_HIT -> ApTransactionTargetType.DECISION
                 ApTransactionReason.SALARY,
                 ApTransactionReason.SALARY_REFUND -> ApTransactionTargetType.BRIEFING
                 ApTransactionReason.TUTORIAL,
@@ -138,11 +137,6 @@ class ApTransaction private constructor(
             reason: ApTransactionReason,
             amount: Int,
         ) {
-            if (reason == ApTransactionReason.NEUTRAL_MISS) {
-                require(amount == 0) { "amount must be zero for reason $reason" }
-                return
-            }
-
             val mustBeNegative = reason == ApTransactionReason.DECISION_LOSE ||
                 reason == ApTransactionReason.SALARY
 

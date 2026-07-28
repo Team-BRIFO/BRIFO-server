@@ -1,5 +1,7 @@
 package com.brifo.server.global.config
 
+import com.brifo.server.global.openapi.ApiDocumentation
+import com.brifo.server.global.openapi.ApiErrorCatalog
 import io.swagger.v3.oas.models.Components
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.info.Info
@@ -10,6 +12,13 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class SwaggerConfig {
+    @Bean
+    fun apiDocumentation(): ApiDocumentation =
+        ApiDocumentation(
+            operations = ApiErrorCatalog.operations,
+            publicOperations = ApiErrorCatalog.publicOperations,
+        )
+
     @Bean
     fun openAPI(): OpenAPI =
         OpenAPI()

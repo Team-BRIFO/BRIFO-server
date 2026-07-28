@@ -1,5 +1,6 @@
 package com.brifo.server.policy.controller
 
+import com.brifo.server.authenticatedUserId
 import com.brifo.server.policy.dto.response.GetPendingPoliciesResponse
 import com.brifo.server.policy.dto.response.GetPoliciesResponse
 import com.brifo.server.policy.dto.response.GetPolicyDetailResponse
@@ -37,7 +38,7 @@ class PolicyControllerTest {
 
     @Test
     fun `약관 목록 조회는 공개 사용자 ID를 서비스에 전달한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
         val policyId = UUID.randomUUID()
         `when`(policyService.getPolicies(userId)).thenReturn(
             GetPoliciesResponse(
@@ -57,7 +58,7 @@ class PolicyControllerTest {
 
     @Test
     fun `약관 동의는 공개 사용자 ID와 요청 약관을 서비스에 전달한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
         val policyId = UUID.randomUUID()
 
         mockMvc
@@ -88,7 +89,7 @@ class PolicyControllerTest {
 
     @Test
     fun `pending 조회는 공개 사용자 ID를 서비스에 전달한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
         val policyId = UUID.randomUUID()
         `when`(policyService.getPendingPolicies(userId)).thenReturn(
             GetPendingPoliciesResponse(
@@ -106,7 +107,7 @@ class PolicyControllerTest {
 
     @Test
     fun `선택 약관 철회는 공개 사용자 ID와 약관 ID를 서비스에 전달한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
         val policyId = UUID.randomUUID()
         mockMvc
             .perform(
@@ -119,16 +120,15 @@ class PolicyControllerTest {
     }
 
     @Test
-    fun `잘못된 사용자 또는 약관 UUID는 COMMON_400이다`() {
+    fun `userId 요청 파라미터는 무시하고 잘못된 약관 UUID만 COMMON_400이다`() {
+        authenticatedUserId()
         mockMvc
             .perform(get("/api/policies"))
-            .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("COMMON_400"))
+            .andExpect(status().isOk)
 
         mockMvc
             .perform(get("/api/policies").param("userId", "invalid"))
-            .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("COMMON_400"))
+            .andExpect(status().isOk)
 
         mockMvc
             .perform(get("/api/policies/{policyId}", "invalid"))
@@ -150,7 +150,7 @@ class PolicyControllerTest {
 
     @Test
     fun `필수 약관 누락 예외는 POLICY_400_01 응답이다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
         val policyId = UUID.randomUUID()
         doThrow(RequiredPolicyMissingException())
             .`when`(policyService)
@@ -168,7 +168,7 @@ class PolicyControllerTest {
 
     @Test
     fun `필수 약관 철회 예외는 POLICY_400_02 응답이다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
         val policyId = UUID.randomUUID()
         doThrow(RequiredPolicyCannotBeRevokedException())
             .`when`(policyService)

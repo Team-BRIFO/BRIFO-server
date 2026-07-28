@@ -9,7 +9,9 @@ import com.brifo.server.diary.dto.response.GetDiaryDetailResponse
 import com.brifo.server.diary.dto.response.GetDiaryStatsResponse
 import com.brifo.server.diary.service.DiaryService
 import com.brifo.server.global.common.ApiResponse
+import com.brifo.server.global.code.SuccessCode
 import jakarta.validation.Valid
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.ModelAttribute
 import org.springframework.web.bind.annotation.PathVariable
@@ -26,23 +28,45 @@ class DiaryController(
     @GetMapping
     fun getDiaries(
         @Valid @ModelAttribute request: GetDiariesRequest,
-    ): ApiResponse<GetDiariesResponse> = TODO("결정일기 목록 조회 서비스 구현 필요")
+        @AuthenticationPrincipal userPublicId: UUID,
+    ): ApiResponse<GetDiariesResponse> =
+        ApiResponse.success(
+            SuccessCode.OK,
+            diaryService.getDiaries(userPublicId, request),
+        )
 
     @GetMapping("/{diaryId}")
     fun getDiaryDetail(
         @PathVariable diaryId: UUID,
-    ): ApiResponse<GetDiaryDetailResponse> = TODO("결정일기 상세 조회 서비스 구현 필요")
+        @AuthenticationPrincipal userPublicId: UUID,
+    ): ApiResponse<GetDiaryDetailResponse> =
+        ApiResponse.success(
+            SuccessCode.OK,
+            diaryService.getDiaryDetail(userPublicId, diaryId),
+        )
 
     @GetMapping("/calendar")
     fun getDiaryCalendar(
         @Valid @ModelAttribute request: GetDiaryCalendarRequest,
-    ): ApiResponse<GetDiaryCalendarResponse> = TODO("결정일기 캘린더 조회 서비스 구현 필요")
+        @AuthenticationPrincipal userPublicId: UUID,
+    ): ApiResponse<GetDiaryCalendarResponse> =
+        ApiResponse.success(
+            SuccessCode.OK,
+            diaryService.getDiaryCalendar(userPublicId, request),
+        )
 
     @GetMapping("/stats")
-    fun getDiaryStats(): ApiResponse<GetDiaryStatsResponse> = TODO("결정일기 통계 조회 서비스 구현 필요")
+    fun getDiaryStats(
+        @AuthenticationPrincipal userPublicId: UUID,
+    ): ApiResponse<GetDiaryStatsResponse> =
+        ApiResponse.success(
+            SuccessCode.OK,
+            diaryService.getDiaryStats(userPublicId),
+        )
 
     @PostMapping("/{diaryId}/share-images")
     fun createDiaryShareImage(
         @PathVariable diaryId: UUID,
+        @AuthenticationPrincipal userPublicId: UUID,
     ): ApiResponse<CreateDiaryShareImageResponse> = TODO("결정일기 공유 이미지 생성 서비스 구현 필요")
 }

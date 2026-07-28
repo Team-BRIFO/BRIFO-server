@@ -14,7 +14,9 @@ class ExternalApiCallService(
         apiName: String,
         policy: ExternalApiCallPolicy,
         // 조회처럼 중복 실행 문제가 없는 요청만 true로 지정한다.
-        idempotent: Boolean = false,
+        retryEnabled: Boolean = false,
+        // 외부 호출 로그에 저장할 key와 관련 ID
+        context: ExternalApiCallContext = ExternalApiCallContext(),
         requestPayload: Any? = null,
         // 401에서 토큰 갱신이 가능한 API만 전달한다.
         refreshToken: (() -> Unit)? = null,
@@ -30,7 +32,7 @@ class ExternalApiCallService(
         // 네트워크 재시도와 토큰 갱신 후 재요청을 합친 최대 횟수
         val maxTotalRetries =
             policy.maxRetries +
-                if (idempotent && refreshToken != null) 1 else 0
+                if (retryEnabled && refreshToken != null) 1 else 0
 
         // 최초 요청은 retryCount가 0이므로 최대 재시도 횟수까지 실행한다.
         while (totalRetryCount <= maxTotalRetries) {
@@ -43,6 +45,8 @@ class ExternalApiCallService(
                 logService.saveLog(
                     provider = provider,
                     apiName = apiName,
+                    // idempotencyKey와 관련 ID를 로그 서비스에 전달
+                    context = context,
                     requestPayload = requestPayload,
                     responsePayload = responseBody,
                     responseStatusCode = response.statusCode.value(),
@@ -56,7 +60,7 @@ class ExternalApiCallService(
             } catch (exception: Exception) {
                 // 멱등 요청만 토큰 갱신 후 원 요청을 한 번 다시 실행한다.
                 if (
-                    idempotent &&
+                    retryEnabled &&
                     exception.isUnauthorized() &&
                     refreshToken != null &&
                     !tokenRefreshed
@@ -67,6 +71,8 @@ class ExternalApiCallService(
                         logService.saveLog(
                             provider = provider,
                             apiName = apiName,
+                            // idempotencyKey와 관련 ID를 로그 서비스에 전달
+                            context = context,
                             requestPayload = requestPayload,
                             responsePayload = null,
                             exception = refreshException,
@@ -86,7 +92,7 @@ class ExternalApiCallService(
 
                 // 멱등 요청의 네트워크·5xx 오류만 정책 범위에서 재시도한다.
                 if (
-                    idempotent &&
+                    retryEnabled &&
                     exception.isRetryable() &&
                     networkRetryCount < policy.maxRetries
                 ) {
@@ -98,6 +104,8 @@ class ExternalApiCallService(
                 logService.saveLog(
                     provider = provider,
                     apiName = apiName,
+                    // idempotencyKey와 관련 ID를 로그 서비스에 전달
+                    context = context,
                     requestPayload = requestPayload,
                     responsePayload = null,
                     exception = exception,

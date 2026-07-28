@@ -1,0 +1,14 @@
+.git
+.github
+.gradle
+.idea
+.kotlin
+.vscode
+.env
+build
+out
+bin
+docs
+*.iml
+HELP.md
+README.md

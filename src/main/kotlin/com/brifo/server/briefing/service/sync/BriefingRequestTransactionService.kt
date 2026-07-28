@@ -3,9 +3,10 @@ package com.brifo.server.briefing.service.sync
 import com.brifo.server.agent.entity.Agent
 import com.brifo.server.agent.exception.AgentNotFoundException
 import com.brifo.server.agent.repository.AgentRepository
-import com.brifo.server.ap.entity.ApTransaction
+import com.brifo.server.ap.entity.ApTransactionReason
+import com.brifo.server.ap.entity.ApTransactionTargetType
 import com.brifo.server.ap.exception.InsufficientApBalanceException
-import com.brifo.server.ap.repository.ApTransactionRepository
+import com.brifo.server.ap.service.ApTransactionService
 import com.brifo.server.briefing.entity.Briefing
 import com.brifo.server.briefing.entity.BriefingStatus
 import com.brifo.server.briefing.exception.BriefingAgentNotInInitialRequestException
@@ -15,6 +16,9 @@ import com.brifo.server.briefing.repository.BriefingRepository
 import com.brifo.server.news.entity.NewsCard
 import com.brifo.server.news.exception.NewsCardNotFoundException
 import com.brifo.server.news.repository.NewsCardRepository
+import com.brifo.server.notification.entity.NotificationCode
+import com.brifo.server.notification.entity.NotificationTargetType
+import com.brifo.server.notification.service.NotificationCreationService
 import com.brifo.server.stock.exception.StockNotFoundException
 import com.brifo.server.stock.repository.UserStockRepository
 import com.brifo.server.user.entity.User
@@ -33,7 +37,8 @@ class BriefingRequestTransactionService(
     private val agentRepository: AgentRepository,
     private val newsCardRepository: NewsCardRepository,
     private val briefingRepository: BriefingRepository,
-    private val apTransactionRepository: ApTransactionRepository,
+    private val apTransactionService: ApTransactionService,
+    private val notificationCreationService: NotificationCreationService,
 ) {
     @Transactional
     fun request(command: BriefingRequestTask.Command): BriefingRequestTask.Result {
@@ -55,6 +60,15 @@ class BriefingRequestTransactionService(
             user = lockedRequest.user,
             agents = lockedRequest.agents,
             briefings = briefings,
+        )
+        notificationCreationService.create(
+            userId = command.userPublicId,
+            code = NotificationCode.AGENT_SALARY_PAID,
+            target =
+                NotificationCreationService.Target(
+                    type = NotificationTargetType.STOCK_BRIEFINGS,
+                    id = command.stockPublicId,
+                ),
         )
 
         return createResult(briefings, totalSalaryCost)
@@ -82,7 +96,10 @@ class BriefingRequestTransactionService(
             throw StockNotFoundException()
         }
 
-        val agents = agentRepository.findOwnedAgents(command.userPublicId, command.agentPublicIds)
+        val agents = agentRepository.findAllByUserPublicIdAndPublicIdInOrderByIdAsc(
+            command.userPublicId,
+            command.agentPublicIds,
+        )
         // 요청한 모든 에이전트를 사용자가 소유하고 있는지 검증한다.
         if (agents.size != command.agentPublicIds.size) {
             throw AgentNotFoundException()
@@ -99,19 +116,15 @@ class BriefingRequestTransactionService(
         )
 
     private fun validateRetry(
-        briefings: List<Briefing>,
+        latestBriefings: List<Briefing>,
         command: BriefingRequestTask.Command,
     ) {
-        // 최초 요청에 없던 에이전트를 재시도로 새로 추가하지 않는지 검증한다.
-        if (briefings.size != command.agentPublicIds.size) {
-            throw BriefingAgentNotInInitialRequestException()
-        }
         // 요청 대상 브리핑이 모두 실패 상태여서 재시도 가능한지 검증한다.
-        if (briefings.any { it.status != BriefingStatus.FAILED }) {
+        if (latestBriefings.any { it.status != BriefingStatus.FAILED }) {
             throw BriefingAlreadyRequestedException()
         }
 
-        val retryAfterSeconds = briefings.maxOf { briefing ->
+        val retryAfterSeconds = latestBriefings.maxOf { briefing ->
             val retryAt = briefing.updatedAt!!.plusSeconds(RETRY_COOLDOWN_SECONDS)
             ceil(
                 Duration.between(command.requestedAt, retryAt)
@@ -135,9 +148,19 @@ class BriefingRequestTransactionService(
             return createBriefings(agents, newsCards)
         }
 
-        val requestedBriefings = dailyBriefings.filter { it.agent.publicId in command.agentPublicIds }
-        validateRetry(requestedBriefings, command)
-        return requestedBriefings.onEach { it.retry(newsCards) }
+        val latestBriefingByAgentId =
+            dailyBriefings
+                .groupBy { requireNotNull(it.agent.publicId) }
+                .mapValues { (_, briefings) ->
+                    briefings.maxBy { requireNotNull(it.id) }
+                }
+        val latestRequestedBriefings =
+            command.agentPublicIds.map { agentPublicId ->
+                latestBriefingByAgentId[agentPublicId]
+                    ?: throw BriefingAgentNotInInitialRequestException()
+            }
+        validateRetry(latestRequestedBriefings, command)
+        return createBriefings(agents, newsCards)
     }
 
     private fun createBriefings(
@@ -156,20 +179,21 @@ class BriefingRequestTransactionService(
         if (user.balanceAp < totalSalaryCost) {
             throw InsufficientApBalanceException()
         }
-        user.spendAp(totalSalaryCost)
-
         briefingRepository.saveAll(briefings)
         briefingRepository.flush()
 
-        apTransactionRepository.saveAll(
-            briefings.map { briefing ->
-                ApTransaction.salary(
-                    user = user,
-                    briefingId = briefing.id!!,
-                    salaryCost = briefing.agent.dailySalary,
-                )
-            },
-        )
+        briefings.forEach { briefing ->
+            apTransactionService.change(
+                userId = requireNotNull(user.publicId),
+                deltaAp = -briefing.agent.dailySalary,
+                reason = ApTransactionReason.SALARY,
+                target =
+                    ApTransactionService.Target(
+                        type = ApTransactionTargetType.BRIEFING,
+                        id = requireNotNull(briefing.id),
+                    ),
+            )
+        }
 
         return totalSalaryCost
     }

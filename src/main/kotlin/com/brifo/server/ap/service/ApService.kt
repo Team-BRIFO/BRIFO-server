@@ -16,7 +16,12 @@ import com.brifo.server.ap.exception.CreditLoanNotEligibleException
 import com.brifo.server.ap.exception.TutorialRewardAlreadyClaimedException
 import com.brifo.server.ap.repository.ApTransactionRepository
 import com.brifo.server.ap.repository.AttendanceRewardRepository
+import com.brifo.server.badge.code.BadgeCode
+import com.brifo.server.badge.service.BadgeAwardService
 import com.brifo.server.global.common.CursorPage
+import com.brifo.server.notification.entity.NotificationCode
+import com.brifo.server.notification.entity.NotificationTargetType
+import com.brifo.server.notification.service.NotificationCreationService
 import com.brifo.server.user.entity.User
 import com.brifo.server.user.exception.UserNotFoundException
 import com.brifo.server.user.repository.UserRepository
@@ -33,6 +38,8 @@ class ApService(
     private val attendanceRewardRepository: AttendanceRewardRepository,
     private val agentRepository: AgentRepository,
     private val userRepository: UserRepository,
+    private val badgeAwardService: BadgeAwardService,
+    private val notificationCreationService: NotificationCreationService,
     private val clock: Clock,
 ) {
     @Transactional(readOnly = true)
@@ -122,6 +129,23 @@ class ApService(
                     ),
             )
 
+        if (consecutiveDays >= THREE_DAY_ATTENDANCE_BADGE_DAYS) {
+            badgeAwardService.awardBadge(userId, BadgeCode.B05)
+        }
+        if (consecutiveDays >= ATTENDANCE_CYCLE_DAYS) {
+            badgeAwardService.awardBadge(userId, BadgeCode.B06)
+        }
+        notificationCreationService.create(
+            userId = userId,
+            code = NotificationCode.ATTENDANCE_REWARDED,
+            target =
+                NotificationCreationService.Target(
+                    type = NotificationTargetType.NONE,
+                    id = null,
+                ),
+            eventId = requireNotNull(attendanceReward.id),
+        )
+
         return CreateAttendanceRewardResponse(rewardedAp, bonusRewarded, consecutiveDays, balanceAp)
     }
 
@@ -152,6 +176,7 @@ class ApService(
             throw TutorialRewardAlreadyClaimedException()
         }
         val balanceAp = apTransactionService.change(userId, TUTORIAL_REWARD_AP, ApTransactionReason.TUTORIAL)
+        badgeAwardService.awardBadge(userId, BadgeCode.B01)
         return ApBalanceResponse(balanceAp)
     }
 
@@ -179,6 +204,7 @@ class ApService(
     companion object {
         private const val ATTENDANCE_REWARD_AP = 50
         private const val ATTENDANCE_BONUS_AP = 200
+        private const val THREE_DAY_ATTENDANCE_BADGE_DAYS = 3
         private const val ATTENDANCE_CYCLE_DAYS = 7
         private const val TUTORIAL_REWARD_AP = 200
         private const val CREDIT_LOAN_AP = 200

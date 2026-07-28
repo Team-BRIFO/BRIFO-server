@@ -2,6 +2,8 @@ package com.brifo.server.diary.dto.response
 
 import com.brifo.server.decision.entity.DecisionDirection
 import com.brifo.server.global.common.CursorPage
+import java.math.BigDecimal
+import java.time.LocalDate
 import java.util.UUID
 
 data class GetDiariesResponse(
@@ -16,6 +18,10 @@ data class GetDiariesResponse(
     data class Stock(
         val stockId: UUID,
         val name: String,
+        val price: Long,
+        val changeRate: BigDecimal,
+        val tradeDate: LocalDate,
+        val logoUrl: String?,
     )
 
     data class Decision(

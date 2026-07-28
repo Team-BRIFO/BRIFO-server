@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 
 interface PendingUserStockRepository : JpaRepository<PendingUserStock, Long> {
+    fun findAllByUser(user: User): List<PendingUserStock>
+
     @Modifying
     @Query("delete from PendingUserStock pending where pending.user = :user")
     fun deleteAllByUser(user: User): Int

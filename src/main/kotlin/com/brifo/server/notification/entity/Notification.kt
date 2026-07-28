@@ -93,10 +93,11 @@ class Notification private constructor(
 
         private val TARGET_REQUIRED_TYPES = setOf(
             NotificationTargetType.DECISION,
-            NotificationTargetType.AP_TRANSACTION,
             NotificationTargetType.BRIEFING,
+            NotificationTargetType.BADGE,
             NotificationTargetType.AGENT,
-            NotificationTargetType.POLICY,
+            NotificationTargetType.STOCK_BRIEFINGS,
+            NotificationTargetType.NEWS_CARD_LIST,
         )
     }
 }

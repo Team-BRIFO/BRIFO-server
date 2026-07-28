@@ -25,7 +25,10 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health
+  endpoint:
+    health:
+      show-details: never
 
 app:
   auth:
@@ -37,18 +40,3 @@ app:
       signup-token-expiration: 10m
     refresh-token:
       cleanup-cron: ${REFRESH_TOKEN_CLEANUP_CRON:0 0 4 * * *}
-    kakao:
-      client-id: ${KAKAO_CLIENT_ID}
-      client-secret: ${KAKAO_CLIENT_SECRET:}
-      redirect-uris: ${KAKAO_REDIRECT_URIS}
-      connect-timeout: 3s
-      read-timeout: 5s
-    naver:
-      client-id: ${NAVER_CLIENT_ID}
-      client-secret: ${NAVER_CLIENT_SECRET}
-      redirect-uris: ${NAVER_REDIRECT_URIS}
-      connect-timeout: 3s
-      read-timeout: 5s
-external:
-  kis:
-    base-url: https://openapi.koreainvestment.com:9443

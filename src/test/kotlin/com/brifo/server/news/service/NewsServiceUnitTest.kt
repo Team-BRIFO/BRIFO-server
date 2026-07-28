@@ -13,8 +13,10 @@ import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -24,58 +26,53 @@ class NewsServiceUnitTest {
     private val newsCardRepository = mock(NewsCardRepository::class.java)
     private val priceRepository = mock(NewsDailyStockPriceRepository::class.java)
     private val termRepository = mock(NewsCardTermRepository::class.java)
+    private val clock = Clock.fixed(Instant.parse("2026-07-04T03:00:00Z"), ZoneId.of("Asia/Seoul"))
 
     // 가짜 Repository를 주입해 Service만 테스트한다.
-    private val newsService = NewsService(newsCardRepository, priceRepository, termRepository)
+    private val newsService = NewsService(newsCardRepository, priceRepository, termRepository, clock)
 
     @Test
-    fun `카드뉴스가 없으면 예외가 발생한다`() {
-        val cardId = UUID.randomUUID()
+    fun `노출할 카드뉴스가 두 개가 아니면 예외가 발생한다`() {
+        val stockId = UUID.randomUUID()
 
-        // 해당 cardId의 카드뉴스가 없는 상황을 만든다.
-        `when`(newsCardRepository.findByPublicId(cardId)).thenReturn(null)
+        `when`(newsCardRepository.findAnalysisCards(stockId, LocalDate.of(2026, 7, 4))).thenReturn(emptyList())
 
-        // 카드뉴스가 없으면 조회 실패 예외가 발생해야 한다.
         assertFailsWith<NewsCardNotFoundException> {
-            newsService.getNewsCard(cardId)
+            newsService.getNewsCards(stockId)
         }
     }
 
     @Test
     fun `가격이 없으면 예외가 발생한다`() {
-        val cardId = UUID.randomUUID()
-        val publishedDate = LocalDate.of(2026, 7, 4)
-        val newsCard = mock(NewsCard::class.java)
+        val stockId = UUID.randomUUID()
+        val displayDate = LocalDate.of(2026, 7, 4)
+        val firstNewsCard = mock(NewsCard::class.java)
+        val secondNewsCard = mock(NewsCard::class.java)
         val news = mock(News::class.java)
         val stock = mock(Stock::class.java)
 
-        // 가격 조회까지 진행할 수 있도록 카드뉴스, 뉴스, 종목을 연결한다.
-        `when`(newsCardRepository.findByPublicId(cardId)).thenReturn(newsCard)
-        `when`(newsCard.news).thenReturn(news)
+        `when`(newsCardRepository.findAnalysisCards(stockId, displayDate))
+            .thenReturn(listOf(firstNewsCard, secondNewsCard))
+        `when`(firstNewsCard.news).thenReturn(news)
         `when`(news.stock).thenReturn(stock)
-
-        // 가격 조회에 필요한 뉴스 발행일과 종목 ID를 설정한다.
-        `when`(news.publishedAt).thenReturn(LocalDateTime.of(2026, 7, 4, 10, 0))
         `when`(stock.id).thenReturn(2L)
 
-        // 뉴스 발행일 이전의 가격이 없는 상황을 만든다.
         `when`(
             priceRepository.findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDesc(
                 2L,
-                publishedDate,
+                displayDate,
             ),
         ).thenReturn(null)
 
-        // 필수 가격이 없으면 응답을 만들 수 없어야 한다.
         val exception =
             assertFailsWith<BusinessException> {
-                newsService.getNewsCard(cardId)
+                newsService.getNewsCards(stockId)
             }
 
         verify(priceRepository)
             .findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDesc(
                 2L,
-                publishedDate,
+                displayDate,
             )
         assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, exception.errorCode)
     }
