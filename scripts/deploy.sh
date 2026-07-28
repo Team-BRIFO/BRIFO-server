@@ -19,6 +19,11 @@ DB_CA_CERT_CONTAINER_PATH="/app/ssl/global-bundle.pem"
 IMAGE_TAG="${1:?Usage: deploy.sh <image-tag>}"
 HEALTH_URL="http://127.0.0.1:${HOST_PORT}/actuator/health"
 
+if [[ ! "${IMAGE_TAG}" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "Invalid image tag: expected a 40-character Git SHA." >&2
+  exit 1
+fi
+
 get_required_parameter() {
   aws ssm get-parameter \
     --name "${PARAMETER_PREFIX}/$1" \
@@ -87,6 +92,17 @@ AWS_ACCOUNT_ID="$(
 )"
 ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+ECR_LOGGED_IN=false
+
+cleanup() {
+  unset DB_URL DB_USERNAME DB_PASSWORD JWT_SECRET_BASE64
+
+  if [[ "${ECR_LOGGED_IN}" == "true" ]]; then
+    docker logout "${ECR_REGISTRY}" >/dev/null 2>&1 || true
+  fi
+}
+
+trap cleanup EXIT
 
 DB_URL="$(get_required_parameter "DB_URL")"
 DB_USERNAME="$(get_required_parameter "DB_USERNAME")"
@@ -97,6 +113,7 @@ aws ecr get-login-password --region "${AWS_REGION}" |
   docker login \
     --username AWS \
     --password-stdin "${ECR_REGISTRY}"
+ECR_LOGGED_IN=true
 
 docker pull "${IMAGE}"
 
@@ -110,10 +127,7 @@ fi
 
 if ! wait_for_health; then
   echo "Deployment failed: the new container is unhealthy." >&2
-  docker logs --tail 200 "${CONTAINER_NAME}" >&2 || true
   exit 1
 fi
 
-unset DB_URL DB_USERNAME DB_PASSWORD JWT_SECRET_BASE64
-
-echo "Deployment completed: ${IMAGE}"
+echo "Deployment completed for image tag: ${IMAGE_TAG}"
