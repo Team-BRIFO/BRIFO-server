@@ -3,6 +3,7 @@ package com.brifo.server.user.controller
 import com.brifo.server.authenticatedUserId
 import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
 import com.brifo.server.user.dto.request.UpdateUserProfileRequest
+import com.brifo.server.user.dto.response.CompleteOnboardingResponse
 import com.brifo.server.user.dto.response.GetMyPageResponse
 import com.brifo.server.user.dto.response.GetUserHomeResponse
 import com.brifo.server.user.dto.response.GetUserProfileResponse
@@ -58,11 +59,17 @@ class UserControllerTest {
     @Test
     fun `온보딩 완료 요청을 서비스에 전달한다`() {
         val userId = authenticatedUserId()
+        val response =
+            CompleteOnboardingResponse(
+                CompleteOnboardingResponse.Token("access-token", "refresh-token", 3_600, 604_800),
+            )
+        `when`(userService.completeOnboarding(userId)).thenReturn(response)
 
         mockMvc
             .perform(post("/api/onboarding/complete").param("userId", userId.toString()))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.code").value("USER_200_02"))
+            .andExpect(jsonPath("$.result").exists())
 
         verify(userService).completeOnboarding(userId)
     }

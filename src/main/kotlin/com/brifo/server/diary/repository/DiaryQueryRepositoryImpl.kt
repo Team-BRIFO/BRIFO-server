@@ -47,7 +47,10 @@ class DiaryQueryRepositoryImpl(
             .on(
                 apTransaction.targetType.eq(ApTransactionTargetType.DECISION),
                 apTransaction.targetId.eq(decision.id),
-            ).where(predicate)
+            ).where(
+                predicate,
+                decisionResult.dailyStockPrice.stock.eq(briefingNewsCard.newsCard.news.stock),
+            )
             .distinct()
             .orderBy(diaryEntry.publicId.desc())
             .limit(limit)
