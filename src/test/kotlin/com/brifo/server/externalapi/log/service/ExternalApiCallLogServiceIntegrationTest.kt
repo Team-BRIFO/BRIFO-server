@@ -1,6 +1,6 @@
 package com.brifo.server.externalapi.log.service
 
-import com.brifo.server.TestcontainersConfiguration
+import com.brifo.server.ServerTestConfiguration
 import com.brifo.server.externalapi.log.dto.ExternalApiCallLogSaveData
 import com.brifo.server.externalapi.log.entity.ExternalApiCallStatus
 import com.brifo.server.externalapi.log.repository.ExternalApiCallLogRepository
@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 import java.time.LocalDateTime
 
-@Import(TestcontainersConfiguration::class)
+@Import(ServerTestConfiguration::class)
 @ActiveProfiles("test")
 @SpringBootTest
 class ExternalApiCallLogServiceIntegrationTest @Autowired constructor(

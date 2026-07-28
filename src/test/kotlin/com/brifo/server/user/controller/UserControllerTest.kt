@@ -1,7 +1,9 @@
 package com.brifo.server.user.controller
 
+import com.brifo.server.authenticatedUserId
 import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
 import com.brifo.server.user.dto.request.UpdateUserProfileRequest
+import com.brifo.server.user.dto.response.CompleteOnboardingResponse
 import com.brifo.server.user.dto.response.GetMyPageResponse
 import com.brifo.server.user.dto.response.GetUserHomeResponse
 import com.brifo.server.user.dto.response.GetUserProfileResponse
@@ -38,15 +40,16 @@ class UserControllerTest {
 
     @Test
     fun `온보딩 프로필 요청을 서비스에 전달한다`() {
-        val userId = UUID.randomUUID()
-        val request = UpdateOnboardingProfileRequest("brifo", "회사")
+        val userId = authenticatedUserId()
+        val stockId = UUID.randomUUID()
+        val request = UpdateOnboardingProfileRequest("brifo", "회사", listOf(stockId))
 
         mockMvc
             .perform(
                 patch("/api/onboarding/profile")
                     .param("userId", userId.toString())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"nickname":"brifo","companyName":"회사"}"""),
+                    .content("""{"nickname":"brifo","companyName":"회사","stockIds":["$stockId"]}"""),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.code").value("USER_200_01"))
 
@@ -55,21 +58,38 @@ class UserControllerTest {
 
     @Test
     fun `온보딩 완료 요청을 서비스에 전달한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
+        val response =
+            CompleteOnboardingResponse(
+                CompleteOnboardingResponse.Token("access-token", "refresh-token", 3_600, 604_800),
+            )
+        `when`(userService.completeOnboarding(userId)).thenReturn(response)
 
         mockMvc
             .perform(post("/api/onboarding/complete").param("userId", userId.toString()))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.code").value("USER_200_02"))
+            .andExpect(jsonPath("$.result").exists())
 
         verify(userService).completeOnboarding(userId)
     }
 
     @Test
     fun `마이페이지 응답을 직렬화한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
+        val stockId = UUID.randomUUID()
         `when`(userQueryService.getMyPage(userId)).thenReturn(
-            GetMyPageResponse("brifo", "회사", 1_250, 450, 67, 48, 5, 24),
+            GetMyPageResponse(
+                "brifo",
+                "회사",
+                1_250,
+                450,
+                67,
+                48,
+                5,
+                24,
+                listOf(GetMyPageResponse.Stock(stockId, "삼성전자")),
+            ),
         )
 
         mockMvc
@@ -78,13 +98,15 @@ class UserControllerTest {
             .andExpect(jsonPath("$.code").value("COMMON_200"))
             .andExpect(jsonPath("$.result.nickname").value("brifo"))
             .andExpect(jsonPath("$.result.decisionAccuracyRate").value(67))
+            .andExpect(jsonPath("$.result.stocks[0].stockId").value(stockId.toString()))
+            .andExpect(jsonPath("$.result.stocks[0].name").value("삼성전자"))
 
         verify(userQueryService).getMyPage(userId)
     }
 
     @Test
     fun `홈 조회 요청을 조회 서비스에 전달한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
         `when`(userQueryService.getUserHome(userId)).thenReturn(
             GetUserHomeResponse(
                 user = GetUserHomeResponse.User("brifo", "회사", 0),
@@ -104,7 +126,7 @@ class UserControllerTest {
 
     @Test
     fun `프로필 조회 응답을 직렬화한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
         val stockId = UUID.randomUUID()
         `when`(userQueryService.getUserProfile(userId)).thenReturn(
             GetUserProfileResponse(
@@ -125,7 +147,7 @@ class UserControllerTest {
 
     @Test
     fun `프로필 수정 요청을 서비스에 전달한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
         val stockId = UUID.randomUUID()
         val request = UpdateUserProfileRequest("brifo", "회사", listOf(stockId))
 
@@ -145,7 +167,7 @@ class UserControllerTest {
 
     @Test
     fun `회원 탈퇴 요청을 서비스에 전달한다`() {
-        val userId = UUID.randomUUID()
+        val userId = authenticatedUserId()
 
         mockMvc
             .perform(delete("/api/users/me").param("userId", userId.toString()))
@@ -156,14 +178,15 @@ class UserControllerTest {
     }
 
     @Test
-    fun `잘못된 사용자 ID 형식은 서비스 호출 전에 거절한다`() {
+    fun `요청 파라미터의 userId는 인증 사용자 결정에 사용하지 않는다`() {
+        authenticatedUserId()
+        val stockId = UUID.randomUUID()
         mockMvc
             .perform(
                 patch("/api/users/me/profile")
                     .param("userId", "invalid-uuid")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"nickname":"brifo","companyName":"회사","stockIds":[]}"""),
-            ).andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.code").value("COMMON_400"))
+                    .content("""{"nickname":"brifo","companyName":"회사","stockIds":["$stockId"]}"""),
+            ).andExpect(status().isOk)
     }
 }

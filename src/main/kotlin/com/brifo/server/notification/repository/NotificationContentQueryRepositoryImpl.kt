@@ -78,6 +78,7 @@ class NotificationContentQueryRepositoryImpl(
 
     override fun findNewsCardContents(
         userPublicId: UUID,
+        stockPublicId: UUID,
         displayDate: LocalDate,
     ): List<NotificationContentProjection.NewsCard> =
         queryFactory
@@ -89,6 +90,7 @@ class NotificationContentQueryRepositoryImpl(
             .on(userStock.stock.eq(stock))
             .where(
                 userStock.user.publicId.eq(userPublicId),
+                stock.publicId.eq(stockPublicId),
                 newsCard.displayDate.eq(displayDate),
             ).orderBy(newsCard.id.asc())
             .fetch()
@@ -138,7 +140,6 @@ class NotificationContentQueryRepositoryImpl(
                 ApTransactionReason.DECISION_WIN,
                 ApTransactionReason.DECISION_LOSE,
                 ApTransactionReason.NEUTRAL_HIT,
-                ApTransactionReason.NEUTRAL_MISS,
             )
     }
 }

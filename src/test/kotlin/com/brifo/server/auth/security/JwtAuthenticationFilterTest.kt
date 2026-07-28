@@ -19,7 +19,6 @@ import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
-import java.time.Instant
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
@@ -47,13 +46,46 @@ class JwtAuthenticationFilterTest {
         val response = MockHttpServletResponse()
         var authentication: Authentication? = null
         val filterChain = FilterChain { _, _ -> authentication = SecurityContextHolder.getContext().authentication }
-        `when`(jwtTokenProvider.parseAccessToken("access-token"))
-            .thenReturn(JwtTokenProvider.AuthTokenClaims(userId, "token-id", Instant.now().plusSeconds(60)))
+        `when`(jwtTokenProvider.parseAuthenticationToken("access-token"))
+            .thenReturn(
+                JwtTokenProvider.AuthenticationTokenClaims(
+                    userId,
+                    JwtTokenProvider.AuthenticationTokenType.ACCESS,
+                ),
+            )
 
         filter.doFilter(request, response, filterChain)
 
         assertEquals(userId, authentication?.principal)
         assertEquals(true, authentication?.isAuthenticated)
+        assertEquals(
+            JwtAuthenticationFilter.ACCESS_AUTHORITY,
+            authentication?.authorities?.single()?.authority,
+        )
+    }
+
+    @Test
+    fun `유효한 Signup Token은 사용자 공개 ID와 Signup 권한으로 인증한다`() {
+        val userId = UUID.randomUUID()
+        val request = MockHttpServletRequest().apply { addHeader(HttpHeaders.AUTHORIZATION, "Bearer signup-token") }
+        val response = MockHttpServletResponse()
+        var authentication: Authentication? = null
+        val filterChain = FilterChain { _, _ -> authentication = SecurityContextHolder.getContext().authentication }
+        `when`(jwtTokenProvider.parseAuthenticationToken("signup-token"))
+            .thenReturn(
+                JwtTokenProvider.AuthenticationTokenClaims(
+                    userId,
+                    JwtTokenProvider.AuthenticationTokenType.SIGNUP,
+                ),
+            )
+
+        filter.doFilter(request, response, filterChain)
+
+        assertEquals(userId, authentication?.principal)
+        assertEquals(
+            JwtAuthenticationFilter.SIGNUP_AUTHORITY,
+            authentication?.authorities?.single()?.authority,
+        )
     }
 
     @Test
@@ -61,7 +93,7 @@ class JwtAuthenticationFilterTest {
         val request = MockHttpServletRequest().apply { addHeader(HttpHeaders.AUTHORIZATION, "Bearer invalid-token") }
         val response = MockHttpServletResponse()
         val filterChain = FilterChain { _, _ -> }
-        `when`(jwtTokenProvider.parseAccessToken("invalid-token")).thenThrow(InvalidJwtTokenException())
+        `when`(jwtTokenProvider.parseAuthenticationToken("invalid-token")).thenThrow(InvalidJwtTokenException())
 
         filter.doFilter(request, response, filterChain)
 

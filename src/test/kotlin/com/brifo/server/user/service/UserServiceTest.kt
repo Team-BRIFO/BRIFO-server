@@ -3,10 +3,13 @@ package com.brifo.server.user.service
 import com.brifo.server.agent.entity.Agent
 import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.agent.repository.AgentRepository
+import com.brifo.server.auth.dto.response.TokenInfo
+import com.brifo.server.auth.service.JwtTokenProvider
 import com.brifo.server.policy.repository.PolicyRepository
 import com.brifo.server.policy.repository.UserPolicyRepository
 import com.brifo.server.stock.entity.PendingUserStock
 import com.brifo.server.stock.entity.Stock
+import com.brifo.server.stock.entity.UserStock
 import com.brifo.server.stock.exception.StockNotFoundException
 import com.brifo.server.stock.repository.PendingUserStockRepository
 import com.brifo.server.stock.repository.StockRepository
@@ -45,6 +48,7 @@ class UserServiceTest {
     private val userPolicyRepository = mock(UserPolicyRepository::class.java)
     private val agentRepository = mock(AgentRepository::class.java)
     private val validationService = mock(UserValidationService::class.java)
+    private val jwtTokenProvider = mock(JwtTokenProvider::class.java)
     private val clock = Clock.fixed(Instant.parse("2026-07-21T09:00:00Z"), ZoneId.of("Asia/Seoul"))
     private lateinit var userService: UserService
 
@@ -60,6 +64,7 @@ class UserServiceTest {
                 userPolicyRepository,
                 agentRepository,
                 validationService,
+                jwtTokenProvider,
                 clock,
             )
     }
@@ -68,22 +73,31 @@ class UserServiceTest {
     fun `온보딩 프로필을 공개 ID 사용자에게 반영한다`() {
         val userId = UUID.randomUUID()
         val user = user()
-        val request = UpdateOnboardingProfileRequest(" 입력 닉네임 ", " 입력 회사 ")
+        val stockId = UUID.randomUUID()
+        val selectedStock = stock(stockId)
+        val request = UpdateOnboardingProfileRequest(" 입력 닉네임 ", " 입력 회사 ", listOf(stockId))
         `when`(userRepository.findForUpdateByPublicId(userId)).thenReturn(user)
         `when`(validationService.normalizeNickname(request.nickname)).thenReturn("닉네임")
         `when`(validationService.normalizeCompanyName(request.companyName)).thenReturn("회사")
+        `when`(stockRepository.findAllByPublicIdInAndIsActiveTrue(request.stockIds)).thenReturn(listOf(selectedStock))
 
         userService.updateOnboardingProfile(userId, request)
 
         verify(validationService).requireOnboardingPending(user)
+        verify(validationService).validateStockIds(request.stockIds)
         assertEquals("닉네임", user.nickname)
         assertEquals("회사", user.companyName)
+        verify(userStockRepository).deleteAllByUser(user)
+        @Suppress("UNCHECKED_CAST")
+        val captor = ArgumentCaptor.forClass(List::class.java) as ArgumentCaptor<List<UserStock>>
+        verify(userStockRepository).saveAll(captor.capture())
+        assertEquals(listOf(stockId), captor.value.map { it.stock.publicId })
     }
 
     @Test
     fun `존재하지 않는 사용자의 온보딩 프로필은 수정하지 않는다`() {
         val userId = UUID.randomUUID()
-        val request = UpdateOnboardingProfileRequest("닉네임")
+        val request = UpdateOnboardingProfileRequest("닉네임", stockIds = listOf(UUID.randomUUID()))
         `when`(validationService.normalizeNickname(request.nickname)).thenReturn("닉네임")
         `when`(validationService.normalizeCompanyName(request.companyName)).thenReturn(null)
         `when`(userRepository.findForUpdateByPublicId(userId)).thenReturn(null)
@@ -165,10 +179,13 @@ class UserServiceTest {
         `when`(userPolicyRepository.countActiveRequiredAgreements(user)).thenReturn(2)
         `when`(userStockRepository.countByUser(user)).thenReturn(3)
         `when`(agentRepository.existsByUser(user)).thenReturn(false)
+        `when`(jwtTokenProvider.issueLoginTokens(userId))
+            .thenReturn(TokenInfo("access-token", "refresh-token", 3600, 1209600))
 
-        userService.completeOnboarding(userId)
+        val response = userService.completeOnboarding(userId)
 
         assertEquals(LocalDateTime.of(2026, 7, 21, 18, 0), user.onboardingCompletedAt)
+        assertEquals("access-token", response.token.accessToken)
         @Suppress("UNCHECKED_CAST")
         val captor = ArgumentCaptor.forClass(List::class.java) as ArgumentCaptor<List<Agent>>
         verify(agentRepository).saveAll(captor.capture())

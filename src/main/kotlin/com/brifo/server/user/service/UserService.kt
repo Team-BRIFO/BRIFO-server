@@ -3,15 +3,18 @@ package com.brifo.server.user.service
 import com.brifo.server.agent.entity.Agent
 import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.agent.repository.AgentRepository
+import com.brifo.server.auth.service.JwtTokenProvider
 import com.brifo.server.policy.repository.PolicyRepository
 import com.brifo.server.policy.repository.UserPolicyRepository
 import com.brifo.server.stock.entity.PendingUserStock
+import com.brifo.server.stock.entity.UserStock
 import com.brifo.server.stock.exception.StockNotFoundException
 import com.brifo.server.stock.repository.PendingUserStockRepository
 import com.brifo.server.stock.repository.StockRepository
 import com.brifo.server.stock.repository.UserStockRepository
 import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
 import com.brifo.server.user.dto.request.UpdateUserProfileRequest
+import com.brifo.server.user.dto.response.CompleteOnboardingResponse
 import com.brifo.server.user.entity.User
 import com.brifo.server.user.exception.OnboardingProfileNotCompletedException
 import com.brifo.server.user.exception.OnboardingStocksNotSelectedException
@@ -35,6 +38,7 @@ class UserService(
     private val userPolicyRepository: UserPolicyRepository,
     private val agentRepository: AgentRepository,
     private val userValidationService: UserValidationService,
+    private val jwtTokenProvider: JwtTokenProvider,
     private val clock: Clock,
 ) {
     @Transactional
@@ -44,9 +48,19 @@ class UserService(
     ) {
         val nickname = userValidationService.normalizeNickname(request.nickname)
         val companyName = userValidationService.normalizeCompanyName(request.companyName)
+        userValidationService.validateStockIds(request.stockIds)
+
         val user = userRepository.findForUpdateByPublicId(userPublicId) ?: throw UserNotFoundException()
         userValidationService.requireOnboardingPending(user)
+        val stocks = findRequestedStocks(request.stockIds)
+
         user.updateOnboardingProfile(nickname, companyName)
+        userStockRepository.deleteAllByUser(user)
+        userStockRepository.saveAll(
+            request.stockIds.map { stockId ->
+                UserStock.create(user, requireNotNull(stocks[stockId]))
+            },
+        )
     }
 
     @Transactional
@@ -58,11 +72,7 @@ class UserService(
         val companyName = requireNotNull(userValidationService.normalizeCompanyName(request.companyName))
         userValidationService.validateStockIds(request.stockIds)
 
-        val stocks = stockRepository.findAllByPublicIdInAndIsActiveTrue(request.stockIds)
-        val stocksByPublicId = stocks.associateBy { requireNotNull(it.publicId) { "Persisted stock must have a public id." } }
-        if (stocksByPublicId.keys != request.stockIds.toSet()) {
-            throw StockNotFoundException()
-        }
+        val stocksByPublicId = findRequestedStocks(request.stockIds)
 
         val user = userRepository.findForUpdateByPublicId(userPublicId) ?: throw UserNotFoundException()
         user.updateProfile(nickname, companyName)
@@ -75,6 +85,16 @@ class UserService(
         )
     }
 
+    private fun findRequestedStocks(stockIds: List<UUID>) =
+        stockRepository
+            .findAllByPublicIdInAndIsActiveTrue(stockIds)
+            .associateBy { requireNotNull(it.publicId) { "Persisted stock must have a public id." } }
+            .also {
+                if (it.keys != stockIds.toSet()) {
+                    throw StockNotFoundException()
+                }
+            }
+
     @Transactional
     fun deleteUser(userPublicId: UUID) {
         val user = userRepository.findForUpdateByPublicId(userPublicId) ?: throw UserNotFoundException()
@@ -82,9 +102,19 @@ class UserService(
     }
 
     @Transactional
-    fun completeOnboarding(userPublicId: UUID) {
+    fun completeOnboarding(userPublicId: UUID): CompleteOnboardingResponse {
         val user = userRepository.findForUpdateByPublicId(userPublicId) ?: throw UserNotFoundException()
         completeOnboarding(user)
+        val token = jwtTokenProvider.issueLoginTokens(userPublicId)
+        return CompleteOnboardingResponse(
+            token =
+                CompleteOnboardingResponse.Token(
+                    accessToken = token.accessToken,
+                    refreshToken = token.refreshToken,
+                    accessTokenExpiresIn = token.accessTokenExpiresIn,
+                    refreshTokenExpiresIn = token.refreshTokenExpiresIn,
+                ),
+        )
     }
 
     private fun completeOnboarding(user: User) {

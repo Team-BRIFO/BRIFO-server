@@ -1,5 +1,6 @@
 package com.brifo.server.decision.controller
 
+import com.brifo.server.authenticatedUserId
 import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.decision.dto.response.CreateDecisionResponse
 import com.brifo.server.decision.dto.response.GetDecisionResultResponse
@@ -19,6 +20,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -27,11 +29,12 @@ import java.util.UUID
 class DecisionControllerTest {
     private val requestService = mock(DecisionRequestService::class.java)
     private val queryService = mock(DecisionQueryService::class.java)
-    private val userId = UUID.randomUUID()
+    private val userId = authenticatedUserId()
     private val mockMvc: MockMvc = run {
         val validator = LocalValidatorFactoryBean().also { it.afterPropertiesSet() }
         MockMvcBuilders
             .standaloneSetup(DecisionController(requestService, queryService))
+            .setCustomArgumentResolvers(AuthenticationPrincipalArgumentResolver())
             .setControllerAdvice(GlobalExceptionHandler(MockEnvironment()))
             .setValidator(validator)
             .build()

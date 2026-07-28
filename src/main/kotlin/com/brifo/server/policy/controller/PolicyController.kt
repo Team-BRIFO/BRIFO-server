@@ -8,13 +8,13 @@ import com.brifo.server.policy.dto.response.GetPoliciesResponse
 import com.brifo.server.policy.dto.response.GetPolicyDetailResponse
 import com.brifo.server.policy.service.PolicyService
 import jakarta.validation.Valid
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
@@ -25,11 +25,11 @@ class PolicyController(
 ) {
     @GetMapping("/policies")
     fun getPolicies(
-        @RequestParam userId: UUID,
+        @AuthenticationPrincipal userPublicId: UUID,
     ): ApiResponse<GetPoliciesResponse> =
         ApiResponse.success(
             code = SuccessCode.OK,
-            result = policyService.getPolicies(userId),
+            result = policyService.getPolicies(userPublicId),
         )
 
     @GetMapping("/policies/{policyId}")
@@ -43,28 +43,28 @@ class PolicyController(
 
     @PostMapping("/users/me/policies")
     fun agreePolicies(
-        @RequestParam userId: UUID,
+        @AuthenticationPrincipal userPublicId: UUID,
         @Valid @RequestBody request: AgreePoliciesRequest,
     ): ApiResponse<Nothing> {
-        policyService.agreePolicies(userId, request.policyIds)
+        policyService.agreePolicies(userPublicId, request.policyIds)
         return ApiResponse.success(SuccessCode.OK)
     }
 
     @GetMapping("/users/me/policies/pending")
     fun getPendingPolicies(
-        @RequestParam userId: UUID,
+        @AuthenticationPrincipal userPublicId: UUID,
     ): ApiResponse<GetPendingPoliciesResponse> =
         ApiResponse.success(
             code = SuccessCode.OK,
-            result = policyService.getPendingPolicies(userId),
+            result = policyService.getPendingPolicies(userPublicId),
         )
 
     @DeleteMapping("/users/me/policies/{policyId}")
     fun revokePolicy(
-        @RequestParam userId: UUID,
+        @AuthenticationPrincipal userPublicId: UUID,
         @PathVariable policyId: UUID,
     ): ApiResponse<Nothing> {
-        policyService.revokePolicy(userId, policyId)
+        policyService.revokePolicy(userPublicId, policyId)
         return ApiResponse.success(SuccessCode.OK)
     }
 }

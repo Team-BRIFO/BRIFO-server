@@ -75,7 +75,7 @@ class NotificationCreationServiceUnitTest {
                 NotificationCode.DECISION_RESULT to NotificationTargetType.DECISION,
                 NotificationCode.BRIEFING_READY to NotificationTargetType.BRIEFING,
                 NotificationCode.NEWS_CARD_ARRIVED to NotificationTargetType.NEWS_CARD_LIST,
-                NotificationCode.BADGE_AWARDED to NotificationTargetType.NONE,
+                NotificationCode.BADGE_AWARDED to NotificationTargetType.BADGE,
                 NotificationCode.ATTENDANCE_REWARDED to NotificationTargetType.NONE,
                 NotificationCode.AGENT_SALARY_PAID to NotificationTargetType.STOCK_BRIEFINGS,
                 NotificationCode.AGENT_LEVEL_UP to NotificationTargetType.AGENT,
@@ -97,6 +97,7 @@ class NotificationCreationServiceUnitTest {
     @Test
     fun `DB에 알림 코드가 없으면 저장하지 않고 실패한다`() {
         val userId = UUID.randomUUID()
+        val stockId = UUID.randomUUID()
         `when`(userRepository.findByPublicId(userId)).thenReturn(mock(com.brifo.server.user.entity.User::class.java))
         `when`(notificationTypeRepository.findByCode(NotificationCode.NEWS_CARD_ARRIVED.name)).thenReturn(null)
 
@@ -104,7 +105,7 @@ class NotificationCreationServiceUnitTest {
             service.create(
                 userId,
                 NotificationCode.NEWS_CARD_ARRIVED,
-                NotificationCreationService.Target(NotificationTargetType.NEWS_CARD_LIST, null),
+                NotificationCreationService.Target(NotificationTargetType.NEWS_CARD_LIST, stockId),
             )
         }
         verifyNoInteractions(notificationRepository)
@@ -164,7 +165,7 @@ class NotificationCreationServiceUnitTest {
     fun `카드뉴스와 사원 의뢰비 템플릿은 사용자 단위 목록을 집계한다`() {
         val userId = UUID.randomUUID()
         val stockId = UUID.randomUUID()
-        `when`(notificationRepository.findNewsCardContents(userId, LocalDate.now(SEOUL_ZONE))).thenReturn(
+        `when`(notificationRepository.findNewsCardContents(userId, stockId, LocalDate.now(SEOUL_ZONE))).thenReturn(
             listOf(
                 NotificationContentProjection.NewsCard("삼성전자"),
                 NotificationContentProjection.NewsCard("삼성전자"),
@@ -182,7 +183,7 @@ class NotificationCreationServiceUnitTest {
         assertCreatedContent(
             userId = userId,
             code = NotificationCode.NEWS_CARD_ARRIVED,
-            target = NotificationCreationService.Target(NotificationTargetType.NEWS_CARD_LIST, null),
+            target = NotificationCreationService.Target(NotificationTargetType.NEWS_CARD_LIST, stockId),
             expectedTitle = "새 카드뉴스 3건이 도착했어요",
             expectedBody = "관심 종목 삼성전자 · NAVER 관련 새 소식이 올라왔어요",
         )
@@ -198,6 +199,7 @@ class NotificationCreationServiceUnitTest {
     @Test
     fun `배지 출석 템플릿은 전달된 이벤트를 조회하고 레벨업 템플릿은 최신 상태를 반영한다`() {
         val userId = UUID.randomUUID()
+        val badgeId = UUID.randomUUID()
         val agentId = UUID.randomUUID()
         val userBadgeId = 21L
         val attendanceRewardId = 31L
@@ -230,7 +232,7 @@ class NotificationCreationServiceUnitTest {
         assertCreatedContent(
             userId,
             NotificationCode.BADGE_AWARDED,
-            NotificationCreationService.Target(NotificationTargetType.NONE, null),
+            NotificationCreationService.Target(NotificationTargetType.BADGE, badgeId),
             "뱃지를 획득했어요 · 첫 적중",
             "첫 예측을 맞혔어요! 보상 +50 AP를 지급했어요",
             userBadgeId,

@@ -97,33 +97,6 @@ class Briefing private constructor(
         status = BriefingStatus.ANALYZING
     }
 
-    fun retry(newsCards: List<NewsCard>) {
-        require(status == BriefingStatus.FAILED) { "Only failed briefings can be retried" }
-        validateNewsCards(newsCards)
-
-        replaceNewsCards(newsCards)
-        clearAnalysisResult()
-        status = BriefingStatus.PENDING
-    }
-
-    private fun replaceNewsCards(newsCards: List<NewsCard>) {
-        briefingNewsCards.removeAll { it.newsCard !in newsCards }
-        val connectedNewsCards = briefingNewsCards.map(BriefingNewsCard::newsCard).toSet()
-        briefingNewsCards += newsCards.filterNot(connectedNewsCards::contains).map { newsCard ->
-            BriefingNewsCard.create(briefing = this, newsCard = newsCard)
-        }
-    }
-
-    private fun clearAnalysisResult() {
-        direction = null
-        confidenceRate = null
-        contentText = null
-        oneLiner = null
-        headline = null
-        summary = null
-        personalComment = null
-    }
-
     fun complete(
         direction: BriefingDirection,
         confidenceRate: Short,

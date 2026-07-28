@@ -46,6 +46,10 @@ class DiaryQueryRepositoryJpaTest @Autowired constructor(
         assertEquals(1, rows.size)
         assertEquals(settled.publicId, rows.single().diaryId)
         assertEquals(scenario.stock.publicId, rows.single().stockId)
+        assertEquals(BigDecimal("70000.00"), rows.single().price)
+        assertEquals(BigDecimal("2.55"), rows.single().changeRate)
+        assertEquals(DATE, rows.single().tradeDate)
+        assertNull(rows.single().logoUrl)
         assertEquals(10, rows.single().apDelta)
     }
 

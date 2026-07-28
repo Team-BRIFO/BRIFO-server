@@ -5,6 +5,7 @@ import com.brifo.server.briefing.entity.BriefingDirection
 import com.brifo.server.decision.entity.DecisionDirection
 import com.querydsl.core.annotations.QueryProjection
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -34,6 +35,10 @@ data class DiaryListRow(
     val diaryId: UUID,
     val stockId: UUID,
     val stockName: String,
+    val price: BigDecimal,
+    val changeRate: BigDecimal,
+    val tradeDate: LocalDate,
+    val logoUrl: String?,
     val direction: DecisionDirection,
     val apDelta: Int,
     val isCorrect: Boolean,

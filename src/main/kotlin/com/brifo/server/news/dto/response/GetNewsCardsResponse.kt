@@ -6,9 +6,9 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.util.UUID
 
-data class GetNewsCardResponse(
+data class GetNewsCardsResponse(
     val stock: Stock,
-    val newsCard: List<NewsCard>,
+    val newsCards: List<NewsCard>,
 ) {
     data class Stock(
         val stockId: UUID,

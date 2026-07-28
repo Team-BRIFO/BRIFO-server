@@ -10,8 +10,10 @@ import com.brifo.server.ap.repository.AttendanceRewardRepository
 import com.brifo.server.decision.repository.DecisionRepository
 import com.brifo.server.decision.repository.DecisionResultRepository
 import com.brifo.server.news.entity.NewsSource
+import com.brifo.server.stock.entity.PendingUserStock
 import com.brifo.server.stock.entity.Stock
 import com.brifo.server.stock.entity.UserStock
+import com.brifo.server.stock.repository.PendingUserStockRepository
 import com.brifo.server.stock.repository.UserStockRepository
 import com.brifo.server.term.repository.UserLearnedTermRepository
 import com.brifo.server.user.entity.User
@@ -31,6 +33,7 @@ import org.mockito.Mockito.`when`
 import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.UUID
@@ -38,6 +41,7 @@ import java.util.UUID
 class UserQueryServiceTest {
     private val userRepository = mock(UserRepository::class.java)
     private val userStockRepository = mock(UserStockRepository::class.java)
+    private val pendingUserStockRepository = mock(PendingUserStockRepository::class.java)
     private val agentRepository = mock(AgentRepository::class.java)
     private val apTransactionRepository = mock(ApTransactionRepository::class.java)
     private val attendanceRewardRepository = mock(AttendanceRewardRepository::class.java)
@@ -55,6 +59,7 @@ class UserQueryServiceTest {
             UserQueryService(
                 userRepository,
                 userStockRepository,
+                pendingUserStockRepository,
                 agentRepository,
                 apTransactionRepository,
                 attendanceRewardRepository,
@@ -117,7 +122,6 @@ class UserQueryServiceTest {
     fun `홈 조회는 에이전트 순서와 오늘 범위 및 카드뉴스를 반영한다`() {
         val userId = UUID.randomUUID()
         val user = completedUser()
-        val batchTime = LocalDateTime.of(2026, 7, 21, 8, 0)
         val card = newsCard()
         val agents =
             listOf(
@@ -132,46 +136,39 @@ class UserQueryServiceTest {
             LocalDateTime.of(2026, 7, 21, 0, 0),
             LocalDateTime.of(2026, 7, 22, 0, 0),
         )).thenReturn(2)
-        `when`(userHomeQueryRepository.findLatestCompletedBatchTime(
-            LocalDateTime.of(2026, 7, 21, 0, 0),
-            LocalDateTime.of(2026, 7, 22, 0, 0),
-        )).thenReturn(batchTime)
         `when`(userHomeQueryRepository.findTodayNewsCards(
             7L,
-            LocalDateTime.of(2026, 7, 21, 0, 0),
-            LocalDateTime.of(2026, 7, 22, 0, 0),
+            LocalDate.of(2026, 7, 21),
         )).thenReturn(listOf(card))
 
         val response = queryService.getUserHome(userId)
 
         assertEquals(listOf(AgentType.ROOKIE, AgentType.TANKER, AgentType.PRO), response.agents.map { it.agentType })
         assertEquals(2, response.todayDecisions.count)
-        assertEquals(batchTime, response.todayNewsCards.batchTime)
+        assertEquals(null, response.todayNewsCards.batchTime)
         assertEquals(card.cardId, response.todayNewsCards.items.single().cardId)
-        assertEquals(card.changeRate, response.todayNewsCards.items.single().stock.changeRate)
+        assertEquals(BigDecimal("1.3"), response.todayNewsCards.items.single().stock.changeRate)
     }
 
     @Test
-    fun `오늘 완료된 배치가 없으면 카드뉴스를 조회하지 않는다`() {
+    fun `배치 시각이 없어도 오늘 카드뉴스를 조회한다`() {
         val userId = UUID.randomUUID()
         val user = completedUser()
         val agents = requiredAgents()
         `when`(userRepository.findByPublicId(userId)).thenReturn(user)
         `when`(agentRepository.findAllByUserId(7L)).thenReturn(agents)
+        `when`(userHomeQueryRepository.findTodayNewsCards(7L, LocalDate.of(2026, 7, 21)))
+            .thenReturn(emptyList())
 
         val response = queryService.getUserHome(userId)
 
         assertEquals(null, response.todayNewsCards.batchTime)
         assertEquals(emptyList<Any>(), response.todayNewsCards.items)
-        verify(userHomeQueryRepository, never()).findTodayNewsCards(
-            7L,
-            LocalDateTime.of(2026, 7, 21, 0, 0),
-            LocalDateTime.of(2026, 7, 22, 0, 0),
-        )
+        verify(userHomeQueryRepository).findTodayNewsCards(7L, LocalDate.of(2026, 7, 21))
     }
 
     @Test
-    fun `프로필 조회는 현재 적용 중인 관심 종목을 반환한다`() {
+    fun `적용 예정 관심 종목이 없으면 프로필 조회는 현재 관심 종목을 반환한다`() {
         val userId = UUID.randomUUID()
         val user = completedUser()
         val stockId = UUID.randomUUID()
@@ -191,6 +188,30 @@ class UserQueryServiceTest {
     }
 
     @Test
+    fun `프로필 조회는 적용 예정 관심 종목을 우선 반환한다`() {
+        val userId = UUID.randomUUID()
+        val user = completedUser()
+        val currentStock = mock(Stock::class.java)
+        val currentUserStock = mock(UserStock::class.java)
+        val pendingStockId = UUID.randomUUID()
+        val pendingStock = mock(Stock::class.java)
+        val pendingUserStock = mock(PendingUserStock::class.java)
+        `when`(userRepository.findByPublicId(userId)).thenReturn(user)
+        `when`(pendingUserStockRepository.findAllByUser(user)).thenReturn(listOf(pendingUserStock))
+        `when`(pendingUserStock.stock).thenReturn(pendingStock)
+        `when`(pendingStock.publicId).thenReturn(pendingStockId)
+        `when`(pendingStock.name).thenReturn("SK하이닉스")
+        `when`(currentUserStock.stock).thenReturn(currentStock)
+        `when`(userStockRepository.findAllByUser(user)).thenReturn(listOf(currentUserStock))
+
+        val response = queryService.getUserProfile(userId)
+
+        assertEquals(listOf(pendingStockId), response.stocks.map { it.stockId })
+        assertEquals(listOf("SK하이닉스"), response.stocks.map { it.name })
+        verify(userStockRepository, never()).findAllByUser(user)
+    }
+
+    @Test
     fun `존재하지 않는 사용자는 조회 의존성을 호출하지 않는다`() {
         val userId = UUID.randomUUID()
         `when`(userRepository.findByPublicId(userId)).thenReturn(null)
@@ -199,7 +220,7 @@ class UserQueryServiceTest {
             queryService.getUserProfile(userId)
         }
 
-        verifyNoInteractions(userStockRepository, validationService)
+        verifyNoInteractions(userStockRepository, pendingUserStockRepository, validationService)
     }
 
     private fun completedUser(): User =
@@ -229,6 +250,6 @@ class UserQueryServiceTest {
             source = NewsSource.NAVER,
             stockId = UUID.randomUUID(),
             stockName = "삼성전자",
-            changeRate = BigDecimal("1.3"),
+            changeRate = BigDecimal("1.34"),
         )
 }

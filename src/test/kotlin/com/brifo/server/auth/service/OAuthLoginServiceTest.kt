@@ -1,8 +1,7 @@
 package com.brifo.server.auth.service
 
-import com.brifo.server.ap.entity.ApTransaction
 import com.brifo.server.ap.entity.ApTransactionReason
-import com.brifo.server.ap.repository.ApTransactionRepository
+import com.brifo.server.ap.service.ApTransactionService
 import com.brifo.server.auth.dto.internal.OAuthUserProfile
 import com.brifo.server.auth.dto.response.OAuthLoginResponse
 import com.brifo.server.auth.dto.response.TokenInfo
@@ -17,6 +16,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.any
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.test.util.ReflectionTestUtils
@@ -32,7 +32,7 @@ class OAuthLoginServiceTest {
     private lateinit var userRepository: UserRepository
 
     @Mock
-    private lateinit var apTransactionRepository: ApTransactionRepository
+    private lateinit var apTransactionService: ApTransactionService
 
     @Mock
     private lateinit var jwtTokenProvider: JwtTokenProvider
@@ -42,7 +42,7 @@ class OAuthLoginServiceTest {
 
     @BeforeEach
     fun setUp() {
-        service = OAuthLoginService(userRepository, apTransactionRepository, jwtTokenProvider, clock)
+        service = OAuthLoginService(userRepository, apTransactionService, jwtTokenProvider, clock)
     }
 
     @Test
@@ -74,7 +74,7 @@ class OAuthLoginServiceTest {
 
         assertEquals("signup-token", response.signupToken)
         verify(userRepository, never()).saveAndFlush(any(User::class.java))
-        verify(apTransactionRepository, never()).save(any(ApTransaction::class.java))
+        verifyNoInteractions(apTransactionService)
     }
 
     @Test
@@ -94,13 +94,12 @@ class OAuthLoginServiceTest {
         assertEquals(SOCIAL_ID, savedUser.value.socialId)
         assertEquals("brifo", savedUser.value.nickname)
         assertEquals(EMAIL, savedUser.value.email)
-        assertEquals(500, savedUser.value.balanceAp)
-
-        val savedTransaction = org.mockito.ArgumentCaptor.forClass(ApTransaction::class.java)
-        verify(apTransactionRepository).save(savedTransaction.capture())
-        assertEquals(savedUser.value, savedTransaction.value.user)
-        assertEquals(500, savedTransaction.value.amount)
-        assertEquals(ApTransactionReason.INITIAL_GRANT, savedTransaction.value.reason)
+        verify(apTransactionService).change(
+            USER_ID,
+            500,
+            ApTransactionReason.INITIAL_GRANT,
+            null,
+        )
     }
 
     @Test

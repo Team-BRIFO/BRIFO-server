@@ -1,5 +1,7 @@
 package com.brifo.server.decision.service
 
+import com.brifo.server.badge.code.BadgeCode
+import com.brifo.server.badge.service.BadgeAwardService
 import com.brifo.server.briefing.entity.Briefing
 import com.brifo.server.briefing.entity.BriefingStatus
 import com.brifo.server.briefing.exception.BriefingNotCompletedException
@@ -31,6 +33,7 @@ import kotlin.test.assertFailsWith
 class DecisionRequestServiceTest {
     private val briefingRepository = mock(BriefingRepository::class.java)
     private val decisionRepository = mock(DecisionRepository::class.java)
+    private val badgeAwardService = mock(BadgeAwardService::class.java)
 
     @Test
     fun `15시 30분부터는 DB를 조회하지 않고 결정 등록을 거절한다`() {
@@ -175,12 +178,14 @@ class DecisionRequestServiceTest {
         kotlin.test.assertEquals(decisionId, response.decisionId)
         kotlin.test.assertEquals(context.stockId, response.stock.stockId)
         verify(context.briefing, times(1)).newsCards
+        verify(badgeAwardService).awardBadge(userId, BadgeCode.B02)
     }
 
     private fun serviceAt(instant: String) =
         DecisionRequestService(
             briefingRepository,
             decisionRepository,
+            badgeAwardService,
             Clock.fixed(Instant.parse(instant), ZoneId.of("Asia/Seoul")),
         )
 
