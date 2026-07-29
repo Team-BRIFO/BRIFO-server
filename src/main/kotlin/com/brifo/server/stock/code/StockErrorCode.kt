@@ -28,4 +28,9 @@ enum class StockErrorCode(
         "STOCK_404",
         "종목을 찾을 수 없습니다.",
     ),
+    STOCK_PRICE_UNAVAILABLE(
+        HttpStatus.SERVICE_UNAVAILABLE,
+        "STOCK_503_01",
+        "현재 주식 가격을 조회할 수 없습니다.",
+    ),
 }

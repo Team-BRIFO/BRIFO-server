@@ -46,6 +46,7 @@ app:
       signup-token-expiration: 10m
   stock-price:
     cache-ttl: 60s
+    last-success-ttl: 3m
 
 external:
   kis:
