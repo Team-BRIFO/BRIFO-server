@@ -1,5 +1,6 @@
 package com.brifo.server.stock.service
 
+import com.brifo.server.TestcontainersConfiguration
 import com.brifo.server.briefing.support.BriefingTestConfiguration
 import com.brifo.server.externalapi.log.entity.ExternalApiCallStatus
 import com.brifo.server.externalapi.log.repository.ExternalApiCallLogRepository
@@ -23,20 +24,11 @@ import org.springframework.test.context.DynamicPropertySource
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Import(BriefingTestConfiguration::class)
+@Import(
+    BriefingTestConfiguration::class,
+    TestcontainersConfiguration::class,
+)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@EnabledIfEnvironmentVariable(
-    named = "DB_URL",
-    matches = ".+",
-)
-@EnabledIfEnvironmentVariable(
-    named = "DB_USERNAME",
-    matches = ".+",
-)
-@EnabledIfEnvironmentVariable(
-    named = "DB_PASSWORD",
-    matches = ".+",
-)
 @EnabledIfEnvironmentVariable(
     named = "KIS_APP_KEY",
     matches = ".+",
@@ -176,29 +168,6 @@ class StockPriceServiceRealKisIntegrationTest {
         fun properties(
             registry: DynamicPropertyRegistry,
         ) {
-            // 실행 중인 PostgreSQL 연결 정보를 등록한다.
-            registry.add(
-                "spring.datasource.url",
-            ) {
-                requireNotNull(
-                    System.getenv("DB_URL"),
-                )
-            }
-            registry.add(
-                "spring.datasource.username",
-            ) {
-                requireNotNull(
-                    System.getenv("DB_USERNAME"),
-                )
-            }
-            registry.add(
-                "spring.datasource.password",
-            ) {
-                requireNotNull(
-                    System.getenv("DB_PASSWORD"),
-                )
-            }
-
             // 테스트 프로필의 KIS 주소를 실제 주소로 바꾼다.
             registry.add(
                 "external.kis.base-url",

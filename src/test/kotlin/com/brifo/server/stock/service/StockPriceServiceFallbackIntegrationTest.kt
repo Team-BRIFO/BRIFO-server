@@ -1,5 +1,6 @@
 package com.brifo.server.stock.service
 
+import com.brifo.server.TestcontainersConfiguration
 import com.brifo.server.briefing.support.BriefingTestConfiguration
 import com.brifo.server.externalapi.kis.KisTokenProvider
 import com.brifo.server.externalapi.log.entity.ExternalApiCallStatus
@@ -22,7 +23,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import org.mockito.Mockito.`when`
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -38,20 +38,11 @@ import java.time.LocalDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Import(BriefingTestConfiguration::class)
+@Import(
+    BriefingTestConfiguration::class,
+    TestcontainersConfiguration::class,
+)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@EnabledIfEnvironmentVariable(
-    named = "DB_URL",
-    matches = ".+",
-)
-@EnabledIfEnvironmentVariable(
-    named = "DB_USERNAME",
-    matches = ".+",
-)
-@EnabledIfEnvironmentVariable(
-    named = "DB_PASSWORD",
-    matches = ".+",
-)
 class StockPriceServiceFallbackIntegrationTest {
     @Autowired
     private lateinit var stockPriceService:
@@ -283,7 +274,7 @@ class StockPriceServiceFallbackIntegrationTest {
 
     companion object {
         private const val STOCK_CODE =
-            "TEST-FALLBACK"
+            "FALLBACK"
 
         private const val CURRENT_PRICE_KEY =
             "stock:delayed-price:$STOCK_CODE"
