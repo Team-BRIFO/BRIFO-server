@@ -11,6 +11,7 @@ import com.brifo.server.stock.dto.response.StockPriceResult
 import com.brifo.server.stock.entity.DailyStockPrice
 import com.brifo.server.stock.entity.Stock
 import com.brifo.server.stock.repository.DailyStockPriceRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -24,6 +25,8 @@ class StockPriceService(
     private val currentPriceCacheRepository: StockCurrentPriceCacheRepository,
     private val dailyStockPriceRepository: DailyStockPriceRepository,
 ) {
+    private val log = LoggerFactory.getLogger(StockPriceService::class.java)
+
     // 종목별로 잠금 객체를 따로 보관한다.
     // 삼성전자 요청과 카카오 요청은 서로 막지 않고,
     // 삼성전자 요청끼리만 한 번에 하나씩 처리한다.
@@ -80,6 +83,13 @@ class StockPriceService(
                         stockCode = stockCode,
                     )
                 } catch (exception: Exception) {
+                    log.warn(
+                        "KIS 현재가 조회 실패로 fallback을 수행합니다. stockId={}, stockCode={}",
+                        stockId,
+                        stockCode,
+                        exception,
+                    )
+
                     // 3. KIS 실패 시 3분 마지막 성공값을 확인한다.
                     val lastSuccessPrice =
                         currentPriceCacheRepository
