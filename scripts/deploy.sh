@@ -46,6 +46,13 @@ run_container() {
     --env DB_USERNAME="${DB_USERNAME}" \
     --env DB_PASSWORD="${DB_PASSWORD}" \
     --env JWT_SECRET_BASE64="${JWT_SECRET_BASE64}" \
+    --env KAKAO_CLIENT_ID="${KAKAO_CLIENT_ID}" \
+    --env KAKAO_CLIENT_SECRET="${KAKAO_CLIENT_SECRET}" \
+    --env KAKAO_REDIRECT_URIS="${KAKAO_REDIRECT_URIS}" \
+    --env NAVER_CLIENT_ID="${NAVER_CLIENT_ID}" \
+    --env NAVER_CLIENT_SECRET="${NAVER_CLIENT_SECRET}" \
+    --env NAVER_REDIRECT_URIS="${NAVER_REDIRECT_URIS}" \
+    --env CORS_ALLOWED_ORIGINS="${CORS_ALLOWED_ORIGINS}" \
     "${image}"
 }
 
@@ -95,7 +102,18 @@ IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 ECR_LOGGED_IN=false
 
 cleanup() {
-  unset DB_URL DB_USERNAME DB_PASSWORD JWT_SECRET_BASE64
+  unset \
+    DB_URL \
+    DB_USERNAME \
+    DB_PASSWORD \
+    JWT_SECRET_BASE64 \
+    KAKAO_CLIENT_ID \
+    KAKAO_CLIENT_SECRET \
+    KAKAO_REDIRECT_URIS \
+    NAVER_CLIENT_ID \
+    NAVER_CLIENT_SECRET \
+    NAVER_REDIRECT_URIS \
+    CORS_ALLOWED_ORIGINS
 
   if [[ "${ECR_LOGGED_IN}" == "true" ]]; then
     docker logout "${ECR_REGISTRY}" >/dev/null 2>&1 || true
@@ -108,6 +126,13 @@ DB_URL="$(get_required_parameter "DB_URL")"
 DB_USERNAME="$(get_required_parameter "DB_USERNAME")"
 DB_PASSWORD="$(get_required_parameter "DB_PASSWORD")"
 JWT_SECRET_BASE64="$(get_required_parameter "JWT_SECRET_BASE64")"
+KAKAO_CLIENT_ID="$(get_required_parameter "KAKAO_CLIENT_ID")"
+KAKAO_CLIENT_SECRET="$(get_required_parameter "KAKAO_CLIENT_SECRET")"
+KAKAO_REDIRECT_URIS="$(get_required_parameter "KAKAO_REDIRECT_URIS")"
+NAVER_CLIENT_ID="$(get_required_parameter "NAVER_CLIENT_ID")"
+NAVER_CLIENT_SECRET="$(get_required_parameter "NAVER_CLIENT_SECRET")"
+NAVER_REDIRECT_URIS="$(get_required_parameter "NAVER_REDIRECT_URIS")"
+CORS_ALLOWED_ORIGINS="$(get_required_parameter "CORS_ALLOWED_ORIGINS")"
 
 aws ecr get-login-password --region "${AWS_REGION}" |
   docker login \

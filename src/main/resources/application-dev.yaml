@@ -11,23 +11,19 @@ spring:
 app:
   auth:
     kakao:
-      client-id: disabled
-      client-secret: disabled
-      redirect-uris:
-        - disabled
+      client-id: ${KAKAO_CLIENT_ID:disabled}
+      client-secret: ${KAKAO_CLIENT_SECRET:}
+      redirect-uris: ${KAKAO_REDIRECT_URIS:disabled}
       connect-timeout: 3s
       read-timeout: 5s
     naver:
-      client-id: disabled
-      client-secret: disabled
-      redirect-uris:
-        - disabled
+      client-id: ${NAVER_CLIENT_ID:disabled}
+      client-secret: ${NAVER_CLIENT_SECRET:disabled}
+      redirect-uris: ${NAVER_REDIRECT_URIS:disabled}
       connect-timeout: 3s
       read-timeout: 5s
   cors:
-    allowed-origins:
-      - http://localhost:3000
-      - http://localhost:5173
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
 
 springdoc:
   api-docs:
