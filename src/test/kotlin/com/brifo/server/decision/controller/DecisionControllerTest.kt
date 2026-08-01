@@ -57,7 +57,7 @@ class DecisionControllerTest {
                 decisionId = decisionId,
                 direction = DecisionDirection.UP,
                 confidenceLevel = 4,
-                stock = CreateDecisionResponse.Stock(stockId, "삼성전자"),
+                stock = CreateDecisionResponse.CreatedDecisionStock(stockId, "삼성전자"),
             ),
         )
 
@@ -92,12 +92,12 @@ class DecisionControllerTest {
         `when`(queryService.getDecisions(userId)).thenReturn(
             GetDecisionsResponse(
                 items = listOf(
-                    GetDecisionsResponse.Item(
+                    GetDecisionsResponse.DecisionItem(
                         decisionId = decisionId,
                         direction = DecisionDirection.DOWN,
                         confidenceLevel = 3,
-                        agent = GetDecisionsResponse.Agent(agentId, AgentType.TANKER),
-                        stock = GetDecisionsResponse.Stock(stockId, "삼성전자", null, null, null),
+                        agent = GetDecisionsResponse.DecisionListAgent(agentId, AgentType.TANKER),
+                        stock = GetDecisionsResponse.DecisionListStock(stockId, "삼성전자", null, null, null),
                     ),
                 ),
             ),
@@ -126,8 +126,8 @@ class DecisionControllerTest {
                 apDelta = 80,
                 direction = DecisionDirection.UP,
                 confidenceLevel = 4,
-                agent = GetDecisionResultResponse.Agent(agentId, AgentType.ROOKIE),
-                stock = GetDecisionResultResponse.Stock(
+                agent = GetDecisionResultResponse.DecisionResultAgent(agentId, AgentType.ROOKIE),
+                stock = GetDecisionResultResponse.DecisionResultStock(
                     name = "삼성전자",
                     price = 72_420,
                     changeRate = BigDecimal("2.0"),

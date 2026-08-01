@@ -4,11 +4,11 @@ import com.brifo.server.stock.dto.response.GetStocksResponse
 import java.util.UUID
 
 interface StockQueryRepository {
-    fun findPopularStocks(): List<GetStocksResponse.Item>
+    fun findPopularStocks(): List<GetStocksResponse.StockItem>
 
     fun searchStocks(
         keyword: String,
         cursor: UUID?,
         limit: Int,
-    ): List<GetStocksResponse.Item>
+    ): List<GetStocksResponse.StockItem>
 }

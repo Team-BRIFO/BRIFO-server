@@ -19,7 +19,7 @@ class NotificationQueryRepositoryImpl(
         userPublicId: UUID,
         cursor: UUID?,
         limit: Int,
-    ): List<GetNotificationsResponse.Item> =
+    ): List<GetNotificationsResponse.NotificationItem> =
         queryFactory
             .select(
                 Projections.constructor(
@@ -53,8 +53,8 @@ data class NotificationRow(
     val targetType: NotificationTargetType,
     val targetId: UUID?,
 ) {
-    fun toResponseItem(): GetNotificationsResponse.Item =
-        GetNotificationsResponse.Item(
+    fun toResponseItem(): GetNotificationsResponse.NotificationItem =
+        GetNotificationsResponse.NotificationItem(
             notificationId = notificationId,
             code = code,
             title = title,

@@ -6,13 +6,13 @@ import java.math.BigDecimal
 import java.util.UUID
 
 data class GetDiaryStatsResponse(
-    val summary: Summary,
+    val summary: DiaryStatsSummary,
     val directionStats: List<DirectionStat>,
     val agentStats: List<AgentStat>,
     val confidenceLevelStats: List<ConfidenceLevelStat>,
     val stockStats: List<StockStat>,
 ) {
-    data class Summary(
+    data class DiaryStatsSummary(
         val recent30DaysSettledDecisionCount: Int,
         val recent30DaysCorrectDecisionCount: Int,
         val recent30DaysAccuracyRate: Int,

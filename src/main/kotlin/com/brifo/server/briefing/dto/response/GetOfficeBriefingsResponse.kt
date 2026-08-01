@@ -5,18 +5,18 @@ import com.brifo.server.briefing.entity.BriefingStatus
 import java.util.UUID
 
 data class GetOfficeBriefingsResponse(
-    val items: List<Item>,
-) {
-    data class Item(
-        val stockName: String,
-        val agents: List<Agent>,
-    )
+    val items: List<OfficeBriefingItemResponse>,
+)
 
-    data class Agent(
-        val briefingId: UUID,
-        val agentId: UUID,
-        val nickname: String,
-        val agentType: AgentType,
-        val status: BriefingStatus,
-    )
-}
+data class OfficeBriefingItemResponse(
+    val stockName: String,
+    val agents: List<OfficeBriefingAgentResponse>,
+)
+
+data class OfficeBriefingAgentResponse(
+    val briefingId: UUID,
+    val agentId: UUID,
+    val nickname: String,
+    val agentType: AgentType,
+    val status: BriefingStatus,
+)

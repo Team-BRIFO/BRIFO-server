@@ -81,7 +81,7 @@ class UserQueryService(
             stocks =
                 userStockRepository.findAllByUser(user).map {
                     val stock = it.stock
-                    GetMyPageResponse.Stock(
+                    GetMyPageResponse.MyPageStock(
                         stockId = requireNotNull(stock.publicId) { "Persisted stock must have a public id." },
                         name = stock.name,
                     )
@@ -137,7 +137,7 @@ class UserQueryService(
             companyName = user.companyName,
             stocks =
                 stocks.map { stock ->
-                    GetUserProfileResponse.Stock(
+                    GetUserProfileResponse.UserProfileStock(
                         stockId = requireNotNull(stock.publicId) { "Persisted stock must have a public id." },
                         name = stock.name,
                     )
@@ -172,14 +172,14 @@ class UserQueryService(
         }
     }
 
-    private fun mapAgents(userId: Long): List<GetUserHomeResponse.Agent> {
+    private fun mapAgents(userId: Long): List<GetUserHomeResponse.HomeAgent> {
         val agentsByType = agentRepository.findAllByUserId(userId).associateBy { it.agentType }
         check(agentsByType.size == REQUIRED_AGENT_ORDER.size && agentsByType.keys.containsAll(REQUIRED_AGENT_ORDER)) {
             "User must have exactly one agent for every required agent type."
         }
         return REQUIRED_AGENT_ORDER.map { agentType ->
             val agent = requireNotNull(agentsByType[agentType])
-            GetUserHomeResponse.Agent(requireNotNull(agent.publicId), agent.agentType, agent.level)
+            GetUserHomeResponse.HomeAgent(requireNotNull(agent.publicId), agent.agentType, agent.level)
         }
     }
 
@@ -190,12 +190,12 @@ class UserQueryService(
             batchTime = null,
             items =
                 newsCards.map {
-                    GetUserHomeResponse.TodayNewsCards.Item(
+                    GetUserHomeResponse.TodayNewsCards.NewsCardItem(
                         cardId = it.cardId,
                         headline = it.headline,
                         news = GetUserHomeResponse.TodayNewsCards.News(it.newsId, it.publishedAt, it.source),
                         stock =
-                            GetUserHomeResponse.TodayNewsCards.Stock(
+                            GetUserHomeResponse.TodayNewsCards.HomeNewsStock(
                                 it.stockId,
                                 it.stockName,
                                 it.changeRate?.setScale(1, RoundingMode.HALF_UP),

@@ -44,12 +44,12 @@ class ApControllerTest {
         val transactionId = UUID.randomUUID()
         `when`(service.getApTransactions(userId, GetApTransactionsRequest(size = 1))).thenReturn(
             GetApTransactionsResponse(
-                summary = GetApTransactionsResponse.Summary(120, 80, 40),
+                summary = GetApTransactionsResponse.ApSummary(120, 80, 40),
                 page =
                     CursorPage(
                         items =
                             listOf(
-                                GetApTransactionsResponse.Item(
+                                GetApTransactionsResponse.ApTransactionItem(
                                     transactionId,
                                     ApTransactionReason.DECISION_WIN,
                                     80,

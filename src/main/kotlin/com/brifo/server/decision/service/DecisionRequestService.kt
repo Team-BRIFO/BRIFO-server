@@ -63,7 +63,7 @@ class DecisionRequestService(
             decisionId = decision.publicId!!,
             direction = decision.direction,
             confidenceLevel = decision.confidenceLevel.toInt(),
-            stock = CreateDecisionResponse.Stock(
+            stock = CreateDecisionResponse.CreatedDecisionStock(
                 stockId = stock.publicId!!,
                 name = stock.name,
             ),

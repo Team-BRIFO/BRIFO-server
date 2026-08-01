@@ -8,30 +8,30 @@ import java.util.UUID
 data class GetDiaryDetailResponse(
     val diaryId: UUID,
     val shareImageUrl: String?,
-    val stock: Stock,
-    val agent: Agent,
-    val briefing: Briefing,
-    val decision: Decision,
+    val stock: DiaryDetailStock,
+    val agent: DiaryDetailAgent,
+    val briefing: DiaryDetailBriefing,
+    val decision: DiaryDetailDecision,
 ) {
-    data class Stock(
+    data class DiaryDetailStock(
         val stockId: UUID,
         val name: String,
         val changeRate: BigDecimal,
     )
 
-    data class Agent(
+    data class DiaryDetailAgent(
         val agentId: UUID,
         val agentType: AgentType,
         val nickname: String,
     )
 
-    data class Briefing(
+    data class DiaryDetailBriefing(
         val briefingId: UUID,
         val direction: BriefingDirection,
         val confidenceRate: Int,
     )
 
-    data class Decision(
+    data class DiaryDetailDecision(
         val isCorrect: Boolean,
         val confidenceLevel: Int,
     )

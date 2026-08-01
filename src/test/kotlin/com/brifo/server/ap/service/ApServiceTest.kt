@@ -290,8 +290,8 @@ class ApServiceTest {
         `when`(it.dailySalary).thenReturn(dailySalary)
     }
 
-    private fun transactionItem(id: UUID): GetApTransactionsResponse.Item =
-        GetApTransactionsResponse.Item(
+    private fun transactionItem(id: UUID): GetApTransactionsResponse.ApTransactionItem =
+        GetApTransactionsResponse.ApTransactionItem(
             apTransactionId = id,
             reason = ApTransactionReason.TUTORIAL,
             amount = 200,

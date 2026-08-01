@@ -104,7 +104,7 @@ class BriefingControllerTest {
     fun `종목 브리핑 조회는 모든 처리 상태와 미완료 null 결과를 직렬화한다`() {
         val stockId = UUID.randomUUID()
         val items = BriefingStatus.entries.map { statusValue ->
-            GetStockBriefingsResponse.Item(
+            GetStockBriefingsResponse.StockBriefingItem(
                 briefingId = UUID.randomUUID(),
                 status = statusValue,
                 oneLiner = if (statusValue == BriefingStatus.COMPLETED) "완료 의견" else null,

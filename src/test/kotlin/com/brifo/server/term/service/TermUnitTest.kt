@@ -150,8 +150,8 @@ class TermUnitTest {
             `when`(it.category).thenReturn("지표")
         }
 
-    private fun learnedTerm(publicId: UUID): GetMyTermsResponse.Item =
-        GetMyTermsResponse.Item(
+    private fun learnedTerm(publicId: UUID): GetMyTermsResponse.LearnedTermItem =
+        GetMyTermsResponse.LearnedTermItem(
             learnedTermId = publicId,
             termId = UUID.randomUUID(),
             term = "PER",

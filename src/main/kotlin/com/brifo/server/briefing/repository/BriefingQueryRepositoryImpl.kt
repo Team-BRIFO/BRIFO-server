@@ -2,8 +2,9 @@ package com.brifo.server.briefing.repository
 
 import com.brifo.server.agent.entity.QAgent.Companion.agent
 import com.brifo.server.briefing.dto.response.BriefingStockResponse
-import com.brifo.server.briefing.dto.response.GetOfficeBriefingsResponse
 import com.brifo.server.briefing.dto.response.GetStockBriefingsResponse
+import com.brifo.server.briefing.dto.response.OfficeBriefingAgentResponse
+import com.brifo.server.briefing.dto.response.OfficeBriefingItemResponse
 import com.brifo.server.briefing.entity.Briefing
 import com.brifo.server.briefing.entity.QBriefing.Companion.briefing
 import com.brifo.server.briefing.entity.QBriefingNewsCard.Companion.briefingNewsCard
@@ -45,11 +46,11 @@ class BriefingQueryRepositoryImpl(
         userPublicId: UUID,
         stockPublicId: UUID,
         displayDate: LocalDate,
-    ): List<GetStockBriefingsResponse.Item> =
+    ): List<GetStockBriefingsResponse.StockBriefingItem> =
         queryFactory
             .select(
                 Projections.constructor(
-                    GetStockBriefingsResponse.Item::class.java,
+                    GetStockBriefingsResponse.StockBriefingItem::class.java,
                     briefing.publicId,
                     briefing.status,
                     briefing.oneLiner,
@@ -76,7 +77,7 @@ class BriefingQueryRepositoryImpl(
     override fun findOfficeBriefings(
         userPublicId: UUID,
         displayDate: LocalDate,
-    ): List<GetOfficeBriefingsResponse.Item> {
+    ): List<OfficeBriefingItemResponse> {
         val rows = queryFactory
             .select(
                 Projections.constructor(
@@ -104,10 +105,10 @@ class BriefingQueryRepositoryImpl(
             .groupBy(OfficeBriefingRow::stockPublicId)
             .values
             .map { stockRows ->
-                GetOfficeBriefingsResponse.Item(
+                OfficeBriefingItemResponse(
                     stockName = stockRows.first().stockName,
                     agents = stockRows.map { row ->
-                        GetOfficeBriefingsResponse.Agent(
+                        OfficeBriefingAgentResponse(
                             briefingId = row.briefingPublicId,
                             agentId = row.agentPublicId,
                             nickname = row.nickname,
