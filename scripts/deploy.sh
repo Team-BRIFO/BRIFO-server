@@ -10,6 +10,7 @@ ECR_REPOSITORY="brifo-ecr"
 PARAMETER_PREFIX="/brifo/dev"
 
 CONTAINER_NAME="brifo-server"
+DOCKER_NETWORK="brifo-network"
 HOST_PORT="8080"
 CONTAINER_PORT="8080"
 HEALTH_CHECK_TIMEOUT_SECONDS="60"
@@ -38,6 +39,8 @@ run_container() (
 
   DB_URL="$(get_required_parameter "DB_URL")" || return 1
   DB_PASSWORD="$(get_required_parameter "DB_PASSWORD")" || return 1
+  DEV_AUTH_ENABLED="$(get_required_parameter "DEV_AUTH_ENABLED")" || return 1
+  DEV_AUTH_PASSWORD="$(get_required_parameter "DEV_AUTH_PASSWORD")" || return 1
   JWT_SECRET_BASE64="$(get_required_parameter "JWT_SECRET_BASE64")" || return 1
   KAKAO_CLIENT_SECRET="$(get_required_parameter "KAKAO_CLIENT_SECRET")" || return 1
   NAVER_CLIENT_SECRET="$(get_required_parameter "NAVER_CLIENT_SECRET")" || return 1
@@ -45,6 +48,8 @@ run_container() (
   export \
     DB_URL \
     DB_PASSWORD \
+    DEV_AUTH_ENABLED \
+    DEV_AUTH_PASSWORD \
     JWT_SECRET_BASE64 \
     KAKAO_CLIENT_SECRET \
     NAVER_CLIENT_SECRET
@@ -55,12 +60,16 @@ run_container() (
   docker run --detach \
     --name "${CONTAINER_NAME}" \
     --restart unless-stopped \
+    --network "${DOCKER_NETWORK}" \
     --publish "${HOST_PORT}:${CONTAINER_PORT}" \
     --volume "${DB_CA_CERT_HOST_PATH}:${DB_CA_CERT_CONTAINER_PATH}:ro" \
     --env SPRING_PROFILES_ACTIVE=dev \
+    --env REDIS_HOST=brifo-valkey \
     --env DB_URL \
     --env DB_USERNAME="${DB_USERNAME}" \
     --env DB_PASSWORD \
+    --env DEV_AUTH_ENABLED \
+    --env DEV_AUTH_PASSWORD \
     --env JWT_SECRET_BASE64 \
     --env KAKAO_CLIENT_ID="${KAKAO_CLIENT_ID}" \
     --env KAKAO_CLIENT_SECRET \
