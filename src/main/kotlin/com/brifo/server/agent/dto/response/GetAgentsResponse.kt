@@ -4,9 +4,9 @@ import com.brifo.server.agent.entity.AgentType
 import java.util.UUID
 
 data class GetAgentsResponse(
-    val items: List<Item>,
+    val items: List<AgentItem>,
 ) {
-    data class Item(
+    data class AgentItem(
         val agentId: UUID,
         val nickname: String,
         val agentType: AgentType,

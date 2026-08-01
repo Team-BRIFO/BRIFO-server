@@ -13,11 +13,11 @@ class UserLearnedTermQueryRepositoryImpl(
         userId: Long,
         cursor: UUID?,
         limit: Int,
-    ): List<GetMyTermsResponse.Item> =
+    ): List<GetMyTermsResponse.LearnedTermItem> =
         queryFactory
             .select(
                 Projections.constructor(
-                    GetMyTermsResponse.Item::class.java,
+                    GetMyTermsResponse.LearnedTermItem::class.java,
                     userLearnedTerm.publicId,
                     userLearnedTerm.term.publicId,
                     userLearnedTerm.term.term,

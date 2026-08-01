@@ -7,9 +7,9 @@ import java.util.UUID
 
 data class GetStockBriefingsResponse(
     val stock: BriefingStockResponse,
-    val items: List<Item>,
+    val items: List<StockBriefingItem>,
 ) {
-    data class Item(
+    data class StockBriefingItem(
         val briefingId: UUID,
         val status: BriefingStatus,
         val oneLiner: String?,

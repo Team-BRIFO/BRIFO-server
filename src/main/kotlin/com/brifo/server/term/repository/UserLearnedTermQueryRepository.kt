@@ -8,5 +8,5 @@ interface UserLearnedTermQueryRepository {
         userId: Long,
         cursor: UUID?,
         limit: Int,
-    ): List<GetMyTermsResponse.Item>
+    ): List<GetMyTermsResponse.LearnedTermItem>
 }

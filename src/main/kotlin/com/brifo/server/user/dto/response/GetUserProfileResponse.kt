@@ -5,9 +5,9 @@ import java.util.UUID
 data class GetUserProfileResponse(
     val nickname: String,
     val companyName: String,
-    val stocks: List<Stock>,
+    val stocks: List<UserProfileStock>,
 ) {
-    data class Stock(
+    data class UserProfileStock(
         val stockId: UUID,
         val name: String,
     )

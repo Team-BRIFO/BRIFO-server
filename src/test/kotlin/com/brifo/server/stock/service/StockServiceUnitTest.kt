@@ -141,8 +141,8 @@ class StockServiceUnitTest {
     private fun stockItem(
         name: String,
         changeRate: BigDecimal? = BigDecimal("1.0"),
-    ): GetStocksResponse.Item =
-        GetStocksResponse.Item(
+    ): GetStocksResponse.StockItem =
+        GetStocksResponse.StockItem(
             rank = null,
             stockId = UUID.randomUUID(),
             code = "005930",

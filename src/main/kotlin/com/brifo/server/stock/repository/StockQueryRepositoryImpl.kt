@@ -17,7 +17,7 @@ import java.util.UUID
 class StockQueryRepositoryImpl(
     private val queryFactory: JPAQueryFactory,
 ) : StockQueryRepository {
-    override fun findPopularStocks(): List<GetStocksResponse.Item> {
+    override fun findPopularStocks(): List<GetStocksResponse.StockItem> {
         val latestPrice = QDailyStockPrice("latestPrice")
 
         val latestTradeDate =
@@ -28,7 +28,7 @@ class StockQueryRepositoryImpl(
 
         val selectedFields =
             Projections.constructor(
-                GetStocksResponse.Item::class.java,
+                GetStocksResponse.StockItem::class.java,
                 Expressions.nullExpression(Int::class.javaObjectType),
                 stock.publicId,
                 stock.code,
@@ -66,7 +66,7 @@ class StockQueryRepositoryImpl(
         keyword: String,
         cursor: UUID?,
         limit: Int,
-    ): List<GetStocksResponse.Item> {
+    ): List<GetStocksResponse.StockItem> {
         val latestPrice = QDailyStockPrice("latestPrice")
 
         val latestTradeDate =
@@ -93,7 +93,7 @@ class StockQueryRepositoryImpl(
 
         val selectedFields =
             Projections.constructor(
-                GetStocksResponse.Item::class.java,
+                GetStocksResponse.StockItem::class.java,
                 Expressions.nullExpression(Int::class.javaObjectType),
                 stock.publicId,
                 stock.code,

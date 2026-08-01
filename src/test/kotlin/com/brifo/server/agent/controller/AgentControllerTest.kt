@@ -33,7 +33,7 @@ class AgentControllerTest {
         `when`(service.getAgents(userId)).thenReturn(
             GetAgentsResponse(
                 listOf(
-                    GetAgentsResponse.Item(
+                    GetAgentsResponse.AgentItem(
                         agentId = agentId,
                         nickname = "루키",
                         agentType = AgentType.ROOKIE,

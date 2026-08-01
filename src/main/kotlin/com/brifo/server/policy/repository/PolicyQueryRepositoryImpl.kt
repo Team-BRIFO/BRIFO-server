@@ -11,11 +11,11 @@ import com.querydsl.jpa.impl.JPAQueryFactory
 class PolicyQueryRepositoryImpl(
     private val queryFactory: JPAQueryFactory,
 ) : PolicyQueryRepository {
-    override fun findAllActiveWithAgreement(userId: Long): List<GetPoliciesResponse.Item> =
+    override fun findAllActiveWithAgreement(userId: Long): List<GetPoliciesResponse.PolicyItem> =
         queryFactory
             .select(
                 Projections.constructor(
-                    GetPoliciesResponse.Item::class.java,
+                    GetPoliciesResponse.PolicyItem::class.java,
                     policy.publicId,
                     policy.title,
                     policy.isRequired,
@@ -31,11 +31,11 @@ class PolicyQueryRepositoryImpl(
             .orderBy(policy.publicId.asc())
             .fetch()
 
-    override fun findPendingRequired(userId: Long): List<GetPendingPoliciesResponse.Item> =
+    override fun findPendingRequired(userId: Long): List<GetPendingPoliciesResponse.PendingPolicyItem> =
         queryFactory
             .select(
                 Projections.constructor(
-                    GetPendingPoliciesResponse.Item::class.java,
+                    GetPendingPoliciesResponse.PendingPolicyItem::class.java,
                     policy.publicId,
                     policy.title,
                     policy.isRequired,

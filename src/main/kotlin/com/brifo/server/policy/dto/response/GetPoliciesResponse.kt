@@ -3,9 +3,9 @@ package com.brifo.server.policy.dto.response
 import java.util.UUID
 
 data class GetPoliciesResponse(
-    val items: List<Item>,
+    val items: List<PolicyItem>,
 ) {
-    data class Item(
+    data class PolicyItem(
         val policyId: UUID,
         val title: String,
         val isRequired: Boolean,
