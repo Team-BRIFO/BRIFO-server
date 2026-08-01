@@ -48,4 +48,4 @@ logging:
 
 external:
   kis:
-    base-url: https://openapi.koreainvestment.com:9443
+    base-url: ${KIS_BASE_URL}
