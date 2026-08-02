@@ -44,6 +44,7 @@ class DecisionQueryRepositoryImpl(
         displayDate: LocalDate,
     ): List<GetDecisionsResponse.DecisionItem> {
         val latestPrice = QDailyStockPrice("latestPrice")
+        val latestFetchedPrice = QDailyStockPrice("latestFetchedPrice")
         val firstBriefingNewsCard = QBriefingNewsCard("firstBriefingNewsCard")
         val roundedChangeRate = Expressions.numberTemplate(
             BigDecimal::class.java,
@@ -86,6 +87,15 @@ class DecisionQueryRepositoryImpl(
                         .select(latestPrice.tradeDate.max())
                         .from(latestPrice)
                         .where(latestPrice.stock.eq(briefingNewsCard.newsCard.news.stock)),
+                ),
+                dailyStockPrice.fetchedAt.eq(
+                    JPAExpressions
+                        .select(latestFetchedPrice.fetchedAt.max())
+                        .from(latestFetchedPrice)
+                        .where(
+                            latestFetchedPrice.stock.eq(briefingNewsCard.newsCard.news.stock),
+                            latestFetchedPrice.tradeDate.eq(dailyStockPrice.tradeDate),
+                        ),
                 ),
             ).where(
                 decision.briefing.agent.user.publicId.eq(userPublicId),

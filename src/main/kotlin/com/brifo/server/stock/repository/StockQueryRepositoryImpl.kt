@@ -19,12 +19,21 @@ class StockQueryRepositoryImpl(
 ) : StockQueryRepository {
     override fun findPopularStocks(): List<GetStocksResponse.StockItem> {
         val latestPrice = QDailyStockPrice("latestPrice")
+        val latestFetchedPrice = QDailyStockPrice("latestFetchedPrice")
 
         val latestTradeDate =
             JPAExpressions
                 .select(latestPrice.tradeDate.max())
                 .from(latestPrice)
                 .where(latestPrice.stock.eq(stock))
+        val latestFetchedAt =
+            JPAExpressions
+                .select(latestFetchedPrice.fetchedAt.max())
+                .from(latestFetchedPrice)
+                .where(
+                    latestFetchedPrice.stock.eq(stock),
+                    latestFetchedPrice.tradeDate.eq(latestTradeDate),
+                )
 
         val selectedFields =
             Projections.constructor(
@@ -47,6 +56,7 @@ class StockQueryRepositoryImpl(
                 .on(
                     dailyStockPrice.stock.eq(stock),
                     dailyStockPrice.tradeDate.eq(latestTradeDate),
+                    dailyStockPrice.fetchedAt.eq(latestFetchedAt),
                 ).where(stock.isActive.isTrue)
                 .groupBy(
                     stock.publicId,
@@ -68,12 +78,21 @@ class StockQueryRepositoryImpl(
         limit: Int,
     ): List<GetStocksResponse.StockItem> {
         val latestPrice = QDailyStockPrice("latestPrice")
+        val latestFetchedPrice = QDailyStockPrice("latestFetchedPrice")
 
         val latestTradeDate =
             JPAExpressions
                 .select(latestPrice.tradeDate.max())
                 .from(latestPrice)
                 .where(latestPrice.stock.eq(stock))
+        val latestFetchedAt =
+            JPAExpressions
+                .select(latestFetchedPrice.fetchedAt.max())
+                .from(latestFetchedPrice)
+                .where(
+                    latestFetchedPrice.stock.eq(stock),
+                    latestFetchedPrice.tradeDate.eq(latestTradeDate),
+                )
 
         val normalizedName =
             Expressions.stringTemplate(
@@ -110,6 +129,7 @@ class StockQueryRepositoryImpl(
                 .on(
                     dailyStockPrice.stock.eq(stock),
                     dailyStockPrice.tradeDate.eq(latestTradeDate),
+                    dailyStockPrice.fetchedAt.eq(latestFetchedAt),
                 ).where(conditions)
                 .orderBy(stock.publicId.desc())
                 .limit(limit.toLong())
