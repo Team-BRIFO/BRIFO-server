@@ -5,11 +5,8 @@ import com.brifo.server.auth.dto.response.OAuthLoginResponse
 import com.brifo.server.auth.service.OAuthLoginService
 import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.exception.BusinessException
-import com.brifo.server.policy.entity.Policy
-import com.brifo.server.policy.entity.PolicyCode
 import com.brifo.server.policy.repository.PolicyRepository
 import com.brifo.server.policy.service.PolicyService
-import com.brifo.server.stock.entity.Stock
 import com.brifo.server.stock.repository.StockRepository
 import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
 import com.brifo.server.user.dto.response.CompleteOnboardingResponse
@@ -35,6 +32,7 @@ class DevAuthService(
     private val stockRepository: StockRepository,
     private val userRepository: UserRepository,
     private val userService: UserService,
+    private val devOnboardingDataService: DevOnboardingDataService,
 ) {
     @Transactional
     fun signUp(request: DevSignUpRequest): DevSignUpResponse {
@@ -63,40 +61,25 @@ class DevAuthService(
             throw BusinessException(ErrorCode.FORBIDDEN)
         }
 
-        val stock =
-            stockRepository.findAll().firstOrNull { it.isActive }
-                ?: stockRepository.saveAndFlush(createDevStock())
-        val activePolicies =
-            policyRepository.findAll().filter { it.isActive }.ifEmpty {
-                listOf(policyRepository.saveAndFlush(createDevPolicy()))
-            }
+        val stocks = DEV_STOCK_CODES.map { code ->
+            checkNotNull(stockRepository.findByCode(code)) { "Missing dev stock: $code" }
+        }
+        val activePolicies = policyRepository.findAll().filter { it.isActive }
+        check(activePolicies.isNotEmpty()) { "Missing dev policies" }
 
         userService.updateOnboardingProfile(
             userPublicId,
             UpdateOnboardingProfileRequest(
                 nickname = DEV_PROFILE_VALUE,
                 companyName = DEV_PROFILE_VALUE,
-                stockIds = listOf(requireNotNull(stock.publicId)),
+                stockIds = stocks.map { requireNotNull(it.publicId) },
             ),
         )
         policyService.agreePolicies(userPublicId, activePolicies.map { requireNotNull(it.publicId) })
-        return userService.completeOnboarding(userPublicId)
+        val response = userService.completeOnboarding(userPublicId)
+        devOnboardingDataService.seed(userPublicId)
+        return response
     }
-
-    private fun createDevPolicy(): Policy =
-        Policy.create(
-            code = PolicyCode.TERMS_OF_SERVICE,
-            title = DEV_PROFILE_VALUE,
-            content = DEV_PROFILE_VALUE,
-            isRequired = true,
-        )
-
-    private fun createDevStock(): Stock =
-        Stock.create(
-            code = "DEV${UUID.randomUUID().toString().replace("-", "").take(7)}",
-            name = DEV_PROFILE_VALUE,
-            sector = DEV_PROFILE_VALUE,
-        )
 
     private fun verifyPassword(actual: String) {
         val matches =
@@ -112,5 +95,6 @@ class DevAuthService(
     companion object {
         private const val DEV_PROFILE_VALUE = "test"
         private const val DEV_SOCIAL_ID_PREFIX = "dev:"
+        private val DEV_STOCK_CODES = listOf("BRIFO01", "BRIFO02", "BRIFO03")
     }
 }
