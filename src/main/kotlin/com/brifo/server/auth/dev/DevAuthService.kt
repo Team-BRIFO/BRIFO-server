@@ -49,7 +49,9 @@ class DevAuthService(
                 ),
             )
 
-        check(result is OAuthLoginResponse.SignupRequired)
+        if (result !is OAuthLoginResponse.SignupRequired) {
+            throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "Unexpected dev signup result")
+        }
 
         return DevSignUpResponse(signupToken = result.signupToken)
     }
@@ -62,10 +64,13 @@ class DevAuthService(
         }
 
         val stocks = DEV_STOCK_CODES.map { code ->
-            checkNotNull(stockRepository.findByCode(code)) { "Missing dev stock: $code" }
+            stockRepository.findByCode(code)
+                ?: throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "Missing dev stock: $code")
         }
         val activePolicies = policyRepository.findAll().filter { it.isActive }
-        check(activePolicies.isNotEmpty()) { "Missing dev policies" }
+        if (activePolicies.isEmpty()) {
+            throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "Missing dev policies")
+        }
 
         userService.updateOnboardingProfile(
             userPublicId,

@@ -18,6 +18,8 @@ import com.brifo.server.decision.repository.DecisionRepository
 import com.brifo.server.decision.repository.DecisionResultRepository
 import com.brifo.server.diary.entity.DiaryEntry
 import com.brifo.server.diary.repository.DiaryEntryRepository
+import com.brifo.server.global.code.ErrorCode
+import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.news.repository.NewsCardRepository
 import com.brifo.server.notification.entity.NotificationCode
 import com.brifo.server.notification.entity.NotificationTargetType
@@ -56,9 +58,11 @@ class DevOnboardingDataService(
 ) {
     @Transactional
     fun seed(userPublicId: UUID) {
-        val user = checkNotNull(userRepository.findByPublicId(userPublicId))
-        check(decisionRepository.countByBriefingAgentUserId(requireNotNull(user.id)) == 0L) {
-            "Dev onboarding data already exists"
+        val user =
+            userRepository.findByPublicId(userPublicId)
+                ?: throw BusinessException(ErrorCode.NOT_FOUND, "Dev user not found")
+        if (decisionRepository.countByBriefingAgentUserId(requireNotNull(user.id)) != 0L) {
+            throw BusinessException(ErrorCode.CONFLICT, "Dev onboarding data already exists")
         }
 
         apService.createTutorialReward(userPublicId)
@@ -68,21 +72,40 @@ class DevOnboardingDataService(
             agentRepository
                 .findAllByUserPublicIdOrderByAgentTypeAsc(userPublicId)
                 .associateBy { it.agentType }
-        check(agents.keys.containsAll(SCENARIOS.map { it.agentType })) { "Missing onboarding agents" }
+        if (!agents.keys.containsAll(SCENARIOS.map { it.agentType })) {
+            throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "Missing onboarding agents")
+        }
 
         SCENARIOS.forEach { scenario ->
-            val stock = checkNotNull(stockRepository.findByCode(scenario.stockCode))
+            val stock =
+                stockRepository.findByCode(scenario.stockCode)
+                    ?: throw BusinessException(
+                        ErrorCode.INTERNAL_SERVER_ERROR,
+                        "Missing dev stock: ${scenario.stockCode}",
+                    )
             val stockPublicId = requireNotNull(stock.publicId)
             val cards = newsCardRepository.findAnalysisCards(stockPublicId, DEV_DISPLAY_DATE)
-            check(cards.isNotEmpty()) { "Missing dev news cards for ${scenario.stockCode}" }
+            if (cards.isEmpty()) {
+                throw BusinessException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
+                    "Missing dev news cards for ${scenario.stockCode}",
+                )
+            }
             val price =
-                checkNotNull(
-                    dailyStockPriceRepository.findTopByStockIdOrderByTradeDateDescFetchedAtDescIdDesc(
-                        requireNotNull(stock.id),
-                    ),
-                ) { "Missing dev stock prices for ${scenario.stockCode}" }
+                dailyStockPriceRepository.findTopByStockIdOrderByTradeDateDescFetchedAtDescIdDesc(
+                    requireNotNull(stock.id),
+                ) ?: throw BusinessException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
+                    "Missing dev stock prices for ${scenario.stockCode}",
+                )
 
-            val briefing = Briefing.create(cards, checkNotNull(agents[scenario.agentType]))
+            val agent =
+                agents[scenario.agentType]
+                    ?: throw BusinessException(
+                        ErrorCode.INTERNAL_SERVER_ERROR,
+                        "Missing onboarding agent: ${scenario.agentType}",
+                    )
+            val briefing = Briefing.create(cards, agent)
             briefing.startAnalysis()
             briefing.complete(
                 direction = scenario.briefingDirection,
