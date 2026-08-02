@@ -9,5 +9,7 @@ interface StockRepository :
     StockQueryRepository {
     fun findByPublicId(publicId: UUID): Stock?
 
+    fun findByCode(code: String): Stock?
+
     fun findAllByPublicIdInAndIsActiveTrue(publicIds: Collection<UUID>): List<Stock>
 }

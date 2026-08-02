@@ -1,4 +1,6 @@
 spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/dev
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -24,6 +26,9 @@ app:
       read-timeout: 5s
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+  dev-auth:
+    enabled: ${DEV_AUTH_ENABLED:false}
+    password: ${DEV_AUTH_PASSWORD:}
 
 springdoc:
   api-docs:

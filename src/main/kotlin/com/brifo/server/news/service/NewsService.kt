@@ -31,7 +31,7 @@ class NewsService(
         val stock = newsCards.first().news.stock
 
         val price =
-            newsDailyStockPriceRepository.findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDesc(
+            newsDailyStockPriceRepository.findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDescFetchedAtDescIdDesc(
                 stockId = requireNotNull(stock.id),
                 tradeDate = displayDate,
             ) ?: throw BusinessException(

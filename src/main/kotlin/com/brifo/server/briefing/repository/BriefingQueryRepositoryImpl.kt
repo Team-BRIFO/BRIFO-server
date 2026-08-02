@@ -122,6 +122,7 @@ class BriefingQueryRepositoryImpl(
 
     override fun findStockSummary(stockPublicId: UUID): BriefingStockResponse? {
         val latestPrice = QDailyStockPrice("latestPrice")
+        val latestFetchedPrice = QDailyStockPrice("latestFetchedPrice")
 
         return queryFactory
             .select(
@@ -143,6 +144,15 @@ class BriefingQueryRepositoryImpl(
                         .select(latestPrice.tradeDate.max())
                         .from(latestPrice)
                         .where(latestPrice.stock.eq(stock)),
+                ),
+                dailyStockPrice.fetchedAt.eq(
+                    JPAExpressions
+                        .select(latestFetchedPrice.fetchedAt.max())
+                        .from(latestFetchedPrice)
+                        .where(
+                            latestFetchedPrice.stock.eq(stock),
+                            latestFetchedPrice.tradeDate.eq(dailyStockPrice.tradeDate),
+                        ),
                 ),
             ).fetchOne()
     }
