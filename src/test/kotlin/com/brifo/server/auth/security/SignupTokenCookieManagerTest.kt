@@ -79,4 +79,15 @@ class SignupTokenCookieManagerTest {
 
         assertTrue(manager.matchesCsrfToken(request))
     }
+
+    @Test
+    fun `CSRF 쿠키와 헤더의 토큰이 다르면 검증에 실패한다`() {
+        val request =
+            MockHttpServletRequest().apply {
+                setCookies(Cookie(SignupTokenCookieManager.CSRF_COOKIE_NAME, "cookie-token"))
+                addHeader(SignupTokenCookieManager.CSRF_HEADER_NAME, "header-token")
+            }
+
+        assertFalse(manager.matchesCsrfToken(request))
+    }
 }

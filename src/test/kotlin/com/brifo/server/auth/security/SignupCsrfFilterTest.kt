@@ -70,4 +70,22 @@ class SignupCsrfFilterTest {
         assertFalse(filterChainCalled)
         assertTrue(accessDenied)
     }
+
+    @Test
+    fun `Signup 인증의 안전한 조회 요청은 CSRF 검증 없이 전달한다`() {
+        val request = MockHttpServletRequest("GET", "/api/policies")
+        val response = MockHttpServletResponse()
+        var filterChainCalled = false
+        var accessDenied = false
+        val filter =
+            SignupCsrfFilter(signupTokenCookieManager) { _, _, _ ->
+                accessDenied = true
+            }
+        val filterChain = FilterChain { _, _ -> filterChainCalled = true }
+
+        filter.doFilter(request, response, filterChain)
+
+        assertTrue(filterChainCalled)
+        assertFalse(accessDenied)
+    }
 }

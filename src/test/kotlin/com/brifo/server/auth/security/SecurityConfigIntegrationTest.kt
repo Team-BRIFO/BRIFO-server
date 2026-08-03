@@ -179,6 +179,32 @@ class SecurityConfigIntegrationTest @Autowired constructor(
     }
 
     @Test
+    fun `Signup Token 쿠키의 온보딩 완료 요청은 CSRF 토큰이 필요하다`() {
+        val signupToken = jwtTokenProvider.issueSignupToken(UUID.randomUUID())
+
+        mockMvc
+            .perform(
+                post("/api/onboarding/complete")
+                    .cookie(Cookie(SignupTokenCookieManager.COOKIE_NAME, signupToken)),
+            ).andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.code").value("AUTH_403"))
+    }
+
+    @Test
+    fun `Signup Token 쿠키의 약관 동의 요청은 CSRF 토큰이 필요하다`() {
+        val signupToken = jwtTokenProvider.issueSignupToken(UUID.randomUUID())
+
+        mockMvc
+            .perform(
+                post("/api/users/me/policies")
+                    .cookie(Cookie(SignupTokenCookieManager.COOKIE_NAME, signupToken))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("[]"),
+            ).andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.code").value("AUTH_403"))
+    }
+
+    @Test
     fun `Signup Token은 Bearer 헤더로 온보딩 API를 인증할 수 없다`() {
         val signupToken = jwtTokenProvider.issueSignupToken(UUID.randomUUID())
 
