@@ -5,12 +5,14 @@ import com.brifo.server.auth.dto.request.NaverLoginRequest
 import com.brifo.server.auth.dto.request.RefreshTokenRequest
 import com.brifo.server.auth.dto.response.OAuthLoginResponse
 import com.brifo.server.auth.dto.response.ReissueResponse
+import com.brifo.server.auth.security.SignupTokenCookieManager
 import com.brifo.server.auth.service.KakaoLoginService
 import com.brifo.server.auth.service.LogoutService
 import com.brifo.server.auth.service.NaverLoginService
 import com.brifo.server.auth.service.TokenReissueService
 import com.brifo.server.global.code.SuccessCode
 import com.brifo.server.global.common.ApiResponse
+import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.PostMapping
@@ -26,20 +28,25 @@ class AuthController(
     private val naverLoginService: NaverLoginService,
     private val logoutService: LogoutService,
     private val tokenReissueService: TokenReissueService,
+    private val signupTokenCookieManager: SignupTokenCookieManager,
 ) {
     @PostMapping("/login/kakao")
     fun loginWithKakao(
         @Valid @RequestBody request: KakaoLoginRequest,
+        response: HttpServletResponse,
     ): ApiResponse<OAuthLoginResponse> {
         val result = kakaoLoginService.login(request)
+        updateSignupTokenCookie(result, response)
         return ApiResponse.success(SuccessCode.OK, result)
     }
 
     @PostMapping("/login/naver")
     fun loginWithNaver(
         @Valid @RequestBody request: NaverLoginRequest,
+        response: HttpServletResponse,
     ): ApiResponse<OAuthLoginResponse> {
         val result = naverLoginService.login(request)
+        updateSignupTokenCookie(result, response)
         return ApiResponse.success(SuccessCode.OK, result)
     }
 
@@ -58,5 +65,15 @@ class AuthController(
     ): ApiResponse<ReissueResponse> {
         val result = tokenReissueService.reissue(request)
         return ApiResponse.success(SuccessCode.OK, result)
+    }
+
+    private fun updateSignupTokenCookie(
+        result: OAuthLoginResponse,
+        response: HttpServletResponse,
+    ) {
+        when (result) {
+            is OAuthLoginResponse.SignupRequired -> signupTokenCookieManager.set(response, result.signupToken)
+            is OAuthLoginResponse.Login -> signupTokenCookieManager.clear(response)
+        }
     }
 }

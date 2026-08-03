@@ -1,8 +1,10 @@
 package com.brifo.server.global.config
 
+import com.brifo.server.auth.config.SignupTokenCookieProperties
 import com.brifo.server.auth.security.JwtAuthenticationFilter
 import com.brifo.server.auth.security.RestAccessDeniedHandler
 import com.brifo.server.auth.security.RestAuthenticationEntryPoint
+import com.brifo.server.auth.security.SignupTokenCookieManager
 import com.brifo.server.auth.service.JwtTokenProvider
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
@@ -20,13 +22,21 @@ import tools.jackson.databind.ObjectMapper
 
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties(CorsProperties::class, JwtProperties::class, KakaoProperties::class, NaverProperties::class)
+@EnableConfigurationProperties(
+    CorsProperties::class,
+    JwtProperties::class,
+    KakaoProperties::class,
+    NaverProperties::class,
+    SignupTokenCookieProperties::class,
+)
 class SecurityConfig(
     private val corsProperties: CorsProperties,
 ) {
     @Bean
-    fun jwtAuthenticationFilter(jwtTokenProvider: JwtTokenProvider): JwtAuthenticationFilter =
-        JwtAuthenticationFilter(jwtTokenProvider)
+    fun jwtAuthenticationFilter(
+        jwtTokenProvider: JwtTokenProvider,
+        signupTokenCookieManager: SignupTokenCookieManager,
+    ): JwtAuthenticationFilter = JwtAuthenticationFilter(jwtTokenProvider, signupTokenCookieManager)
 
     @Bean
     fun authenticationEntryPoint(objectMapper: ObjectMapper): RestAuthenticationEntryPoint =
@@ -109,7 +119,7 @@ class SecurityConfig(
                 allowedOrigins = corsProperties.allowedOrigins
                 allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 allowedHeaders = listOf("Authorization", "Content-Type")
-                allowCredentials = false
+                allowCredentials = true
             }
 
         return UrlBasedCorsConfigurationSource().apply {
