@@ -3,13 +3,14 @@ package com.brifo.server.auth.security
 import com.brifo.server.auth.config.SignupTokenCookieProperties
 import com.brifo.server.global.config.JwtProperties
 import jakarta.servlet.http.Cookie
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpHeaders
 import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse
 import java.time.Duration
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class SignupTokenCookieManagerTest {
     private val manager =
@@ -27,13 +28,21 @@ class SignupTokenCookieManagerTest {
 
         manager.set(response, "signup-token")
 
-        val setCookie = response.getHeader(HttpHeaders.SET_COOKIE).orEmpty()
-        assertTrue(setCookie.startsWith("${SignupTokenCookieManager.COOKIE_NAME}=signup-token"))
-        assertTrue(setCookie.contains("Path=/api"))
-        assertTrue(setCookie.contains("Max-Age=600"))
-        assertTrue(setCookie.contains("Secure"))
-        assertTrue(setCookie.contains("HttpOnly"))
-        assertTrue(setCookie.contains("SameSite=Lax"))
+        val cookies = response.getHeaders(HttpHeaders.SET_COOKIE)
+        val signupCookie = cookies.single { it.startsWith("${SignupTokenCookieManager.COOKIE_NAME}=") }
+        val csrfCookie = cookies.single { it.startsWith("${SignupTokenCookieManager.CSRF_COOKIE_NAME}=") }
+
+        assertTrue(signupCookie.startsWith("${SignupTokenCookieManager.COOKIE_NAME}=signup-token"))
+        assertTrue(signupCookie.contains("Path=/api"))
+        assertTrue(signupCookie.contains("Max-Age=600"))
+        assertTrue(signupCookie.contains("Secure"))
+        assertTrue(signupCookie.contains("HttpOnly"))
+        assertTrue(signupCookie.contains("SameSite=Lax"))
+        assertTrue(csrfCookie.contains("Path=/api"))
+        assertTrue(csrfCookie.contains("Max-Age=600"))
+        assertTrue(csrfCookie.contains("Secure"))
+        assertTrue(csrfCookie.contains("SameSite=Lax"))
+        assertFalse(csrfCookie.contains("HttpOnly"))
     }
 
     @Test
@@ -42,10 +51,12 @@ class SignupTokenCookieManagerTest {
 
         manager.clear(response)
 
-        val setCookie = response.getHeader(HttpHeaders.SET_COOKIE).orEmpty()
-        assertTrue(setCookie.startsWith("${SignupTokenCookieManager.COOKIE_NAME}="))
-        assertTrue(setCookie.contains("Max-Age=0"))
-        assertTrue(setCookie.contains("Path=/api"))
+        val cookies = response.getHeaders(HttpHeaders.SET_COOKIE)
+        assertEquals(2, cookies.size)
+        assertTrue(cookies.any { it.startsWith("${SignupTokenCookieManager.COOKIE_NAME}=") })
+        assertTrue(cookies.any { it.startsWith("${SignupTokenCookieManager.CSRF_COOKIE_NAME}=") })
+        assertTrue(cookies.all { it.contains("Max-Age=0") })
+        assertTrue(cookies.all { it.contains("Path=/api") })
     }
 
     @Test
@@ -56,5 +67,16 @@ class SignupTokenCookieManagerTest {
             }
 
         assertEquals("signup-token", manager.resolve(request))
+    }
+
+    @Test
+    fun `CSRF 쿠키와 헤더의 토큰이 같으면 검증에 성공한다`() {
+        val request =
+            MockHttpServletRequest().apply {
+                setCookies(Cookie(SignupTokenCookieManager.CSRF_COOKIE_NAME, "csrf-token"))
+                addHeader(SignupTokenCookieManager.CSRF_HEADER_NAME, "csrf-token")
+            }
+
+        assertTrue(manager.matchesCsrfToken(request))
     }
 }

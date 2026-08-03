@@ -30,6 +30,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import java.util.UUID
+import kotlin.test.assertEquals
 
 @ExtendWith(MockitoExtension::class)
 class AuthControllerTest {
@@ -132,7 +133,6 @@ class AuthControllerTest {
 
         val cookieInvocation =
             mockingDetails(signupTokenCookieManager).invocations.single { it.method.name == "set" }
-        org.junit.jupiter.api.Assertions
-            .assertEquals("signup-token", cookieInvocation.arguments[1])
+        assertEquals("signup-token", cookieInvocation.arguments[1])
     }
 }

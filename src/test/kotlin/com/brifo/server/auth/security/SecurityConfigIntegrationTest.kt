@@ -154,11 +154,28 @@ class SecurityConfigIntegrationTest @Autowired constructor(
         mockMvc
             .perform(
                 patch("/api/onboarding/profile")
-                    .cookie(Cookie(SignupTokenCookieManager.COOKIE_NAME, signupToken))
+                    .cookie(
+                        Cookie(SignupTokenCookieManager.COOKIE_NAME, signupToken),
+                        Cookie(SignupTokenCookieManager.CSRF_COOKIE_NAME, "csrf-token"),
+                    ).header(SignupTokenCookieManager.CSRF_HEADER_NAME, "csrf-token")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"nickname":"brifo","stockIds":["$stockId"]}"""),
             ).andExpect(status().isNotFound)
             .andExpect(jsonPath("$.code").value("USER_404"))
+    }
+
+    @Test
+    fun `Signup Token 쿠키의 상태 변경 요청은 CSRF 토큰이 필요하다`() {
+        val signupToken = jwtTokenProvider.issueSignupToken(UUID.randomUUID())
+
+        mockMvc
+            .perform(
+                patch("/api/onboarding/profile")
+                    .cookie(Cookie(SignupTokenCookieManager.COOKIE_NAME, signupToken))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"nickname":"brifo","stockIds":[]}"""),
+            ).andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.code").value("AUTH_403"))
     }
 
     @Test

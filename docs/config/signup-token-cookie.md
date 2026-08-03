@@ -10,8 +10,10 @@
 - `HttpOnly`: 항상 활성화
 - `SameSite`: `Lax`
 - `Secure`: 개발 환경에서는 비활성화하고 운영 환경에서는 활성화
+- CSRF 쿠키: `signup_csrf_token` (프론트엔드에서 읽어 요청 헤더로 전달)
+- CSRF 헤더: `X-Signup-CSRF-Token`
 
-`SameSite=Lax` 정책을 사용하므로 프론트엔드와 API는 동일 사이트에 배포해야 한다. 서로 다른 사이트에서 쿠키를 전달해야 한다면 `SameSite=None; Secure`로 바꾸기 전에 별도의 CSRF 방어를 먼저 도입한다.
+`SameSite=Lax` 정책과 CSRF 쿠키-헤더 일치 검증을 함께 적용한다.
 
 ## 프론트엔드 연동
 
@@ -20,8 +22,13 @@
 ```ts
 fetch(url, {
   credentials: "include",
+  headers: {
+    "X-Signup-CSRF-Token": getCookie("signup_csrf_token"),
+  },
 });
 ```
+
+CSRF 헤더는 signup token으로 인증하는 상태 변경 온보딩 요청에 포함한다. `getCookie`는 프론트엔드의 쿠키 조회 유틸리티를 사용한다.
 
 온보딩이 필요한 로그인 응답에는 `loginType: "SIGNUP_REQUIRED"`만 포함되며 `signupToken` 필드는 반환하지 않는다. 프론트엔드는 토큰을 Web Storage에 저장하거나 `Authorization` 헤더로 전달하지 않는다.
 

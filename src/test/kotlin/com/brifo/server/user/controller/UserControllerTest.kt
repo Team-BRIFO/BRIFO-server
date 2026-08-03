@@ -10,7 +10,6 @@ import com.brifo.server.user.dto.response.GetUserHomeResponse
 import com.brifo.server.user.dto.response.GetUserProfileResponse
 import com.brifo.server.user.service.UserQueryService
 import com.brifo.server.user.service.UserService
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mockingDetails
 import org.mockito.Mockito.verify
@@ -28,6 +27,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.UUID
+import kotlin.test.assertTrue
 
 @WebMvcTest(UserController::class)
 @AutoConfigureMockMvc(addFilters = false)

@@ -4,6 +4,7 @@ import com.brifo.server.auth.config.SignupTokenCookieProperties
 import com.brifo.server.auth.security.JwtAuthenticationFilter
 import com.brifo.server.auth.security.RestAccessDeniedHandler
 import com.brifo.server.auth.security.RestAuthenticationEntryPoint
+import com.brifo.server.auth.security.SignupCsrfFilter
 import com.brifo.server.auth.security.SignupTokenCookieManager
 import com.brifo.server.auth.service.JwtTokenProvider
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -39,6 +40,12 @@ class SecurityConfig(
     ): JwtAuthenticationFilter = JwtAuthenticationFilter(jwtTokenProvider, signupTokenCookieManager)
 
     @Bean
+    fun signupCsrfFilter(
+        signupTokenCookieManager: SignupTokenCookieManager,
+        accessDeniedHandler: RestAccessDeniedHandler,
+    ): SignupCsrfFilter = SignupCsrfFilter(signupTokenCookieManager, accessDeniedHandler)
+
+    @Bean
     fun authenticationEntryPoint(objectMapper: ObjectMapper): RestAuthenticationEntryPoint =
         RestAuthenticationEntryPoint(objectMapper)
 
@@ -50,10 +57,12 @@ class SecurityConfig(
     fun securityFilterChain(
         http: HttpSecurity,
         jwtAuthenticationFilter: JwtAuthenticationFilter,
+        signupCsrfFilter: SignupCsrfFilter,
         authenticationEntryPoint: RestAuthenticationEntryPoint,
         accessDeniedHandler: RestAccessDeniedHandler,
     ): SecurityFilterChain =
         http
+            // Cookie-authenticated signup requests are protected by SignupCsrfFilter.
             .csrf { it.disable() }
             .cors { }
             .sessionManagement {
@@ -110,6 +119,7 @@ class SecurityConfig(
                     )
                 it.anyRequest().hasAuthority(JwtAuthenticationFilter.ACCESS_AUTHORITY)
             }.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .addFilterAfter(signupCsrfFilter, JwtAuthenticationFilter::class.java)
             .build()
 
     @Bean
@@ -118,7 +128,7 @@ class SecurityConfig(
             CorsConfiguration().apply {
                 allowedOrigins = corsProperties.allowedOrigins
                 allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-                allowedHeaders = listOf("Authorization", "Content-Type")
+                allowedHeaders = listOf("Authorization", "Content-Type", SignupTokenCookieManager.CSRF_HEADER_NAME)
                 allowCredentials = true
             }
 
