@@ -5,6 +5,7 @@ import com.brifo.server.global.code.SuccessCode
 import com.brifo.server.global.common.ApiResponse
 import com.brifo.server.user.dto.response.CompleteOnboardingResponse
 import jakarta.servlet.http.HttpServletResponse
+import jakarta.validation.Valid
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Profile
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -24,7 +25,7 @@ class DevAuthController(
 ) {
     @PostMapping("/signup")
     fun signUp(
-        @RequestBody request: DevSignUpRequest,
+        @Valid @RequestBody request: DevSignUpRequest,
         response: HttpServletResponse,
     ): ApiResponse<DevSignUpResponse> {
         val result = devAuthService.signUp(request)
