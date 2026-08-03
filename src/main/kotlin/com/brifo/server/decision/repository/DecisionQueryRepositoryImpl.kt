@@ -42,8 +42,9 @@ class DecisionQueryRepositoryImpl(
     override fun findTodayUnsettledDecisions(
         userPublicId: UUID,
         displayDate: LocalDate,
-    ): List<GetDecisionsResponse.Item> {
+    ): List<GetDecisionsResponse.DecisionItem> {
         val latestPrice = QDailyStockPrice("latestPrice")
+        val latestFetchedPrice = QDailyStockPrice("latestFetchedPrice")
         val firstBriefingNewsCard = QBriefingNewsCard("firstBriefingNewsCard")
         val roundedChangeRate = Expressions.numberTemplate(
             BigDecimal::class.java,
@@ -58,17 +59,17 @@ class DecisionQueryRepositoryImpl(
         return queryFactory
             .select(
                 Projections.constructor(
-                    GetDecisionsResponse.Item::class.java,
+                    GetDecisionsResponse.DecisionItem::class.java,
                     decision.publicId,
                     decision.direction,
                     decision.confidenceLevel.intValue(),
                     Projections.constructor(
-                        GetDecisionsResponse.Agent::class.java,
+                        GetDecisionsResponse.DecisionListAgent::class.java,
                         decision.briefing.agent.publicId,
                         decision.briefing.agent.agentType,
                     ),
                     Projections.constructor(
-                        GetDecisionsResponse.Stock::class.java,
+                        GetDecisionsResponse.DecisionListStock::class.java,
                         briefingNewsCard.newsCard.news.stock.publicId,
                         briefingNewsCard.newsCard.news.stock.name,
                         price,
@@ -86,6 +87,15 @@ class DecisionQueryRepositoryImpl(
                         .select(latestPrice.tradeDate.max())
                         .from(latestPrice)
                         .where(latestPrice.stock.eq(briefingNewsCard.newsCard.news.stock)),
+                ),
+                dailyStockPrice.fetchedAt.eq(
+                    JPAExpressions
+                        .select(latestFetchedPrice.fetchedAt.max())
+                        .from(latestFetchedPrice)
+                        .where(
+                            latestFetchedPrice.stock.eq(briefingNewsCard.newsCard.news.stock),
+                            latestFetchedPrice.tradeDate.eq(dailyStockPrice.tradeDate),
+                        ),
                 ),
             ).where(
                 decision.briefing.agent.user.publicId.eq(userPublicId),
@@ -128,12 +138,12 @@ class DecisionQueryRepositoryImpl(
                     decision.direction,
                     decision.confidenceLevel.intValue(),
                     Projections.constructor(
-                        GetDecisionResultResponse.Agent::class.java,
+                        GetDecisionResultResponse.DecisionResultAgent::class.java,
                         decision.briefing.agent.publicId,
                         decision.briefing.agent.agentType,
                     ),
                     Projections.constructor(
-                        GetDecisionResultResponse.Stock::class.java,
+                        GetDecisionResultResponse.DecisionResultStock::class.java,
                         decisionResult.dailyStockPrice.stock.name,
                         price,
                         roundedChangeRate,

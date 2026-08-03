@@ -42,7 +42,7 @@ class PolicyControllerTest {
         val policyId = UUID.randomUUID()
         `when`(policyService.getPolicies(userId)).thenReturn(
             GetPoliciesResponse(
-                listOf(GetPoliciesResponse.Item(policyId, "서비스 이용약관", true, true)),
+                listOf(GetPoliciesResponse.PolicyItem(policyId, "서비스 이용약관", true, true)),
             ),
         )
 
@@ -93,7 +93,7 @@ class PolicyControllerTest {
         val policyId = UUID.randomUUID()
         `when`(policyService.getPendingPolicies(userId)).thenReturn(
             GetPendingPoliciesResponse(
-                listOf(GetPendingPoliciesResponse.Item(policyId, "필수 약관", true, BigDecimal("2.00"))),
+                listOf(GetPendingPoliciesResponse.PendingPolicyItem(policyId, "필수 약관", true, BigDecimal("2.00"))),
             ),
         )
 

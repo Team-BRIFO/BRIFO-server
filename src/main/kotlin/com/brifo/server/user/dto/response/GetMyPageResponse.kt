@@ -11,9 +11,9 @@ data class GetMyPageResponse(
     val totalDecision: Int,
     val consecutiveDays: Int,
     val learnedTermCount: Int,
-    val stocks: List<Stock>,
+    val stocks: List<MyPageStock>,
 ) {
-    data class Stock(
+    data class MyPageStock(
         val stockId: UUID,
         val name: String,
     )

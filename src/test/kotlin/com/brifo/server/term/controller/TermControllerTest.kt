@@ -95,7 +95,7 @@ class TermControllerTest {
                     CursorPage(
                         items =
                             listOf(
-                                GetMyTermsResponse.Item(
+                                GetMyTermsResponse.LearnedTermItem(
                                     learnedTermId = learnedTermId,
                                     termId = termId,
                                     term = "PER",

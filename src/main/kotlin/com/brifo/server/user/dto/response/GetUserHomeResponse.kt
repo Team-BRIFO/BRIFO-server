@@ -8,7 +8,7 @@ import java.util.UUID
 
 data class GetUserHomeResponse(
     val user: User,
-    val agents: List<Agent>,
+    val agents: List<HomeAgent>,
     val todayDecisions: TodayDecisions,
     val todayNewsCards: TodayNewsCards,
 ) {
@@ -18,7 +18,7 @@ data class GetUserHomeResponse(
         val balanceAp: Int,
     )
 
-    data class Agent(
+    data class HomeAgent(
         val agentId: UUID,
         val agentType: AgentType,
         val level: Int,
@@ -30,13 +30,13 @@ data class GetUserHomeResponse(
 
     data class TodayNewsCards(
         val batchTime: LocalDateTime?,
-        val items: List<Item>,
+        val items: List<NewsCardItem>,
     ) {
-        data class Item(
+        data class NewsCardItem(
             val cardId: UUID,
             val headline: String,
             val news: News,
-            val stock: Stock,
+            val stock: HomeNewsStock,
         )
 
         data class News(
@@ -45,7 +45,7 @@ data class GetUserHomeResponse(
             val source: NewsSource,
         )
 
-        data class Stock(
+        data class HomeNewsStock(
             val stockId: UUID,
             val name: String,
             val changeRate: BigDecimal?,

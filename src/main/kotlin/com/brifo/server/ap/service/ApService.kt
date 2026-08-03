@@ -60,7 +60,7 @@ class ApService(
     private fun getApSummary(
         user: User,
         today: LocalDate,
-    ): GetApTransactionsResponse.Summary {
+    ): GetApTransactionsResponse.ApSummary {
         val monthStart = today.withDayOfMonth(1).atStartOfDay()
         val nextMonthStart = monthStart.plusMonths(1)
         val monthlyAmounts =
@@ -70,7 +70,7 @@ class ApService(
                 nextMonthStart = nextMonthStart,
             )
 
-        return GetApTransactionsResponse.Summary(
+        return GetApTransactionsResponse.ApSummary(
             balanceAp = user.balanceAp,
             monthlyEarnedAp = monthlyAmounts.earnedAp,
             monthlyLostAp = monthlyAmounts.lostAp,
@@ -80,7 +80,7 @@ class ApService(
     private fun getApTransactionPage(
         userId: Long,
         request: GetApTransactionsRequest,
-    ): CursorPage<GetApTransactionsResponse.Item> {
+    ): CursorPage<GetApTransactionsResponse.ApTransactionItem> {
         val transactions =
             apTransactionRepository.findPageByUserId(
                 userId = userId,

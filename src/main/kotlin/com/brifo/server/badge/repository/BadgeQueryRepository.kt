@@ -5,7 +5,7 @@ import com.brifo.server.badge.dto.response.GetOwnedBadgeResponse
 import java.util.UUID
 
 interface BadgeQueryRepository {
-    fun findAllWithOwnership(userPublicId: UUID): List<GetBadgesResponse.Item>
+    fun findAllWithOwnership(userPublicId: UUID): List<GetBadgesResponse.BadgeItem>
 
     fun findOwnedBadge(
         userPublicId: UUID,

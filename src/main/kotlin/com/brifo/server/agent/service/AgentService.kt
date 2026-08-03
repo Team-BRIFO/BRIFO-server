@@ -20,7 +20,7 @@ class AgentService(
     fun getAgents(userPublicId: UUID): GetAgentsResponse =
         GetAgentsResponse(
             items = agentRepository.findAgentSummaries(userPublicId).map { summary ->
-                GetAgentsResponse.Item(
+                GetAgentsResponse.AgentItem(
                     agentId = summary.publicId,
                     nickname = summary.nickname,
                     agentType = summary.agentType,

@@ -36,9 +36,9 @@ class DiaryService(
         )
         val hasNext = rows.size > request.size
         val items = rows.take(request.size).map { row ->
-            GetDiariesResponse.Item(
+            GetDiariesResponse.DiaryItem(
                 diaryId = row.diaryId,
-                stock = GetDiariesResponse.Stock(
+                stock = GetDiariesResponse.DiaryListStock(
                     stockId = row.stockId,
                     name = row.stockName,
                     price = row.price.setScale(0, RoundingMode.HALF_UP).longValueExact(),
@@ -46,7 +46,7 @@ class DiaryService(
                     tradeDate = row.tradeDate,
                     logoUrl = row.logoUrl,
                 ),
-                decision = GetDiariesResponse.Decision(row.direction, row.apDelta, row.isCorrect),
+                decision = GetDiariesResponse.DiaryListDecision(row.direction, row.apDelta, row.isCorrect),
             )
         }
 
@@ -70,18 +70,18 @@ class DiaryService(
         return GetDiaryDetailResponse(
             diaryId = row.diaryId,
             shareImageUrl = row.shareImageUrl,
-            stock = GetDiaryDetailResponse.Stock(
+            stock = GetDiaryDetailResponse.DiaryDetailStock(
                 stockId = row.stockId,
                 name = row.stockName,
                 changeRate = row.changeRate.setScale(1, RoundingMode.HALF_UP),
             ),
-            agent = GetDiaryDetailResponse.Agent(row.agentId, row.agentType, row.agentNickname),
-            briefing = GetDiaryDetailResponse.Briefing(
+            agent = GetDiaryDetailResponse.DiaryDetailAgent(row.agentId, row.agentType, row.agentNickname),
+            briefing = GetDiaryDetailResponse.DiaryDetailBriefing(
                 row.briefingId,
                 row.briefingDirection,
                 row.briefingConfidenceRate.toInt(),
             ),
-            decision = GetDiaryDetailResponse.Decision(row.isCorrect, row.confidenceLevel.toInt()),
+            decision = GetDiaryDetailResponse.DiaryDetailDecision(row.isCorrect, row.confidenceLevel.toInt()),
         )
     }
 

@@ -79,19 +79,19 @@ class BriefingQueryService(
 
         return GetBriefingDetailResponse(
             stock = stock,
-            agent = GetBriefingDetailResponse.Agent(
+            agent = GetBriefingDetailResponse.BriefingDetailAgent(
                 agentId = briefing.agent.publicId!!,
                 agentType = briefing.agent.agentType,
                 nickname = briefing.agent.nickname,
                 modelName = briefing.agent.modelName,
             ),
             newsCards = briefing.newsCards.map { newsCard ->
-                GetBriefingDetailResponse.NewsCard(
+                GetBriefingDetailResponse.BriefingNewsCard(
                     cardId = newsCard.publicId!!,
                     headline = newsCard.headline,
                 )
             },
-            briefing = GetBriefingDetailResponse.Briefing(
+            briefing = GetBriefingDetailResponse.BriefingDetailContent(
                 briefingId = briefing.publicId!!,
                 direction = checkNotNull(briefing.direction),
                 confidenceRate = checkNotNull(briefing.confidenceRate).toInt(),

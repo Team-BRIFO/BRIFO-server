@@ -16,7 +16,7 @@ interface DecisionQueryRepository {
     fun findTodayUnsettledDecisions(
         userPublicId: UUID,
         displayDate: LocalDate,
-    ): List<GetDecisionsResponse.Item>
+    ): List<GetDecisionsResponse.DecisionItem>
 
     fun findDecisionResults(
         userPublicId: UUID,

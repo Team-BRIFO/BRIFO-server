@@ -7,15 +7,15 @@ import java.time.LocalDate
 import java.util.UUID
 
 data class GetDiariesResponse(
-    val page: CursorPage<Item>,
+    val page: CursorPage<DiaryItem>,
 ) {
-    data class Item(
+    data class DiaryItem(
         val diaryId: UUID,
-        val stock: Stock,
-        val decision: Decision,
+        val stock: DiaryListStock,
+        val decision: DiaryListDecision,
     )
 
-    data class Stock(
+    data class DiaryListStock(
         val stockId: UUID,
         val name: String,
         val price: Long,
@@ -24,7 +24,7 @@ data class GetDiariesResponse(
         val logoUrl: String?,
     )
 
-    data class Decision(
+    data class DiaryListDecision(
         val direction: DecisionDirection,
         val apDelta: Int,
         val isCorrect: Boolean,

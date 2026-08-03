@@ -27,7 +27,7 @@ class DiaryStatsCalculator(
         val recentCorrectCount = recentRows.count { it.isCorrect }
 
         return GetDiaryStatsResponse(
-            summary = GetDiaryStatsResponse.Summary(
+            summary = GetDiaryStatsResponse.DiaryStatsSummary(
                 recent30DaysSettledDecisionCount = recentRows.size,
                 recent30DaysCorrectDecisionCount = recentCorrectCount,
                 recent30DaysAccuracyRate = accuracyRate(recentCorrectCount, recentRows.size),

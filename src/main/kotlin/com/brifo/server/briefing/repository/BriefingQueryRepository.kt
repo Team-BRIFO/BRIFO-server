@@ -1,8 +1,8 @@
 package com.brifo.server.briefing.repository
 
 import com.brifo.server.briefing.dto.response.BriefingStockResponse
-import com.brifo.server.briefing.dto.response.GetOfficeBriefingsResponse
 import com.brifo.server.briefing.dto.response.GetStockBriefingsResponse
+import com.brifo.server.briefing.dto.response.OfficeBriefingItemResponse
 import com.brifo.server.briefing.entity.Briefing
 import java.time.LocalDate
 import java.util.UUID
@@ -18,12 +18,12 @@ interface BriefingQueryRepository {
         userPublicId: UUID,
         stockPublicId: UUID,
         displayDate: LocalDate,
-    ): List<GetStockBriefingsResponse.Item>
+    ): List<GetStockBriefingsResponse.StockBriefingItem>
 
     fun findOfficeBriefings(
         userPublicId: UUID,
         displayDate: LocalDate,
-    ): List<GetOfficeBriefingsResponse.Item>
+    ): List<OfficeBriefingItemResponse>
 
     fun findStockSummary(stockPublicId: UUID): BriefingStockResponse?
 

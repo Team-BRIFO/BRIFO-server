@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import java.time.LocalDate
 
 interface NewsDailyStockPriceRepository : JpaRepository<DailyStockPrice, Long> {
-    fun findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDesc(
+    fun findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDescFetchedAtDescIdDesc(
         stockId: Long,
         tradeDate: LocalDate,
     ): DailyStockPrice?
