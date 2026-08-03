@@ -25,7 +25,7 @@ class AiCardNewsClient(
         ) {
             restClient
                 .post()
-                .uri("/card-news") // AI 측 실제 API 경로로 변경
+                .uri("/ai/news/summarize") // AI 측 실제 API 경로로 변경
                 .body(request)
                 .retrieve()
                 .toEntity(CardNewsClient.Response::class.java)
