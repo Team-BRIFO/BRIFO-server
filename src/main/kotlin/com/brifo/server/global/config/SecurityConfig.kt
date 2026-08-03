@@ -129,6 +129,7 @@ class SecurityConfig(
                 allowedOrigins = corsProperties.allowedOrigins
                 allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 allowedHeaders = listOf("Authorization", "Content-Type", SignupTokenCookieManager.CSRF_HEADER_NAME)
+                exposedHeaders = listOf(SignupTokenCookieManager.CSRF_HEADER_NAME)
                 allowCredentials = true
             }
 

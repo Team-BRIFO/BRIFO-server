@@ -27,13 +27,15 @@ class SignupTokenCookieManager(
         response: HttpServletResponse,
         signupToken: String,
     ) {
+        val csrfToken = newCsrfToken()
         addCookie(response, cookie(COOKIE_NAME, signupToken, jwtProperties.signupTokenExpiration, httpOnly = true))
-        addCookie(response, cookie(CSRF_COOKIE_NAME, newCsrfToken(), jwtProperties.signupTokenExpiration, httpOnly = false))
+        addCookie(response, cookie(CSRF_COOKIE_NAME, csrfToken, jwtProperties.signupTokenExpiration, httpOnly = true))
+        response.setHeader(CSRF_HEADER_NAME, csrfToken)
     }
 
     fun clear(response: HttpServletResponse) {
         addCookie(response, cookie(COOKIE_NAME, "", Duration.ZERO, httpOnly = true))
-        addCookie(response, cookie(CSRF_COOKIE_NAME, "", Duration.ZERO, httpOnly = false))
+        addCookie(response, cookie(CSRF_COOKIE_NAME, "", Duration.ZERO, httpOnly = true))
     }
 
     private fun cookie(

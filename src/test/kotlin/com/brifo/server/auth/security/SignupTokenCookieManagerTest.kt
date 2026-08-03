@@ -42,7 +42,11 @@ class SignupTokenCookieManagerTest {
         assertTrue(csrfCookie.contains("Max-Age=600"))
         assertTrue(csrfCookie.contains("Secure"))
         assertTrue(csrfCookie.contains("SameSite=Lax"))
-        assertFalse(csrfCookie.contains("HttpOnly"))
+        assertTrue(csrfCookie.contains("HttpOnly"))
+        assertEquals(
+            csrfCookie.substringAfter('=').substringBefore(';'),
+            response.getHeader(SignupTokenCookieManager.CSRF_HEADER_NAME),
+        )
     }
 
     @Test
