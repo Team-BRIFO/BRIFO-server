@@ -11,10 +11,10 @@ class AiCardNewsClient(
     @Qualifier("aiRestClient")
     private val restClient: RestClient,
     private val externalApiCallService: ExternalApiCallService,
-) : CardNewsClient {
+) : NewsSummaryClient {
     override fun createCardNews(
-        request: CardNewsClient.Request,
-    ): CardNewsClient.Response {
+        request: NewsSummaryClient.Request,
+    ): NewsSummaryClient.Response {
         return externalApiCallService.execute(
             provider = "AI",
             apiName = "CREATE_CARD_NEWS",
@@ -28,7 +28,7 @@ class AiCardNewsClient(
                 .uri("/ai/news/summarize") // AI 측 실제 API 경로로 변경
                 .body(request)
                 .retrieve()
-                .toEntity(CardNewsClient.Response::class.java)
+                .toEntity(NewsSummaryClient.Response::class.java)
         }
     }
 }
