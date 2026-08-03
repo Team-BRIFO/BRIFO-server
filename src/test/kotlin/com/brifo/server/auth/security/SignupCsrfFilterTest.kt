@@ -54,7 +54,7 @@ class SignupCsrfFilterTest {
     }
 
     @Test
-    fun `Signup 인증 요청의 CSRF 토큰이 일치하지 않으면 요청을 거부한다`() {
+    fun `Signup 인증 요청의 CSRF 검증이 실패하면 요청을 거부한다`() {
         val request = MockHttpServletRequest("POST", "/api/onboarding/complete")
         val response = MockHttpServletResponse()
         var filterChainCalled = false
@@ -64,6 +64,7 @@ class SignupCsrfFilterTest {
                 accessDenied = true
             }
         val filterChain = FilterChain { _, _ -> filterChainCalled = true }
+        `when`(signupTokenCookieManager.matchesCsrfToken(request)).thenReturn(false)
 
         filter.doFilter(request, response, filterChain)
 
