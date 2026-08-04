@@ -9,6 +9,8 @@ import java.util.UUID
 data class GetUserHomeResponse(
     val user: User,
     val agents: List<HomeAgent>,
+    val attendedToday: Boolean,
+    val weeklyAttendanceDays: Int,
     val todayDecisions: TodayDecisions,
     val todayNewsCards: TodayNewsCards,
 ) {
