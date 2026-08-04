@@ -131,6 +131,20 @@ class UserQueryServiceTest {
             )
         `when`(userRepository.findByPublicId(userId)).thenReturn(user)
         `when`(agentRepository.findAllByUserId(7L)).thenReturn(agents)
+        `when`(
+            attendanceRewardRepository.existsByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                7L,
+                LocalDateTime.of(2026, 7, 21, 0, 0),
+                LocalDateTime.of(2026, 7, 22, 0, 0),
+            ),
+        ).thenReturn(true)
+        `when`(
+            attendanceRewardRepository.countByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                7L,
+                LocalDateTime.of(2026, 7, 20, 0, 0),
+                LocalDateTime.of(2026, 7, 27, 0, 0),
+            ),
+        ).thenReturn(2)
         `when`(decisionRepository.countByUserIdWithinPeriod(
             7L,
             LocalDateTime.of(2026, 7, 21, 0, 0),
@@ -144,6 +158,8 @@ class UserQueryServiceTest {
         val response = queryService.getUserHome(userId)
 
         assertEquals(listOf(AgentType.ROOKIE, AgentType.TANKER, AgentType.PRO), response.agents.map { it.agentType })
+        assertEquals(true, response.attendedToday)
+        assertEquals(2, response.weeklyAttendanceDays)
         assertEquals(2, response.todayDecisions.count)
         assertEquals(null, response.todayNewsCards.batchTime)
         assertEquals(card.cardId, response.todayNewsCards.items.single().cardId)
@@ -162,6 +178,8 @@ class UserQueryServiceTest {
 
         val response = queryService.getUserHome(userId)
 
+        assertEquals(false, response.attendedToday)
+        assertEquals(0, response.weeklyAttendanceDays)
         assertEquals(null, response.todayNewsCards.batchTime)
         assertEquals(emptyList<Any>(), response.todayNewsCards.items)
         verify(userHomeQueryRepository).findTodayNewsCards(7L, LocalDate.of(2026, 7, 21))
