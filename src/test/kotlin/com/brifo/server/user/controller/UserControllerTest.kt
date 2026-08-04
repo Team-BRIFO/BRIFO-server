@@ -105,7 +105,7 @@ class UserControllerTest {
     }
 
     @Test
-    fun `홈 조회 요청을 조회 서비스에 전달한다`() {
+    fun `홈 조회 응답을 직렬화하고 조회 서비스에 전달한다`() {
         val userId = authenticatedUserId()
         `when`(userQueryService.getUserHome(userId)).thenReturn(
             GetUserHomeResponse(
