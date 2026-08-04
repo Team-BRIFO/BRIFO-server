@@ -105,12 +105,14 @@ class UserControllerTest {
     }
 
     @Test
-    fun `홈 조회 요청을 조회 서비스에 전달한다`() {
+    fun `홈 조회 응답을 직렬화하고 조회 서비스에 전달한다`() {
         val userId = authenticatedUserId()
         `when`(userQueryService.getUserHome(userId)).thenReturn(
             GetUserHomeResponse(
                 user = GetUserHomeResponse.User("brifo", "회사", 0),
                 agents = emptyList(),
+                attendedToday = true,
+                weeklyAttendanceDays = 3,
                 todayDecisions = GetUserHomeResponse.TodayDecisions(0),
                 todayNewsCards = GetUserHomeResponse.TodayNewsCards(null, emptyList()),
             ),
@@ -120,6 +122,8 @@ class UserControllerTest {
             .perform(get("/api/users/me/home").param("userId", userId.toString()))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.code").value("COMMON_200"))
+            .andExpect(jsonPath("$.result.attendedToday").value(true))
+            .andExpect(jsonPath("$.result.weeklyAttendanceDays").value(3))
 
         verify(userQueryService).getUserHome(userId)
     }

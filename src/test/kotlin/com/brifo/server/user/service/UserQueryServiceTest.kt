@@ -119,7 +119,7 @@ class UserQueryServiceTest {
     }
 
     @Test
-    fun `홈 조회는 에이전트 순서와 오늘 범위 및 카드뉴스를 반영한다`() {
+    fun `홈 조회는 에이전트 순서와 출석 현황 및 오늘 범위와 카드뉴스를 반영한다`() {
         val userId = UUID.randomUUID()
         val user = completedUser()
         val card = newsCard()
@@ -131,6 +131,20 @@ class UserQueryServiceTest {
             )
         `when`(userRepository.findByPublicId(userId)).thenReturn(user)
         `when`(agentRepository.findAllByUserId(7L)).thenReturn(agents)
+        `when`(
+            attendanceRewardRepository.existsByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                7L,
+                LocalDateTime.of(2026, 7, 21, 0, 0),
+                LocalDateTime.of(2026, 7, 22, 0, 0),
+            ),
+        ).thenReturn(true)
+        `when`(
+            attendanceRewardRepository.countByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                7L,
+                LocalDateTime.of(2026, 7, 20, 0, 0),
+                LocalDateTime.of(2026, 7, 27, 0, 0),
+            ),
+        ).thenReturn(2)
         `when`(decisionRepository.countByUserIdWithinPeriod(
             7L,
             LocalDateTime.of(2026, 7, 21, 0, 0),
@@ -144,6 +158,8 @@ class UserQueryServiceTest {
         val response = queryService.getUserHome(userId)
 
         assertEquals(listOf(AgentType.ROOKIE, AgentType.TANKER, AgentType.PRO), response.agents.map { it.agentType })
+        assertEquals(true, response.attendedToday)
+        assertEquals(2, response.weeklyAttendanceDays)
         assertEquals(2, response.todayDecisions.count)
         assertEquals(null, response.todayNewsCards.batchTime)
         assertEquals(card.cardId, response.todayNewsCards.items.single().cardId)
@@ -151,19 +167,45 @@ class UserQueryServiceTest {
     }
 
     @Test
-    fun `배치 시각이 없어도 오늘 카드뉴스를 조회한다`() {
+    fun `출석과 배치 시각이 없으면 기본 출석 현황과 오늘 카드뉴스를 반환한다`() {
         val userId = UUID.randomUUID()
         val user = completedUser()
         val agents = requiredAgents()
         `when`(userRepository.findByPublicId(userId)).thenReturn(user)
         `when`(agentRepository.findAllByUserId(7L)).thenReturn(agents)
+        `when`(
+            attendanceRewardRepository.existsByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                7L,
+                LocalDateTime.of(2026, 7, 21, 0, 0),
+                LocalDateTime.of(2026, 7, 22, 0, 0),
+            ),
+        ).thenReturn(false)
+        `when`(
+            attendanceRewardRepository.countByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                7L,
+                LocalDateTime.of(2026, 7, 20, 0, 0),
+                LocalDateTime.of(2026, 7, 27, 0, 0),
+            ),
+        ).thenReturn(0L)
         `when`(userHomeQueryRepository.findTodayNewsCards(7L, LocalDate.of(2026, 7, 21)))
             .thenReturn(emptyList())
 
         val response = queryService.getUserHome(userId)
 
+        assertEquals(false, response.attendedToday)
+        assertEquals(0, response.weeklyAttendanceDays)
         assertEquals(null, response.todayNewsCards.batchTime)
         assertEquals(emptyList<Any>(), response.todayNewsCards.items)
+        verify(attendanceRewardRepository).existsByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+            7L,
+            LocalDateTime.of(2026, 7, 21, 0, 0),
+            LocalDateTime.of(2026, 7, 22, 0, 0),
+        )
+        verify(attendanceRewardRepository).countByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+            7L,
+            LocalDateTime.of(2026, 7, 20, 0, 0),
+            LocalDateTime.of(2026, 7, 27, 0, 0),
+        )
         verify(userHomeQueryRepository).findTodayNewsCards(7L, LocalDate.of(2026, 7, 21))
     }
 
