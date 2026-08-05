@@ -1,14 +1,17 @@
 package com.brifo.server.externalapi.log.config
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import com.fasterxml.jackson.databind.ObjectMapper
 
-// 생성자 주입을 하기 위해 ObjectMapper 객체를 Spring에 등록하는 코드
 @Configuration
 class ExternalApiCallLogConfig {
     @Bean
     fun externalApiCallLogObjectMapper(): ObjectMapper {
         return ObjectMapper()
+            .registerModule(JavaTimeModule())
+            .registerModule(KotlinModule.Builder().build())
     }
 }

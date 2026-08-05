@@ -25,6 +25,7 @@ class StockCurrentPriceCacheRepositoryTest {
             redisTemplate = redisTemplate,
             objectMapper = objectMapper,
             cacheTtl = Duration.ofSeconds(60),
+            lastSuccessTtl = Duration.ofMinutes(3),
         )
 
     @Test
@@ -46,9 +47,34 @@ class StockCurrentPriceCacheRepositoryTest {
         repository.save(price)
 
         verify(valueOperations).set(
-            "stock:current-price:005930",
+            "stock:delayed-price:005930",
             """{"code":"005930"}""",
             Duration.ofSeconds(60),
+        )
+    }
+
+    @Test
+    fun `마지막 성공값을 3분간 저장한다`() {
+        val price =
+            StockCurrentPriceCache(
+                code = "005930",
+                currentPrice = BigDecimal("79800"),
+                priceChange = BigDecimal("5900"),
+                changeRate = BigDecimal("8.1"),
+                fetchedAt = LocalDateTime.of(2026, 7, 28, 10, 15),
+            )
+
+        `when`(redisTemplate.opsForValue())
+            .thenReturn(valueOperations)
+        `when`(objectMapper.writeValueAsString(price))
+            .thenReturn("""{"code":"005930"}""")
+
+        repository.saveLastSuccess(price)
+
+        verify(valueOperations).set(
+            "stock:last-success-price:005930",
+            """{"code":"005930"}""",
+            Duration.ofMinutes(3),
         )
     }
 
@@ -56,7 +82,7 @@ class StockCurrentPriceCacheRepositoryTest {
     fun `캐시가 없으면 null을 반환한다`() {
         `when`(redisTemplate.opsForValue())
             .thenReturn(valueOperations)
-        `when`(valueOperations.get("stock:current-price:005930"))
+        `when`(valueOperations.get("stock:delayed-price:005930"))
             .thenReturn(null)
 
         val result = repository.findByCode("005930")
