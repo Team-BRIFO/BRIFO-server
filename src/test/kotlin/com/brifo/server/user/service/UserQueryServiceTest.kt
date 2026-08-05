@@ -123,6 +123,8 @@ class UserQueryServiceTest {
         val userId = UUID.randomUUID()
         val user = completedUser()
         val card = newsCard()
+        val mondayAttendance = attendanceAt(LocalDateTime.of(2026, 7, 20, 9, 0))
+        val sundayAttendance = attendanceAt(LocalDateTime.of(2026, 7, 26, 23, 59, 59))
         val agents =
             listOf(
                 agent(AgentType.PRO),
@@ -139,12 +141,12 @@ class UserQueryServiceTest {
             ),
         ).thenReturn(true)
         `when`(
-            attendanceRewardRepository.countByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+            attendanceRewardRepository.findAllByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtAsc(
                 7L,
                 LocalDateTime.of(2026, 7, 20, 0, 0),
                 LocalDateTime.of(2026, 7, 27, 0, 0),
             ),
-        ).thenReturn(2)
+        ).thenReturn(listOf(mondayAttendance, sundayAttendance))
         `when`(decisionRepository.countByUserIdWithinPeriod(
             7L,
             LocalDateTime.of(2026, 7, 21, 0, 0),
@@ -160,6 +162,7 @@ class UserQueryServiceTest {
         assertEquals(listOf(AgentType.ROOKIE, AgentType.TANKER, AgentType.PRO), response.agents.map { it.agentType })
         assertEquals(true, response.attendedToday)
         assertEquals(2, response.weeklyAttendanceDays)
+        assertEquals(listOf(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26)), response.dates)
         assertEquals(2, response.todayDecisions.count)
         assertEquals(null, response.todayNewsCards.batchTime)
         assertEquals(card.cardId, response.todayNewsCards.items.single().cardId)
@@ -181,12 +184,12 @@ class UserQueryServiceTest {
             ),
         ).thenReturn(false)
         `when`(
-            attendanceRewardRepository.countByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+            attendanceRewardRepository.findAllByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtAsc(
                 7L,
                 LocalDateTime.of(2026, 7, 20, 0, 0),
                 LocalDateTime.of(2026, 7, 27, 0, 0),
             ),
-        ).thenReturn(0L)
+        ).thenReturn(emptyList())
         `when`(userHomeQueryRepository.findTodayNewsCards(7L, LocalDate.of(2026, 7, 21)))
             .thenReturn(emptyList())
 
@@ -194,6 +197,7 @@ class UserQueryServiceTest {
 
         assertEquals(false, response.attendedToday)
         assertEquals(0, response.weeklyAttendanceDays)
+        assertEquals(emptyList<LocalDate>(), response.dates)
         assertEquals(null, response.todayNewsCards.batchTime)
         assertEquals(emptyList<Any>(), response.todayNewsCards.items)
         verify(attendanceRewardRepository).existsByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
@@ -201,7 +205,7 @@ class UserQueryServiceTest {
             LocalDateTime.of(2026, 7, 21, 0, 0),
             LocalDateTime.of(2026, 7, 22, 0, 0),
         )
-        verify(attendanceRewardRepository).countByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+        verify(attendanceRewardRepository).findAllByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtAsc(
             7L,
             LocalDateTime.of(2026, 7, 20, 0, 0),
             LocalDateTime.of(2026, 7, 27, 0, 0),
@@ -271,6 +275,11 @@ class UserQueryServiceTest {
             `when`(it.nickname).thenReturn("닉네임")
             `when`(it.companyName).thenReturn("회사")
             `when`(it.balanceAp).thenReturn(1_250)
+        }
+
+    private fun attendanceAt(createdAt: LocalDateTime): AttendanceReward =
+        mock(AttendanceReward::class.java).also {
+            `when`(it.createdAt).thenReturn(createdAt)
         }
 
     private fun agent(type: AgentType): Agent =

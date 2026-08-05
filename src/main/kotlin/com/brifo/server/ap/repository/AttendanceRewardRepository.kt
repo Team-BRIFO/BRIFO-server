@@ -18,9 +18,9 @@ interface AttendanceRewardRepository : JpaRepository<AttendanceReward, Long> {
         to: LocalDateTime,
     ): Boolean
 
-    fun countByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+    fun findAllByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtAsc(
         userId: Long,
         from: LocalDateTime,
         to: LocalDateTime,
-    ): Long
+    ): List<AttendanceReward>
 }
