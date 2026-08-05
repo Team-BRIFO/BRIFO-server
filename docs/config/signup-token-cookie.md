@@ -44,6 +44,27 @@ fetch(`${apiBaseUrl}/api/onboarding/complete`, {
 
 CSRF 헤더는 signup token으로 인증하는 상태 변경 요청에 포함한다. 서버는 CORS `exposedHeaders`에 해당 헤더를 등록하므로 허용된 origin의 프론트엔드에서 읽을 수 있다. 프론트엔드는 CSRF 값을 Web Storage가 아닌 메모리에 유지한다.
 
+## 새로고침 후 CSRF 토큰 복구
+
+온보딩 도중 새로고침되어 메모리의 CSRF 값이 사라지면 유효한 `signup_token` 쿠키로 CSRF 토큰을 재발급한다. 재발급 API는 안전한 GET 요청이므로 기존 CSRF 헤더가 필요하지 않다.
+
+```ts
+const csrfResponse = await fetch(`${apiBaseUrl}/api/auth/signup/csrf`, {
+  method: "GET",
+  credentials: "include",
+});
+
+if (csrfResponse.status === 401) {
+  redirectToOAuthLogin();
+}
+if (!csrfResponse.ok) throw new Error("Failed to refresh signup CSRF token");
+
+const csrfToken = csrfResponse.headers.get("X-Signup-CSRF-Token");
+if (!csrfToken) throw new Error("Missing signup CSRF token");
+```
+
+`GET /api/auth/signup/csrf`는 signup 권한으로 인증된 요청에만 새 CSRF 쿠키와 응답 헤더를 발급한다. `signup_token`이 없거나 만료된 경우 401을 반환하므로 프론트엔드는 OAuth 로그인을 다시 시작한다.
+
 온보딩이 필요한 로그인 응답에는 `loginType: "SIGNUP_REQUIRED"`만 포함되며 `signupToken` 필드는 반환하지 않는다. 프론트엔드는 토큰을 Web Storage에 저장하거나 `Authorization` 헤더로 전달하지 않는다.
 
 온보딩 완료 또는 유효하지 않은 signup token 감지 시 서버가 쿠키를 만료시켜 제거한다.
