@@ -17,27 +17,37 @@
 
 ## 프론트엔드 연동
 
-로그인 응답의 CSRF 헤더를 읽고, 온보딩 API 요청에 credential 옵션과 CSRF 헤더를 포함한다.
+로그인 응답의 `loginType`을 확인한다. `SIGNUP_REQUIRED`인 경우에만 CSRF 헤더를 읽고 온보딩 API 요청에 credential 옵션과 CSRF 헤더를 포함한다. 기존 회원은 응답의 Access Token을 사용하는 일반 인증 흐름을 계속한다.
 
 ```ts
-const loginResponse = await fetch(`${apiBaseUrl}/api/auth/login/kakao`, {
-  method: "POST",
-  credentials: "include",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ authorizationCode, redirectUri }),
-});
-const csrfToken = loginResponse.headers.get("X-Signup-CSRF-Token");
-if (!csrfToken) throw new Error("Missing signup CSRF token");
+async function handleKakaoLogin() {
+  const loginResponse = await fetch(`${apiBaseUrl}/api/auth/login/kakao`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ authorizationCode, redirectUri }),
+  });
+  if (!loginResponse.ok) throw new Error("Failed to login");
 
-fetch(`${apiBaseUrl}/api/onboarding/complete`, {
-  method: "POST",
-  credentials: "include",
-  headers: {
-    "X-Signup-CSRF-Token": csrfToken,
-  },
-});
+  const { result } = await loginResponse.json();
+  if (result.loginType !== "SIGNUP_REQUIRED") {
+    continueWithAccessToken(result.token);
+    return;
+  }
+
+  const csrfToken = loginResponse.headers.get("X-Signup-CSRF-Token");
+  if (!csrfToken) throw new Error("Missing signup CSRF token");
+
+  await fetch(`${apiBaseUrl}/api/onboarding/complete`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "X-Signup-CSRF-Token": csrfToken,
+    },
+  });
+}
 ```
 
 카카오 로그인 요청 본문에는 `authorizationCode`와 `redirectUri`를 전달한다. 네이버 로그인도 동일한 필드 구조와 `POST` 메서드를 사용한다. 온보딩 프로필 수정 요청은 `PATCH`, 온보딩 완료 요청은 `POST` 메서드를 사용한다.
@@ -49,18 +59,22 @@ CSRF 헤더는 signup token으로 인증하는 상태 변경 요청에 포함한
 온보딩 도중 새로고침되어 메모리의 CSRF 값이 사라지면 유효한 `signup_token` 쿠키로 CSRF 토큰을 재발급한다. 재발급 API는 안전한 GET 요청이므로 기존 CSRF 헤더가 필요하지 않다.
 
 ```ts
-const csrfResponse = await fetch(`${apiBaseUrl}/api/auth/signup/csrf`, {
-  method: "GET",
-  credentials: "include",
-});
+async function restoreSignupCsrfToken() {
+  const csrfResponse = await fetch(`${apiBaseUrl}/api/auth/signup/csrf`, {
+    method: "GET",
+    credentials: "include",
+  });
 
-if (csrfResponse.status === 401) {
-  redirectToOAuthLogin();
+  if (csrfResponse.status === 401) {
+    redirectToOAuthLogin();
+    return;
+  }
+  if (!csrfResponse.ok) throw new Error("Failed to refresh signup CSRF token");
+
+  const csrfToken = csrfResponse.headers.get("X-Signup-CSRF-Token");
+  if (!csrfToken) throw new Error("Missing signup CSRF token");
+  return csrfToken;
 }
-if (!csrfResponse.ok) throw new Error("Failed to refresh signup CSRF token");
-
-const csrfToken = csrfResponse.headers.get("X-Signup-CSRF-Token");
-if (!csrfToken) throw new Error("Missing signup CSRF token");
 ```
 
 `GET /api/auth/signup/csrf`는 signup 권한으로 인증된 요청에만 새 CSRF 쿠키와 응답 헤더를 발급한다. `signup_token`이 없거나 만료된 경우 401을 반환하므로 프론트엔드는 OAuth 로그인을 다시 시작한다.
