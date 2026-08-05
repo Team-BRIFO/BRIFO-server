@@ -98,6 +98,13 @@ class UserQueryService(
         val tomorrowStart = todayStart.plusDays(1)
         val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).atStartOfDay()
         val nextWeekStart = weekStart.plusWeeks(1)
+        val weeklyAttendances =
+            attendanceRewardRepository
+                .findAllByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtAsc(
+                    userId,
+                    weekStart,
+                    nextWeekStart,
+                )
         val newsCards = userHomeQueryRepository.findTodayNewsCards(userId, today)
 
         return GetUserHomeResponse(
@@ -114,14 +121,8 @@ class UserQueryService(
                     todayStart,
                     tomorrowStart,
                 ),
-            weeklyAttendanceDays =
-                Math.toIntExact(
-                    attendanceRewardRepository.countByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
-                        userId,
-                        weekStart,
-                        nextWeekStart,
-                    ),
-                ),
+            weeklyAttendanceDays = weeklyAttendances.size,
+            dates = weeklyAttendances.map { requireNotNull(it.createdAt).toLocalDate() },
             todayDecisions =
                 GetUserHomeResponse.TodayDecisions(
                     Math.toIntExact(

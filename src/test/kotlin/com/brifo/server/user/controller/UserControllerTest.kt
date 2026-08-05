@@ -24,6 +24,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.time.LocalDate
 import java.util.UUID
 
 @WebMvcTest(UserController::class)
@@ -112,7 +113,8 @@ class UserControllerTest {
                 user = GetUserHomeResponse.User("brifo", "회사", 0),
                 agents = emptyList(),
                 attendedToday = true,
-                weeklyAttendanceDays = 3,
+                weeklyAttendanceDays = 2,
+                dates = listOf(LocalDate.of(2026, 8, 3), LocalDate.of(2026, 8, 4)),
                 todayDecisions = GetUserHomeResponse.TodayDecisions(0),
                 todayNewsCards = GetUserHomeResponse.TodayNewsCards(null, emptyList()),
             ),
@@ -123,7 +125,9 @@ class UserControllerTest {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.code").value("COMMON_200"))
             .andExpect(jsonPath("$.result.attendedToday").value(true))
-            .andExpect(jsonPath("$.result.weeklyAttendanceDays").value(3))
+            .andExpect(jsonPath("$.result.weeklyAttendanceDays").value(2))
+            .andExpect(jsonPath("$.result.dates[0]").value("2026-08-03"))
+            .andExpect(jsonPath("$.result.dates[1]").value("2026-08-04"))
 
         verify(userQueryService).getUserHome(userId)
     }

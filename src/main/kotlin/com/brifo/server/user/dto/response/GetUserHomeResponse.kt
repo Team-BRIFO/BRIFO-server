@@ -3,6 +3,7 @@ package com.brifo.server.user.dto.response
 import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.news.entity.NewsSource
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -11,6 +12,7 @@ data class GetUserHomeResponse(
     val agents: List<HomeAgent>,
     val attendedToday: Boolean,
     val weeklyAttendanceDays: Int,
+    val dates: List<LocalDate>,
     val todayDecisions: TodayDecisions,
     val todayNewsCards: TodayNewsCards,
 ) {
