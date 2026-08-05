@@ -96,6 +96,11 @@ class SecurityConfig(
                     ).hasAuthority(JwtAuthenticationFilter.SIGNUP_AUTHORITY)
                 it
                     .requestMatchers(
+                        HttpMethod.GET,
+                        "/api/auth/signup/csrf",
+                    ).hasAuthority(JwtAuthenticationFilter.SIGNUP_AUTHORITY)
+                it
+                    .requestMatchers(
                         HttpMethod.POST,
                         "/api/onboarding/complete",
                     ).hasAuthority(JwtAuthenticationFilter.SIGNUP_AUTHORITY)

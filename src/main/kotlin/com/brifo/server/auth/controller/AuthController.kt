@@ -12,9 +12,11 @@ import com.brifo.server.auth.service.NaverLoginService
 import com.brifo.server.auth.service.TokenReissueService
 import com.brifo.server.global.code.SuccessCode
 import com.brifo.server.global.common.ApiResponse
+import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -65,6 +67,15 @@ class AuthController(
     ): ApiResponse<ReissueResponse> {
         val result = tokenReissueService.reissue(request)
         return ApiResponse.success(SuccessCode.OK, result)
+    }
+
+    @GetMapping("/signup/csrf")
+    fun refreshSignupCsrfToken(
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+    ): ApiResponse<Nothing> {
+        signupTokenCookieManager.refreshCsrfToken(request, response)
+        return ApiResponse.success(SuccessCode.OK)
     }
 
     private fun updateSignupTokenCookie(

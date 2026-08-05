@@ -25,12 +25,14 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import java.util.UUID
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @ExtendWith(MockitoExtension::class)
 class AuthControllerTest {
@@ -134,5 +136,19 @@ class AuthControllerTest {
         val cookieInvocation =
             mockingDetails(signupTokenCookieManager).invocations.single { it.method.name == "set" }
         assertEquals("signup-token", cookieInvocation.arguments[1])
+    }
+
+    @Test
+    fun `Signup CSRF 토큰 재발급을 쿠키 관리자에 위임한다`() {
+        mockMvc
+            .perform(get("/api/auth/signup/csrf"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.code").value("COMMON_200"))
+
+        assertTrue(
+            mockingDetails(signupTokenCookieManager).invocations.any {
+                it.method.name == "refreshCsrfToken"
+            },
+        )
     }
 }

@@ -18,6 +18,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.UUID
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 @Import(ServerTestConfiguration::class)
 @ActiveProfiles("test")
@@ -200,6 +202,59 @@ class SecurityConfigIntegrationTest @Autowired constructor(
                     .cookie(Cookie(SignupTokenCookieManager.COOKIE_NAME, signupToken))
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("[]"),
+            ).andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.code").value("AUTH_403"))
+    }
+
+    @Test
+    fun `Signup Token 쿠키로 CSRF 토큰을 재발급하고 상태 변경 요청에 사용한다`() {
+        val signupToken = jwtTokenProvider.issueSignupToken(UUID.randomUUID())
+
+        val refreshResponse =
+            mockMvc
+                .perform(
+                    get("/api/auth/signup/csrf")
+                        .cookie(Cookie(SignupTokenCookieManager.COOKIE_NAME, signupToken)),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.code").value("COMMON_200"))
+                .andReturn()
+                .response
+        val csrfToken = assertNotNull(refreshResponse.getHeader(SignupTokenCookieManager.CSRF_HEADER_NAME))
+        val csrfCookie =
+            refreshResponse
+                .getHeaders(HttpHeaders.SET_COOKIE)
+                .single { it.startsWith("${SignupTokenCookieManager.CSRF_COOKIE_NAME}=") }
+                .substringAfter('=')
+                .substringBefore(';')
+        assertEquals(csrfToken, csrfCookie)
+
+        mockMvc
+            .perform(
+                post("/api/onboarding/complete")
+                    .cookie(
+                        Cookie(SignupTokenCookieManager.COOKIE_NAME, signupToken),
+                        Cookie(SignupTokenCookieManager.CSRF_COOKIE_NAME, csrfCookie),
+                    ).header(SignupTokenCookieManager.CSRF_HEADER_NAME, csrfToken),
+            ).andExpect(status().isNotFound)
+            .andExpect(jsonPath("$.code").value("USER_404"))
+    }
+
+    @Test
+    fun `Signup Token 쿠키가 없으면 CSRF 토큰을 재발급할 수 없다`() {
+        mockMvc
+            .perform(get("/api/auth/signup/csrf"))
+            .andExpect(status().isUnauthorized)
+            .andExpect(jsonPath("$.code").value("AUTH_401"))
+    }
+
+    @Test
+    fun `Access Token으로 Signup CSRF 토큰을 재발급할 수 없다`() {
+        val accessToken = jwtTokenProvider.issueLoginTokens(UUID.randomUUID()).accessToken
+
+        mockMvc
+            .perform(
+                get("/api/auth/signup/csrf")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer $accessToken"),
             ).andExpect(status().isForbidden)
             .andExpect(jsonPath("$.code").value("AUTH_403"))
     }

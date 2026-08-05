@@ -8,7 +8,6 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseCookie
 import org.springframework.stereotype.Component
 import java.security.MessageDigest
-import java.security.SecureRandom
 import java.time.Duration
 import java.util.Base64
 
@@ -27,8 +26,22 @@ class SignupTokenCookieManager(
         response: HttpServletResponse,
         signupToken: String,
     ) {
-        val csrfToken = newCsrfToken()
         addCookie(response, cookie(COOKIE_NAME, signupToken, jwtProperties.signupTokenExpiration, httpOnly = true))
+        setCsrfToken(response, createCsrfToken(signupToken))
+    }
+
+    fun refreshCsrfToken(
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+    ) {
+        val signupToken = requireNotNull(resolve(request))
+        setCsrfToken(response, createCsrfToken(signupToken))
+    }
+
+    private fun setCsrfToken(
+        response: HttpServletResponse,
+        csrfToken: String,
+    ) {
         addCookie(response, cookie(CSRF_COOKIE_NAME, csrfToken, jwtProperties.signupTokenExpiration, httpOnly = true))
         response.setHeader(CSRF_HEADER_NAME, csrfToken)
     }
@@ -71,9 +84,10 @@ class SignupTokenCookieManager(
             ?.value
             ?.takeIf { it.isNotBlank() }
 
-    private fun newCsrfToken(): String =
-        ByteArray(CSRF_TOKEN_BYTES)
-            .also(secureRandom::nextBytes)
+    private fun createCsrfToken(signupToken: String): String =
+        MessageDigest
+            .getInstance(CSRF_DIGEST_ALGORITHM)
+            .digest(signupToken.toByteArray(Charsets.UTF_8))
             .let { Base64.getUrlEncoder().withoutPadding().encodeToString(it) }
 
     private fun addCookie(
@@ -89,7 +103,6 @@ class SignupTokenCookieManager(
         const val CSRF_HEADER_NAME = "X-Signup-CSRF-Token"
         private const val COOKIE_PATH = "/api"
         private const val SAME_SITE = "Lax"
-        private const val CSRF_TOKEN_BYTES = 32
-        private val secureRandom = SecureRandom()
+        private const val CSRF_DIGEST_ALGORITHM = "SHA-256"
     }
 }

@@ -64,6 +64,31 @@ class SignupTokenCookieManagerTest {
     }
 
     @Test
+    fun `CSRF 토큰을 새 쿠키와 응답 헤더로 재발급한다`() {
+        val request =
+            MockHttpServletRequest().apply {
+                setCookies(Cookie(SignupTokenCookieManager.COOKIE_NAME, "signup-token"))
+            }
+        val response = MockHttpServletResponse()
+        val repeatedResponse = MockHttpServletResponse()
+
+        manager.refreshCsrfToken(request, response)
+        manager.refreshCsrfToken(request, repeatedResponse)
+
+        val cookies = response.getHeaders(HttpHeaders.SET_COOKIE)
+        val csrfCookie = cookies.single { it.startsWith("${SignupTokenCookieManager.CSRF_COOKIE_NAME}=") }
+        assertTrue(csrfCookie.contains("HttpOnly"))
+        assertEquals(
+            csrfCookie.substringAfter('=').substringBefore(';'),
+            response.getHeader(SignupTokenCookieManager.CSRF_HEADER_NAME),
+        )
+        assertEquals(
+            response.getHeader(SignupTokenCookieManager.CSRF_HEADER_NAME),
+            repeatedResponse.getHeader(SignupTokenCookieManager.CSRF_HEADER_NAME),
+        )
+    }
+
+    @Test
     fun `요청 쿠키에서 Signup Token을 찾는다`() {
         val request =
             MockHttpServletRequest().apply {
