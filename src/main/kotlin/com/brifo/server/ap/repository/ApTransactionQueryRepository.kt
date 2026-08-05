@@ -11,7 +11,7 @@ interface ApTransactionQueryRepository {
         userId: Long,
         cursor: UUID?,
         limit: Int,
-    ): List<GetApTransactionsResponse.Item>
+    ): List<GetApTransactionsResponse.ApTransactionItem>
 
     fun findMonthlyAmountsByUserId(
         userId: Long,

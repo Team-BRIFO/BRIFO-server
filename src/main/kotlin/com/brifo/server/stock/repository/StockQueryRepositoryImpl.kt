@@ -17,18 +17,27 @@ import java.util.UUID
 class StockQueryRepositoryImpl(
     private val queryFactory: JPAQueryFactory,
 ) : StockQueryRepository {
-    override fun findPopularStocks(): List<GetStocksResponse.Item> {
+    override fun findPopularStocks(): List<GetStocksResponse.StockItem> {
         val latestPrice = QDailyStockPrice("latestPrice")
+        val latestFetchedPrice = QDailyStockPrice("latestFetchedPrice")
 
         val latestTradeDate =
             JPAExpressions
                 .select(latestPrice.tradeDate.max())
                 .from(latestPrice)
                 .where(latestPrice.stock.eq(stock))
+        val latestFetchedAt =
+            JPAExpressions
+                .select(latestFetchedPrice.fetchedAt.max())
+                .from(latestFetchedPrice)
+                .where(
+                    latestFetchedPrice.stock.eq(stock),
+                    latestFetchedPrice.tradeDate.eq(latestTradeDate),
+                )
 
         val selectedFields =
             Projections.constructor(
-                GetStocksResponse.Item::class.java,
+                GetStocksResponse.StockItem::class.java,
                 Expressions.nullExpression(Int::class.javaObjectType),
                 stock.publicId,
                 stock.code,
@@ -47,6 +56,7 @@ class StockQueryRepositoryImpl(
                 .on(
                     dailyStockPrice.stock.eq(stock),
                     dailyStockPrice.tradeDate.eq(latestTradeDate),
+                    dailyStockPrice.fetchedAt.eq(latestFetchedAt),
                 ).where(stock.isActive.isTrue)
                 .groupBy(
                     stock.publicId,
@@ -66,14 +76,23 @@ class StockQueryRepositoryImpl(
         keyword: String,
         cursor: UUID?,
         limit: Int,
-    ): List<GetStocksResponse.Item> {
+    ): List<GetStocksResponse.StockItem> {
         val latestPrice = QDailyStockPrice("latestPrice")
+        val latestFetchedPrice = QDailyStockPrice("latestFetchedPrice")
 
         val latestTradeDate =
             JPAExpressions
                 .select(latestPrice.tradeDate.max())
                 .from(latestPrice)
                 .where(latestPrice.stock.eq(stock))
+        val latestFetchedAt =
+            JPAExpressions
+                .select(latestFetchedPrice.fetchedAt.max())
+                .from(latestFetchedPrice)
+                .where(
+                    latestFetchedPrice.stock.eq(stock),
+                    latestFetchedPrice.tradeDate.eq(latestTradeDate),
+                )
 
         val normalizedName =
             Expressions.stringTemplate(
@@ -93,7 +112,7 @@ class StockQueryRepositoryImpl(
 
         val selectedFields =
             Projections.constructor(
-                GetStocksResponse.Item::class.java,
+                GetStocksResponse.StockItem::class.java,
                 Expressions.nullExpression(Int::class.javaObjectType),
                 stock.publicId,
                 stock.code,
@@ -110,6 +129,7 @@ class StockQueryRepositoryImpl(
                 .on(
                     dailyStockPrice.stock.eq(stock),
                     dailyStockPrice.tradeDate.eq(latestTradeDate),
+                    dailyStockPrice.fetchedAt.eq(latestFetchedAt),
                 ).where(conditions)
                 .orderBy(stock.publicId.desc())
                 .limit(limit.toLong())

@@ -4,4 +4,5 @@ enum class NewsSource {
     NAVER,
     DART,
     KRX,
+    TEST,
 }

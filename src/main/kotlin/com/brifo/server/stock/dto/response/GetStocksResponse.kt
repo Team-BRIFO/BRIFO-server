@@ -9,9 +9,9 @@ data class GetStocksResponse(
     val mode: Mode,
     @field:JsonInclude(JsonInclude.Include.NON_NULL)
     val keyword: String?,
-    val page: CursorPage<Item>,
+    val page: CursorPage<StockItem>,
 ) {
-    data class Item(
+    data class StockItem(
         @field:JsonInclude(JsonInclude.Include.NON_NULL)
         val rank: Int?,
         val stockId: UUID,

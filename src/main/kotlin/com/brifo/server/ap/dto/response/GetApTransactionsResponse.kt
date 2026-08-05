@@ -6,10 +6,10 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 data class GetApTransactionsResponse(
-    val summary: Summary,
-    val page: CursorPage<Item>,
+    val summary: ApSummary,
+    val page: CursorPage<ApTransactionItem>,
 ) {
-    data class Summary(
+    data class ApSummary(
         val balanceAp: Int,
         val monthlyEarnedAp: Int,
         val monthlyLostAp: Int,
@@ -20,7 +20,7 @@ data class GetApTransactionsResponse(
         val lostAp: Int,
     )
 
-    data class Item(
+    data class ApTransactionItem(
         val apTransactionId: UUID,
         val reason: ApTransactionReason,
         val amount: Int,

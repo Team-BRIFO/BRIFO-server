@@ -88,7 +88,7 @@ class UserControllerTest {
                 48,
                 5,
                 24,
-                listOf(GetMyPageResponse.Stock(stockId, "삼성전자")),
+                listOf(GetMyPageResponse.MyPageStock(stockId, "삼성전자")),
             ),
         )
 
@@ -105,12 +105,14 @@ class UserControllerTest {
     }
 
     @Test
-    fun `홈 조회 요청을 조회 서비스에 전달한다`() {
+    fun `홈 조회 응답을 직렬화하고 조회 서비스에 전달한다`() {
         val userId = authenticatedUserId()
         `when`(userQueryService.getUserHome(userId)).thenReturn(
             GetUserHomeResponse(
                 user = GetUserHomeResponse.User("brifo", "회사", 0),
                 agents = emptyList(),
+                attendedToday = true,
+                weeklyAttendanceDays = 3,
                 todayDecisions = GetUserHomeResponse.TodayDecisions(0),
                 todayNewsCards = GetUserHomeResponse.TodayNewsCards(null, emptyList()),
             ),
@@ -120,6 +122,8 @@ class UserControllerTest {
             .perform(get("/api/users/me/home").param("userId", userId.toString()))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.code").value("COMMON_200"))
+            .andExpect(jsonPath("$.result.attendedToday").value(true))
+            .andExpect(jsonPath("$.result.weeklyAttendanceDays").value(3))
 
         verify(userQueryService).getUserHome(userId)
     }
@@ -132,7 +136,7 @@ class UserControllerTest {
             GetUserProfileResponse(
                 nickname = "brifo",
                 companyName = "회사",
-                stocks = listOf(GetUserProfileResponse.Stock(stockId, "삼성전자")),
+                stocks = listOf(GetUserProfileResponse.UserProfileStock(stockId, "삼성전자")),
             ),
         )
 

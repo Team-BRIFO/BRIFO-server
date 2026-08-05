@@ -44,6 +44,8 @@ app:
       access-token-expiration: 1h
       refresh-token-expiration: 7d
       signup-token-expiration: 10m
+    refresh-token:
+      cleanup-cron: ${REFRESH_TOKEN_CLEANUP_CRON:0 0 4 * * *}
   stock-price:
     cache-ttl: 60s
     last-success-ttl: 3m

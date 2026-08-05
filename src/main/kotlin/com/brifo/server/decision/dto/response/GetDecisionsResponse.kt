@@ -7,22 +7,22 @@ import java.time.LocalDate
 import java.util.UUID
 
 data class GetDecisionsResponse(
-    val items: List<Item>,
+    val items: List<DecisionItem>,
 ) {
-    data class Item(
+    data class DecisionItem(
         val decisionId: UUID,
         val direction: DecisionDirection,
         val confidenceLevel: Int,
-        val agent: Agent,
-        val stock: Stock,
+        val agent: DecisionListAgent,
+        val stock: DecisionListStock,
     )
 
-    data class Agent(
+    data class DecisionListAgent(
         val agentId: UUID,
         val agentType: AgentType,
     )
 
-    data class Stock(
+    data class DecisionListStock(
         val stockId: UUID,
         val name: String,
         val price: Long?,

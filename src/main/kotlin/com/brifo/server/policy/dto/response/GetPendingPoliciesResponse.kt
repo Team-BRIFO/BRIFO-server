@@ -4,9 +4,9 @@ import java.math.BigDecimal
 import java.util.UUID
 
 data class GetPendingPoliciesResponse(
-    val items: List<Item>,
+    val items: List<PendingPolicyItem>,
 ) {
-    data class Item(
+    data class PendingPolicyItem(
         val policyId: UUID,
         val title: String,
         val isRequired: Boolean,

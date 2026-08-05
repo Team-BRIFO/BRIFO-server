@@ -53,8 +53,8 @@ class NotificationServiceUnitTest {
         verify(notificationRepository).findPageByUserPublicId(userId, cursor, 3)
     }
 
-    private fun item(index: Int): GetNotificationsResponse.Item =
-        GetNotificationsResponse.Item(
+    private fun item(index: Int): GetNotificationsResponse.NotificationItem =
+        GetNotificationsResponse.NotificationItem(
             notificationId = UUID.fromString("00000000-0000-0000-0000-${index.toString().padStart(12, '0')}"),
             code = "DECISION_RESULT",
             title = "오늘의 정산이 끝났어요",

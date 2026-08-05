@@ -10,4 +10,6 @@ interface DailyStockPriceRepository : JpaRepository<DailyStockPrice, Long> {
         stockId: Long,
         tradeDate: LocalDate,
     ): DailyStockPrice?
+  
+    fun findTopByStockIdOrderByTradeDateDescFetchedAtDescIdDesc(stockId: Long): DailyStockPrice?
 }

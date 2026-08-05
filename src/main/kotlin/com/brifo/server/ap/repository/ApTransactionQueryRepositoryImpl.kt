@@ -39,11 +39,11 @@ class ApTransactionQueryRepositoryImpl(
         userId: Long,
         cursor: UUID?,
         limit: Int,
-    ): List<GetApTransactionsResponse.Item> =
+    ): List<GetApTransactionsResponse.ApTransactionItem> =
         queryFactory
             .select(
                 Projections.constructor(
-                    GetApTransactionsResponse.Item::class.java,
+                    GetApTransactionsResponse.ApTransactionItem::class.java,
                     apTransaction.publicId,
                     apTransaction.reason,
                     apTransaction.amount,

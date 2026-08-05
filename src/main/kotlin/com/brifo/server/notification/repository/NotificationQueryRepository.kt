@@ -8,5 +8,5 @@ interface NotificationQueryRepository {
         userPublicId: UUID,
         cursor: UUID?,
         limit: Int,
-    ): List<GetNotificationsResponse.Item>
+    ): List<GetNotificationsResponse.NotificationItem>
 }

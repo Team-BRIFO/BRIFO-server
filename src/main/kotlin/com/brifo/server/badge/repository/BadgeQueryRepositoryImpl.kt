@@ -11,11 +11,11 @@ import java.util.UUID
 class BadgeQueryRepositoryImpl(
     private val queryFactory: JPAQueryFactory,
 ) : BadgeQueryRepository {
-    override fun findAllWithOwnership(userPublicId: UUID): List<GetBadgesResponse.Item> =
+    override fun findAllWithOwnership(userPublicId: UUID): List<GetBadgesResponse.BadgeItem> =
         queryFactory
             .select(
                 Projections.constructor(
-                    GetBadgesResponse.Item::class.java,
+                    GetBadgesResponse.BadgeItem::class.java,
                     badge.publicId,
                     badge.code,
                     badge.name,

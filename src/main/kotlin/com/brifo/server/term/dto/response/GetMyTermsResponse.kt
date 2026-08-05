@@ -7,9 +7,9 @@ import java.util.UUID
 
 data class GetMyTermsResponse(
     val learnedTermCount: Int,
-    val page: CursorPage<Item>,
+    val page: CursorPage<LearnedTermItem>,
 ) {
-    data class Item(
+    data class LearnedTermItem(
         @field:JsonIgnore
         val learnedTermId: UUID,
         val termId: UUID,

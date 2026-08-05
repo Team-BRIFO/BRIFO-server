@@ -12,11 +12,13 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
+import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.verifyNoMoreInteractions
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.dao.DataIntegrityViolationException
 import java.time.Instant
 import java.util.UUID
 
@@ -83,6 +85,30 @@ class TokenReissueServiceTest {
         verifyNoInteractions(userRepository)
         verify(revokedRefreshTokenRepository).existsByTokenId(REFRESH_TOKEN_ID)
         verifyNoMoreInteractions(revokedRefreshTokenRepository)
+    }
+
+    @Test
+    fun `동시에 같은 Refresh Token을 재발급하면 고유 제약에 걸린 요청을 차단한다`() {
+        val userId = UUID.randomUUID()
+        val claims =
+            JwtTokenProvider.AuthTokenClaims(
+                userId,
+                REFRESH_TOKEN_ID,
+                Instant.parse("2026-07-27T00:00:00Z"),
+            )
+        `when`(jwtTokenProvider.parseRefreshToken(REFRESH_TOKEN)).thenReturn(claims)
+        `when`(revokedRefreshTokenRepository.existsByTokenId(REFRESH_TOKEN_ID)).thenReturn(false)
+        `when`(userRepository.existsByPublicId(userId)).thenReturn(true)
+        `when`(revokedRefreshTokenRepository.saveAndFlush(org.mockito.ArgumentMatchers.any()))
+            .thenThrow(DataIntegrityViolationException("duplicated token id"))
+
+        val exception =
+            assertThrows(AuthException::class.java) {
+                service().reissue(RefreshTokenRequest(REFRESH_TOKEN))
+            }
+
+        assertEquals(AuthErrorCode.REFRESH_TOKEN_UNUSABLE, exception.errorCode)
+        verify(jwtTokenProvider, never()).issueLoginTokens(userId)
     }
 
     @Test

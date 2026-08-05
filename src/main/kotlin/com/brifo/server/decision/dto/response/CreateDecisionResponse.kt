@@ -7,9 +7,9 @@ data class CreateDecisionResponse(
     val decisionId: UUID,
     val direction: DecisionDirection,
     val confidenceLevel: Int,
-    val stock: Stock,
+    val stock: CreatedDecisionStock,
 ) {
-    data class Stock(
+    data class CreatedDecisionStock(
         val stockId: UUID,
         val name: String,
     )

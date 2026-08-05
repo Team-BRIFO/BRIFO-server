@@ -83,7 +83,7 @@ class StockControllerTest {
                 CursorPage(
                     items =
                         listOf(
-                            GetStocksResponse.Item(
+                            GetStocksResponse.StockItem(
                                 rank = null,
                                 stockId = UUID.randomUUID(),
                                 code = "005930",

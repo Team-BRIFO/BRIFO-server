@@ -21,6 +21,7 @@ class UserHomeQueryRepositoryImpl(
     ): List<UserHomeNewsCard> {
         val latestPrice = QDailyStockPrice("latestPrice")
         val latestPriceSubquery = QDailyStockPrice("latestPriceSubquery")
+        val latestFetchedPrice = QDailyStockPrice("latestFetchedPrice")
 
         return queryFactory
             .select(
@@ -49,6 +50,15 @@ class UserHomeQueryRepositoryImpl(
                         .where(
                             latestPriceSubquery.stock.eq(stock),
                             latestPriceSubquery.tradeDate.loe(displayDate),
+                        ),
+                ),
+                latestPrice.fetchedAt.eq(
+                    JPAExpressions
+                        .select(latestFetchedPrice.fetchedAt.max())
+                        .from(latestFetchedPrice)
+                        .where(
+                            latestFetchedPrice.stock.eq(stock),
+                            latestFetchedPrice.tradeDate.eq(latestPrice.tradeDate),
                         ),
                 ),
             ).where(

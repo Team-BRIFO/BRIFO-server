@@ -33,7 +33,7 @@ class BadgeControllerTest {
             GetBadgesResponse(
                 items =
                     listOf(
-                        GetBadgesResponse.Item(
+                        GetBadgesResponse.BadgeItem(
                             badgeId = badgeId,
                             code = "B01",
                             name = "첫 출근",

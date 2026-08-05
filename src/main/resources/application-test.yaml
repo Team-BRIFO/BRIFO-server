@@ -8,7 +8,7 @@ app:
   auth:
     kakao:
       client-id: disabled
-      client-secret: ${KAKAO_CLIENT_SECRET:}
+      client-secret: disabled
       redirect-uris:
         - disabled
       connect-timeout: 3s

@@ -6,9 +6,9 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 data class GetNotificationsResponse(
-    val page: CursorPage<Item>,
+    val page: CursorPage<NotificationItem>,
 ) {
-    data class Item(
+    data class NotificationItem(
         val notificationId: UUID,
         val code: String,
         val title: String,

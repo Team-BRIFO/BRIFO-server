@@ -31,7 +31,7 @@ class NewsService(
         val stock = newsCards.first().news.stock
 
         val price =
-            newsDailyStockPriceRepository.findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDesc(
+            newsDailyStockPriceRepository.findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDescFetchedAtDescIdDesc(
                 stockId = requireNotNull(stock.id),
                 tradeDate = displayDate,
             ) ?: throw BusinessException(
@@ -40,7 +40,7 @@ class NewsService(
             )
 
         val stockResponse =
-            GetNewsCardsResponse.Stock(
+            GetNewsCardsResponse.NewsStock(
                 stockId = requireNotNull(stock.publicId),
                 name = stock.name,
                 sector = stock.sector,
@@ -54,7 +54,7 @@ class NewsService(
             val terms = newsCardTermRepository.findAllByNewsCardIdOrderByDisplayOrderAsc(
                 requireNotNull(newsCard.id),
             )
-            GetNewsCardsResponse.NewsCard(
+            GetNewsCardsResponse.StockNewsCard(
                 cardId = requireNotNull(newsCard.publicId),
                 source = news.source,
                 headline = newsCard.headline,

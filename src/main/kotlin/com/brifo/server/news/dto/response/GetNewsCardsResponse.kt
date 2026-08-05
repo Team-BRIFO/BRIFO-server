@@ -7,10 +7,10 @@ import java.time.LocalDate
 import java.util.UUID
 
 data class GetNewsCardsResponse(
-    val stock: Stock,
-    val newsCards: List<NewsCard>,
+    val stock: NewsStock,
+    val newsCards: List<StockNewsCard>,
 ) {
-    data class Stock(
+    data class NewsStock(
         val stockId: UUID,
         val name: String,
         val sector: String,
@@ -19,7 +19,7 @@ data class GetNewsCardsResponse(
         val tradeDate: LocalDate,
     )
 
-    data class NewsCard(
+    data class StockNewsCard(
         val cardId: UUID,
         val source: NewsSource,
         val headline: String,
