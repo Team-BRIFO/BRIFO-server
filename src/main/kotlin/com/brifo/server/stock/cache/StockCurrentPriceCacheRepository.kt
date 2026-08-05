@@ -15,7 +15,6 @@ class StockCurrentPriceCacheRepository(
     @Value("\${app.stock-price.last-success-ttl}")
     private val lastSuccessTtl: Duration,
 ) {
-    // 현재가를 60초 캐시에 저장한다.
     fun save(price: StockCurrentPriceCache) {
         val key = "stock:delayed-price:${price.code}"
         val value = objectMapper.writeValueAsString(price)
@@ -27,7 +26,6 @@ class StockCurrentPriceCacheRepository(
         )
     }
 
-    // 마지막 성공값을 3분 캐시에 저장한다.
     fun saveLastSuccess(price: StockCurrentPriceCache) {
         val key = "stock:last-success-price:${price.code}"
         val value = objectMapper.writeValueAsString(price)
@@ -39,7 +37,6 @@ class StockCurrentPriceCacheRepository(
         )
     }
 
-    // 현재가 캐시를 조회한다.
     fun findByCode(code: String): StockCurrentPriceCache? {
         val key = "stock:delayed-price:$code"
         val value =
@@ -52,7 +49,6 @@ class StockCurrentPriceCacheRepository(
         )
     }
 
-    // 마지막 성공값 캐시를 조회한다.
     fun findLastSuccessByCode(code: String): StockCurrentPriceCache? {
         val key = "stock:last-success-price:$code"
         val value =

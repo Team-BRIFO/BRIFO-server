@@ -86,7 +86,6 @@ class StockPriceServiceTest {
         assertThat(result.currentPrice)
             .isEqualByComparingTo("79800")
 
-        // 캐시가 있으므로 KIS를 호출하지 않는다.
         verifyNoInteractions(kisCurrentPriceClient)
     }
 
@@ -131,7 +130,6 @@ class StockPriceServiceTest {
                 fetchedAt = requireNotNull(result.fetchedAt),
             )
 
-        // 정상 응답을 두 캐시에 저장한다.
         verify(cacheRepository)
             .save(savedPrice)
         verify(cacheRepository)
@@ -187,7 +185,6 @@ class StockPriceServiceTest {
         assertThat(result.fetchedAt)
             .isEqualTo(fetchedAt)
 
-        // 마지막 성공값이 있어 DB는 조회하지 않는다.
         verifyNoInteractions(dailyPriceRepository)
     }
 
@@ -341,7 +338,6 @@ class StockPriceServiceTest {
                     service.getCurrentPrice(1L, "005930")
                 }
 
-            // 두 요청을 함께 시작한다.
             start.countDown()
 
             assertThat(
@@ -353,7 +349,6 @@ class StockPriceServiceTest {
             first.get(3, TimeUnit.SECONDS)
             second.get(3, TimeUnit.SECONDS)
 
-            // 같은 종목은 KIS를 한 번만 호출한다.
             verify(
                 kisCurrentPriceClient,
                 times(1),

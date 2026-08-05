@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
 import java.time.LocalDate
 
-// KIS 토큰 발급 요청
 data class KisTokenRequest(
     @JsonProperty("grant_type")
     val grantType: String = "client_credentials",
@@ -16,7 +15,6 @@ data class KisTokenRequest(
     val appSecret: String,
 )
 
-// KIS 토큰 발급 응답
 data class KisTokenResponse(
     @JsonProperty("access_token")
     val accessToken: String,
@@ -28,7 +26,6 @@ data class KisTokenResponse(
     val expiresIn: Long,
 )
 
-// KIS 현재가 전체 응답
 data class KisCurrentPriceResponse(
     @JsonProperty("rt_cd")
     val resultCode: String,
@@ -39,7 +36,6 @@ data class KisCurrentPriceResponse(
     val output: KisCurrentPriceOutput?,
 )
 
-// KIS 현재가 응답의 실제 가격 부분
 data class KisCurrentPriceOutput(
     @JsonProperty("stck_prpr")
     val currentPrice: String,
@@ -51,7 +47,6 @@ data class KisCurrentPriceOutput(
     val changeRate: String,
 )
 
-// 서비스에 반환할 현재가 결과
 data class KisCurrentPriceResult(
     val stockCode: String,
     val currentPrice: BigDecimal,
@@ -59,7 +54,6 @@ data class KisCurrentPriceResult(
     val changeRate: BigDecimal,
 )
 
-// KIS 기간별 시세 전체 응답
 data class KisDailyPriceResponse(
     @JsonProperty("rt_cd")
     val resultCode: String,
@@ -70,7 +64,6 @@ data class KisDailyPriceResponse(
     val output: List<KisDailyPriceOutput> = emptyList(),
 )
 
-// 기간별 시세의 일별 가격
 data class KisDailyPriceOutput(
     @JsonProperty("stck_bsop_date")
     val tradeDate: String,
@@ -82,7 +75,6 @@ data class KisDailyPriceOutput(
     val changeRate: String,
 )
 
-// Batch에 반환할 종가 결과
 data class KisDailyPriceResult(
     val stockCode: String,
     val tradeDate: LocalDate,

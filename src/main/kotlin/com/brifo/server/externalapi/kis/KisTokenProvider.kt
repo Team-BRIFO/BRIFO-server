@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import java.time.Instant
 
-// 유효한 KIS Access Token을 제공한다.
 @Component
 class KisTokenProvider(
     @Qualifier("kisCurrentPriceRestClient")

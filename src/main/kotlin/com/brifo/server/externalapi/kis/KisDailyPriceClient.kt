@@ -12,7 +12,6 @@ import org.springframework.web.client.RestClient
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-// KIS 일별 시세 API를 호출하고 요청한 거래일의 종가를 반환한다.
 @Component
 class KisDailyPriceClient(
     @Qualifier("kisDailyPriceRestClient")

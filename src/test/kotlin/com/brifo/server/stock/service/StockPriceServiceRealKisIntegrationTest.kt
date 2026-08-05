@@ -58,7 +58,6 @@ class StockPriceServiceRealKisIntegrationTest {
 
     @BeforeAll
     fun setUpStock() {
-        // 기존 삼성전자 종목이 있으면 그대로 사용한다.
         stock =
             stockRepository.findAll()
                 .firstOrNull {
@@ -75,14 +74,12 @@ class StockPriceServiceRealKisIntegrationTest {
 
     @BeforeEach
     fun clearCache() {
-        // 첫 번째 요청이 실제 KIS를 호출하도록 비운다.
         redisTemplate.delete(CURRENT_PRICE_KEY)
         redisTemplate.delete(LAST_SUCCESS_KEY)
     }
 
     @AfterEach
     fun cleanCache() {
-        // 테스트가 만든 캐시만 삭제한다.
         redisTemplate.delete(CURRENT_PRICE_KEY)
         redisTemplate.delete(LAST_SUCCESS_KEY)
     }
@@ -109,7 +106,6 @@ class StockPriceServiceRealKisIntegrationTest {
                         it.stockId == stock.id
                 }
 
-        // 첫 번째 요청은 실제 KIS 결과를 반환한다.
         assertThat(firstResult.priceStatus)
             .isEqualTo(
                 PriceStatus.DELAYED_CURRENT,
@@ -117,7 +113,6 @@ class StockPriceServiceRealKisIntegrationTest {
         assertThat(firstResult.currentPrice)
             .isPositive()
 
-        // 실제 KIS 성공 로그가 DB에 저장된다.
         assertThat(savedLog)
             .isNotNull
         assertThat(savedLog?.provider)
@@ -142,13 +137,11 @@ class StockPriceServiceRealKisIntegrationTest {
                         it.stockId == stock.id
                 }
 
-        // 두 번째 요청은 첫 번째 요청과 같은 값을 반환한다.
         assertThat(secondResult.currentPrice)
             .isEqualByComparingTo(
                 firstResult.currentPrice,
             )
 
-        // 캐시 hit이면 KIS 호출 로그가 늘어나지 않는다.
         assertThat(secondLogCount)
             .isEqualTo(firstLogCount)
     }
@@ -168,7 +161,6 @@ class StockPriceServiceRealKisIntegrationTest {
         fun properties(
             registry: DynamicPropertyRegistry,
         ) {
-            // 테스트 프로필의 KIS 주소를 실제 주소로 바꾼다.
             registry.add(
                 "external.kis.base-url",
             ) {

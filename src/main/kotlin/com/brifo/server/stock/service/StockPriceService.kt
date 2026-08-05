@@ -27,20 +27,15 @@ class StockPriceService(
 ) {
     private val log = LoggerFactory.getLogger(StockPriceService::class.java)
 
-    // 종목별로 잠금 객체를 따로 보관한다.
-    // 삼성전자 요청과 카카오 요청은 서로 막지 않고,
-    // 삼성전자 요청끼리만 한 번에 하나씩 처리한다.
     private val priceLocks = ConcurrentHashMap<String, Any>()
 
     fun getCurrentPrice(
         stockId: Long,
         stockCode: String,
     ): StockPriceResult {
-        // 1. 60초 현재가 캐시를 가장 먼저 확인한다.
         val cachedPrice =
             currentPriceCacheRepository.findByCode(stockCode)
 
-        // 캐시값이 있으면 KIS를 호출하지 않고 바로 반환한다.
         if (cachedPrice != null) {
             return StockPriceResult(
                 stockCode = cachedPrice.code,
@@ -52,15 +47,12 @@ class StockPriceService(
             )
         }
 
-        // 종목 코드마다 서로 다른 잠금 객체를 사용한다.
         val lock =
             priceLocks.computeIfAbsent(stockCode) {
                 Any()
             }
 
         synchronized(lock) {
-            // 락을 기다리는 사이 앞 요청이 KIS 조회를 끝내고
-            // 캐시에 저장했을 수 있으므로 캐시를 다시 확인한다.
             val cachedPriceAfterLock =
                 currentPriceCacheRepository.findByCode(stockCode)
 
@@ -77,7 +69,6 @@ class StockPriceService(
 
             val kisPrice =
                 try {
-                    // 2. 캐시에 값이 없으면 KIS 현재가를 조회한다.
                     kisCurrentPriceClient.getCurrentPrice(
                         stockId = stockId,
                         stockCode = stockCode,
@@ -90,7 +81,6 @@ class StockPriceService(
                         exception,
                     )
 
-                    // 3. KIS 실패 시 3분 마지막 성공값을 확인한다.
                     val lastSuccessPrice =
                         currentPriceCacheRepository
                             .findLastSuccessByCode(stockCode)
@@ -106,7 +96,6 @@ class StockPriceService(
                         )
                     }
 
-                    // 4. 마지막 성공값도 없으면 DB의 가장 최근 종가를 조회한다.
                     val previousClose =
                         dailyStockPriceRepository
                             .findTopByStockIdAndTradeDateBeforeOrderByTradeDateDesc(
@@ -125,7 +114,6 @@ class StockPriceService(
                         )
                     }
 
-                    // 5. 캐시와 DB에 모두 값이 없으면 503을 반환한다.
                     throw BusinessException(
                         StockErrorCode.STOCK_PRICE_UNAVAILABLE,
                     )
@@ -142,10 +130,8 @@ class StockPriceService(
                     fetchedAt = fetchedAt,
                 )
 
-            // KIS 성공값을 60초 현재가 캐시에 저장한다.
             currentPriceCacheRepository.save(priceToCache)
 
-            // 같은 값을 3분 마지막 성공값 캐시에도 저장한다.
             currentPriceCacheRepository.saveLastSuccess(priceToCache)
 
             return StockPriceResult(
@@ -164,8 +150,6 @@ class StockPriceService(
         stock: Stock,
         tradeDate: LocalDate,
     ): DailyStockPrice {
-        // 종가 정산은 현재가 캐시나 fallback을 사용하지 않는다.
-        // KIS 종가 API를 직접 호출한 뒤 DB에 저장한다.
         val dailyPrice =
             kisDailyPriceClient.getDailyPrice(
                 stockId = requireNotNull(stock.id),

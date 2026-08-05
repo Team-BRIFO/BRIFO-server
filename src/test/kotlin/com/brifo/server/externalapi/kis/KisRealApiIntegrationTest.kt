@@ -13,7 +13,6 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.ZoneId
 
-// App Key와 App Secret이 있을 때만 실제 KIS API를 호출한다.
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @EnabledIfEnvironmentVariable(
     named = "KIS_APP_KEY",

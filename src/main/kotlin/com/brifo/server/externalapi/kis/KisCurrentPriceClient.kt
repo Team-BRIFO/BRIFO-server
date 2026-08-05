@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 
-// KIS 현재가 API를 호출하고 내부 결과로 변환한다.
 @Component
 class KisCurrentPriceClient(
     @Qualifier("kisCurrentPriceRestClient")

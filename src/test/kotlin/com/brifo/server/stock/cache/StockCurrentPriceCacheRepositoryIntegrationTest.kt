@@ -32,7 +32,6 @@ class StockCurrentPriceCacheRepositoryIntegrationTest {
                 ?.toInt()
                 ?: 6379
 
-        // 현재 실행 중인 Valkey에 연결한다.
         connectionFactory =
             LettuceConnectionFactory(
                 host,
@@ -58,14 +57,12 @@ class StockCurrentPriceCacheRepositoryIntegrationTest {
                 lastSuccessTtl = Duration.ofMinutes(3),
             )
 
-        // 테스트 전용 캐시를 비운다.
         redisTemplate.delete(CURRENT_PRICE_KEY)
         redisTemplate.delete(LAST_SUCCESS_KEY)
     }
 
     @AfterEach
     fun tearDown() {
-        // 테스트가 만든 캐시만 삭제한다.
         redisTemplate.delete(CURRENT_PRICE_KEY)
         redisTemplate.delete(LAST_SUCCESS_KEY)
 
@@ -100,11 +97,9 @@ class StockCurrentPriceCacheRepositoryIntegrationTest {
                 CURRENT_PRICE_KEY,
             )
 
-        // 실제 Valkey에서 같은 값을 조회한다.
         assertThat(savedPrice)
             .isEqualTo(price)
 
-        // 현재가 TTL은 최대 60초다.
         assertThat(ttl)
             .isBetween(1L, 60L)
     }
@@ -139,17 +134,14 @@ class StockCurrentPriceCacheRepositoryIntegrationTest {
                 LAST_SUCCESS_KEY,
             )
 
-        // 실제 Valkey에서 같은 값을 조회한다.
         assertThat(savedPrice)
             .isEqualTo(price)
 
-        // 마지막 성공값 TTL은 최대 3분이다.
         assertThat(ttl)
             .isBetween(1L, 180L)
     }
 
     companion object {
-        // 실제 종목 캐시와 겹치지 않는 테스트 코드다.
         private const val STOCK_CODE =
             "TEST-CACHE"
 

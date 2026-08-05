@@ -71,7 +71,6 @@ class StockCurrentPriceCacheRepositoryTest {
 
         repository.saveLastSuccess(price)
 
-        // 마지막 성공값 key와 3분 TTL을 확인한다.
         verify(valueOperations).set(
             "stock:last-success-price:005930",
             """{"code":"005930"}""",

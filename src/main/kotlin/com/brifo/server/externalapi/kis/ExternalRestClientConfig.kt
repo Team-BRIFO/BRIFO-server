@@ -10,7 +10,6 @@ import org.springframework.web.client.RestClient
 @Configuration
 @EnableConfigurationProperties(KisProperties::class)
 class ExternalRestClientConfig {
-    // 현재가와 토큰 호출에 사용
     @Bean("kisCurrentPriceRestClient")
     fun kisCurrentPriceRestClient(
         properties: KisProperties,
@@ -30,7 +29,6 @@ class ExternalRestClientConfig {
             .build()
     }
 
-    // 종가 조회는 기존 정책의 5초 timeout 사용
     @Bean("kisDailyPriceRestClient")
     fun kisDailyPriceRestClient(
         properties: KisProperties,
