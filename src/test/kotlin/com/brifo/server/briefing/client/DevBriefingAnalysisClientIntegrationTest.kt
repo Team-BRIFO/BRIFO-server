@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 @Import(TestcontainersConfiguration::class)
 @ActiveProfiles("dev")
@@ -39,10 +40,13 @@ class DevBriefingAnalysisClientIntegrationTest @Autowired constructor(
 
         // AI 요청의 레벨 범위를 1-3으로 맞춘다.
         scenario.agents.forEachIndexed { index, agent ->
+            // 저장된 사원의 내부 ID를 확인한다.
+            val agentId = assertNotNull(agent.id)
+
             entityManager
                 .createQuery("update Agent a set a.level = :level where a.id = :id")
                 .setParameter("level", index + 1)
-                .setParameter("id", agent.id!!)
+                .setParameter("id", agentId)
                 .executeUpdate()
             entityManager.refresh(agent)
         }
@@ -86,17 +90,25 @@ class DevBriefingAnalysisClientIntegrationTest @Autowired constructor(
 
         entityManager.flush()
 
+        // 저장 후 생성된 사용자와 카드뉴스 ID를 확인한다.
+        val userId = assertNotNull(scenario.user.publicId)
+        val newsCardId = assertNotNull(newsCard.publicId)
+
         // 배치에서 사용할 기존 브리핑 생성 메서드를 호출한다.
         val result =
             briefingAnalysisClient.createBriefings(
                 BriefingAnalysisClient.Request(
-                    userId = scenario.user.publicId!!,
-                    newsCardIds = listOf(newsCard.publicId!!),
+                    userId = userId,
+                    newsCardIds = listOf(newsCardId),
                     targets =
                         briefings.map { briefing ->
+                            // 각 브리핑과 사원의 ID를 확인한다.
+                            val briefingId = assertNotNull(briefing.publicId)
+                            val agentId = assertNotNull(briefing.agent.publicId)
+
                             BriefingAnalysisClient.Target(
-                                briefingId = briefing.publicId!!,
-                                agentId = briefing.agent.publicId!!,
+                                briefingId = briefingId,
+                                agentId = agentId,
                             )
                         },
                     recentDecisionIds = emptyList(),
