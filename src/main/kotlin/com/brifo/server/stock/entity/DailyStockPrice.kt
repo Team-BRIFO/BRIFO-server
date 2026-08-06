@@ -21,6 +21,7 @@ class DailyStockPrice private constructor(
     tradeDate: LocalDate,
     price: BigDecimal,
     changeRate: BigDecimal,
+    isClosing: Boolean,
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "dailyStockPriceIdGenerator")
@@ -54,6 +55,10 @@ class DailyStockPrice private constructor(
     var fetchedAt: LocalDateTime? = null
         protected set
 
+    @Column(name = "is_closing", nullable = false)
+    var isClosing: Boolean = isClosing
+        protected set
+
     companion object {
         fun create(
             stock: Stock,
@@ -66,6 +71,22 @@ class DailyStockPrice private constructor(
                 tradeDate = tradeDate,
                 price = price,
                 changeRate = changeRate,
+                isClosing = false,
+            )
+        }
+
+        fun createClosing(
+            stock: Stock,
+            tradeDate: LocalDate,
+            price: BigDecimal,
+            changeRate: BigDecimal,
+        ): DailyStockPrice {
+            return DailyStockPrice(
+                stock = stock,
+                tradeDate = tradeDate,
+                price = price,
+                changeRate = changeRate,
+                isClosing = true,
             )
         }
     }

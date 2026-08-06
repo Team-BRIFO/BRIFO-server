@@ -16,6 +16,7 @@ import jakarta.persistence.SequenceGenerator
 import jakarta.persistence.Table
 import org.hibernate.annotations.Generated
 import org.hibernate.generator.EventType
+import java.time.LocalDate
 import java.util.UUID
 
 @Entity
@@ -27,6 +28,7 @@ class Notification private constructor(
     body: String?,
     targetType: NotificationTargetType,
     targetPublicId: UUID?,
+    eventDate: LocalDate?,
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "notificationIdGenerator")
@@ -67,6 +69,10 @@ class Notification private constructor(
     var targetPublicId: UUID? = targetPublicId
         protected set
 
+    @Column(name = "event_date")
+    var eventDate: LocalDate? = eventDate
+        protected set
+
     companion object {
         fun create(
             user: User,
@@ -75,6 +81,7 @@ class Notification private constructor(
             body: String?,
             targetType: NotificationTargetType,
             targetPublicId: UUID? = null,
+            eventDate: LocalDate? = null,
         ): Notification {
             val targetRequired = targetType in TARGET_REQUIRED_TYPES
             require(targetRequired == (targetPublicId != null)) {
@@ -88,6 +95,7 @@ class Notification private constructor(
                 body = body,
                 targetType = targetType,
                 targetPublicId = targetPublicId,
+                eventDate = eventDate,
             )
         }
 
