@@ -48,3 +48,10 @@ app:
       cleanup-cron: ${REFRESH_TOKEN_CLEANUP_CRON:0 0 4 * * *}
   stock-price:
     cache-ttl: 60s
+    last-success-ttl: 3m
+
+external:
+  kis:
+    base-url: https://openapi.koreainvestment.com:9443
+    app-key: ${KIS_APP_KEY}
+    app-secret: ${KIS_APP_SECRET}

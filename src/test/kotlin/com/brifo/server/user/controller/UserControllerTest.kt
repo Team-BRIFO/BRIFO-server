@@ -1,5 +1,6 @@
 package com.brifo.server.user.controller
 
+import com.brifo.server.auth.security.SignupTokenCookieManager
 import com.brifo.server.authenticatedUserId
 import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
 import com.brifo.server.user.dto.request.UpdateUserProfileRequest
@@ -10,6 +11,7 @@ import com.brifo.server.user.dto.response.GetUserProfileResponse
 import com.brifo.server.user.service.UserQueryService
 import com.brifo.server.user.service.UserService
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito.mockingDetails
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.springframework.beans.factory.annotation.Autowired
@@ -24,7 +26,9 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.time.LocalDate
 import java.util.UUID
+import kotlin.test.assertTrue
 
 @WebMvcTest(UserController::class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -37,6 +41,9 @@ class UserControllerTest {
 
     @MockitoBean
     private lateinit var userQueryService: UserQueryService
+
+    @MockitoBean
+    private lateinit var signupTokenCookieManager: SignupTokenCookieManager
 
     @Test
     fun `온보딩 프로필 요청을 서비스에 전달한다`() {
@@ -72,6 +79,9 @@ class UserControllerTest {
             .andExpect(jsonPath("$.result").exists())
 
         verify(userService).completeOnboarding(userId)
+        assertTrue(
+            mockingDetails(signupTokenCookieManager).invocations.any { it.method.name == "clear" },
+        )
     }
 
     @Test
@@ -105,12 +115,15 @@ class UserControllerTest {
     }
 
     @Test
-    fun `홈 조회 요청을 조회 서비스에 전달한다`() {
+    fun `홈 조회 응답을 직렬화하고 조회 서비스에 전달한다`() {
         val userId = authenticatedUserId()
         `when`(userQueryService.getUserHome(userId)).thenReturn(
             GetUserHomeResponse(
                 user = GetUserHomeResponse.User("brifo", "회사", 0),
                 agents = emptyList(),
+                attendedToday = true,
+                weeklyAttendanceDays = 2,
+                dates = listOf(LocalDate.of(2026, 8, 3), LocalDate.of(2026, 8, 4)),
                 todayDecisions = GetUserHomeResponse.TodayDecisions(0),
                 todayNewsCards = GetUserHomeResponse.TodayNewsCards(null, emptyList()),
             ),
@@ -120,6 +133,10 @@ class UserControllerTest {
             .perform(get("/api/users/me/home").param("userId", userId.toString()))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.code").value("COMMON_200"))
+            .andExpect(jsonPath("$.result.attendedToday").value(true))
+            .andExpect(jsonPath("$.result.weeklyAttendanceDays").value(2))
+            .andExpect(jsonPath("$.result.dates[0]").value("2026-08-03"))
+            .andExpect(jsonPath("$.result.dates[1]").value("2026-08-04"))
 
         verify(userQueryService).getUserHome(userId)
     }

@@ -2,6 +2,7 @@ package com.brifo.server.auth.security
 
 import com.brifo.server.ServerTestConfiguration
 import com.brifo.server.auth.service.JwtTokenProvider
+import jakarta.servlet.http.Cookie
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -17,6 +18,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.UUID
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 @Import(ServerTestConfiguration::class)
 @ActiveProfiles("test")
@@ -126,7 +129,7 @@ class SecurityConfigIntegrationTest @Autowired constructor(
         mockMvc
             .perform(
                 get("/api/users/me")
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer $signupToken"),
+                    .cookie(Cookie(SignupTokenCookieManager.COOKIE_NAME, signupToken)),
             ).andExpect(status().isForbidden)
             .andExpect(jsonPath("$.code").value("AUTH_403"))
     }
@@ -153,10 +156,120 @@ class SecurityConfigIntegrationTest @Autowired constructor(
         mockMvc
             .perform(
                 patch("/api/onboarding/profile")
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer $signupToken")
+                    .cookie(
+                        Cookie(SignupTokenCookieManager.COOKIE_NAME, signupToken),
+                        Cookie(SignupTokenCookieManager.CSRF_COOKIE_NAME, "csrf-token"),
+                    ).header(SignupTokenCookieManager.CSRF_HEADER_NAME, "csrf-token")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"nickname":"brifo","stockIds":["$stockId"]}"""),
             ).andExpect(status().isNotFound)
             .andExpect(jsonPath("$.code").value("USER_404"))
+    }
+
+    @Test
+    fun `Signup Token 쿠키의 상태 변경 요청은 CSRF 토큰이 필요하다`() {
+        val signupToken = jwtTokenProvider.issueSignupToken(UUID.randomUUID())
+
+        mockMvc
+            .perform(
+                patch("/api/onboarding/profile")
+                    .cookie(Cookie(SignupTokenCookieManager.COOKIE_NAME, signupToken))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"nickname":"brifo","stockIds":[]}"""),
+            ).andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.code").value("AUTH_403"))
+    }
+
+    @Test
+    fun `Signup Token 쿠키의 온보딩 완료 요청은 CSRF 토큰이 필요하다`() {
+        val signupToken = jwtTokenProvider.issueSignupToken(UUID.randomUUID())
+
+        mockMvc
+            .perform(
+                post("/api/onboarding/complete")
+                    .cookie(Cookie(SignupTokenCookieManager.COOKIE_NAME, signupToken)),
+            ).andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.code").value("AUTH_403"))
+    }
+
+    @Test
+    fun `Signup Token 쿠키의 약관 동의 요청은 CSRF 토큰이 필요하다`() {
+        val signupToken = jwtTokenProvider.issueSignupToken(UUID.randomUUID())
+
+        mockMvc
+            .perform(
+                post("/api/users/me/policies")
+                    .cookie(Cookie(SignupTokenCookieManager.COOKIE_NAME, signupToken))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("[]"),
+            ).andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.code").value("AUTH_403"))
+    }
+
+    @Test
+    fun `Signup Token 쿠키로 CSRF 토큰을 재발급하고 상태 변경 요청에 사용한다`() {
+        val signupToken = jwtTokenProvider.issueSignupToken(UUID.randomUUID())
+
+        val refreshResponse =
+            mockMvc
+                .perform(
+                    get("/api/auth/signup/csrf")
+                        .cookie(Cookie(SignupTokenCookieManager.COOKIE_NAME, signupToken)),
+                ).andExpect(status().isOk)
+                .andExpect(jsonPath("$.code").value("COMMON_200"))
+                .andReturn()
+                .response
+        val csrfToken = assertNotNull(refreshResponse.getHeader(SignupTokenCookieManager.CSRF_HEADER_NAME))
+        val csrfCookie =
+            refreshResponse
+                .getHeaders(HttpHeaders.SET_COOKIE)
+                .single { it.startsWith("${SignupTokenCookieManager.CSRF_COOKIE_NAME}=") }
+                .substringAfter('=')
+                .substringBefore(';')
+        assertEquals(csrfToken, csrfCookie)
+
+        mockMvc
+            .perform(
+                post("/api/onboarding/complete")
+                    .cookie(
+                        Cookie(SignupTokenCookieManager.COOKIE_NAME, signupToken),
+                        Cookie(SignupTokenCookieManager.CSRF_COOKIE_NAME, csrfCookie),
+                    ).header(SignupTokenCookieManager.CSRF_HEADER_NAME, csrfToken),
+            ).andExpect(status().isNotFound)
+            .andExpect(jsonPath("$.code").value("USER_404"))
+    }
+
+    @Test
+    fun `Signup Token 쿠키가 없으면 CSRF 토큰을 재발급할 수 없다`() {
+        mockMvc
+            .perform(get("/api/auth/signup/csrf"))
+            .andExpect(status().isUnauthorized)
+            .andExpect(jsonPath("$.code").value("AUTH_401"))
+    }
+
+    @Test
+    fun `Access Token으로 Signup CSRF 토큰을 재발급할 수 없다`() {
+        val accessToken = jwtTokenProvider.issueLoginTokens(UUID.randomUUID()).accessToken
+
+        mockMvc
+            .perform(
+                get("/api/auth/signup/csrf")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer $accessToken"),
+            ).andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.code").value("AUTH_403"))
+    }
+
+    @Test
+    fun `Signup Token은 Bearer 헤더로 온보딩 API를 인증할 수 없다`() {
+        val signupToken = jwtTokenProvider.issueSignupToken(UUID.randomUUID())
+
+        mockMvc
+            .perform(
+                patch("/api/onboarding/profile")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer $signupToken")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"nickname":"brifo","stockIds":[]}"""),
+            ).andExpect(status().isUnauthorized)
+            .andExpect(jsonPath("$.code").value("AUTH_401_03"))
     }
 }

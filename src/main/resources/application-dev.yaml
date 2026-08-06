@@ -12,6 +12,8 @@ spring:
 
 app:
   auth:
+    signup-cookie:
+      secure: false
     kakao:
       client-id: ${KAKAO_CLIENT_ID:disabled}
       client-secret: ${KAKAO_CLIENT_SECRET:}

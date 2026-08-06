@@ -1,8 +1,11 @@
 package com.brifo.server.global.config
 
+import com.brifo.server.auth.config.SignupTokenCookieProperties
 import com.brifo.server.auth.security.JwtAuthenticationFilter
 import com.brifo.server.auth.security.RestAccessDeniedHandler
 import com.brifo.server.auth.security.RestAuthenticationEntryPoint
+import com.brifo.server.auth.security.SignupCsrfFilter
+import com.brifo.server.auth.security.SignupTokenCookieManager
 import com.brifo.server.auth.service.JwtTokenProvider
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
@@ -20,13 +23,27 @@ import tools.jackson.databind.ObjectMapper
 
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties(CorsProperties::class, JwtProperties::class, KakaoProperties::class, NaverProperties::class)
+@EnableConfigurationProperties(
+    CorsProperties::class,
+    JwtProperties::class,
+    KakaoProperties::class,
+    NaverProperties::class,
+    SignupTokenCookieProperties::class,
+)
 class SecurityConfig(
     private val corsProperties: CorsProperties,
 ) {
     @Bean
-    fun jwtAuthenticationFilter(jwtTokenProvider: JwtTokenProvider): JwtAuthenticationFilter =
-        JwtAuthenticationFilter(jwtTokenProvider)
+    fun jwtAuthenticationFilter(
+        jwtTokenProvider: JwtTokenProvider,
+        signupTokenCookieManager: SignupTokenCookieManager,
+    ): JwtAuthenticationFilter = JwtAuthenticationFilter(jwtTokenProvider, signupTokenCookieManager)
+
+    @Bean
+    fun signupCsrfFilter(
+        signupTokenCookieManager: SignupTokenCookieManager,
+        accessDeniedHandler: RestAccessDeniedHandler,
+    ): SignupCsrfFilter = SignupCsrfFilter(signupTokenCookieManager, accessDeniedHandler)
 
     @Bean
     fun authenticationEntryPoint(objectMapper: ObjectMapper): RestAuthenticationEntryPoint =
@@ -40,10 +57,12 @@ class SecurityConfig(
     fun securityFilterChain(
         http: HttpSecurity,
         jwtAuthenticationFilter: JwtAuthenticationFilter,
+        signupCsrfFilter: SignupCsrfFilter,
         authenticationEntryPoint: RestAuthenticationEntryPoint,
         accessDeniedHandler: RestAccessDeniedHandler,
     ): SecurityFilterChain =
         http
+            // Cookie-authenticated signup requests are protected by SignupCsrfFilter.
             .csrf { it.disable() }
             .cors { }
             .sessionManagement {
@@ -77,6 +96,11 @@ class SecurityConfig(
                     ).hasAuthority(JwtAuthenticationFilter.SIGNUP_AUTHORITY)
                 it
                     .requestMatchers(
+                        HttpMethod.GET,
+                        "/api/auth/signup/csrf",
+                    ).hasAuthority(JwtAuthenticationFilter.SIGNUP_AUTHORITY)
+                it
+                    .requestMatchers(
                         HttpMethod.POST,
                         "/api/onboarding/complete",
                     ).hasAuthority(JwtAuthenticationFilter.SIGNUP_AUTHORITY)
@@ -100,6 +124,7 @@ class SecurityConfig(
                     )
                 it.anyRequest().hasAuthority(JwtAuthenticationFilter.ACCESS_AUTHORITY)
             }.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .addFilterAfter(signupCsrfFilter, JwtAuthenticationFilter::class.java)
             .build()
 
     @Bean
@@ -108,8 +133,9 @@ class SecurityConfig(
             CorsConfiguration().apply {
                 allowedOrigins = corsProperties.allowedOrigins
                 allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-                allowedHeaders = listOf("Authorization", "Content-Type")
-                allowCredentials = false
+                allowedHeaders = listOf("Authorization", "Content-Type", SignupTokenCookieManager.CSRF_HEADER_NAME)
+                exposedHeaders = listOf(SignupTokenCookieManager.CSRF_HEADER_NAME)
+                allowCredentials = true
             }
 
         return UrlBasedCorsConfigurationSource().apply {

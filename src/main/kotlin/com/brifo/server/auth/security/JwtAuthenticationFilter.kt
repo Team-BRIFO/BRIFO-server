@@ -2,6 +2,7 @@ package com.brifo.server.auth.security
 
 import com.brifo.server.auth.code.AuthErrorCode
 import com.brifo.server.auth.exception.AuthException
+import com.brifo.server.auth.exception.InvalidJwtTokenException
 import com.brifo.server.auth.service.JwtTokenProvider
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
@@ -15,17 +16,21 @@ import org.springframework.web.filter.OncePerRequestFilter
 
 class JwtAuthenticationFilter(
     private val jwtTokenProvider: JwtTokenProvider,
+    private val signupTokenCookieManager: SignupTokenCookieManager,
 ) : OncePerRequestFilter() {
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
         filterChain: FilterChain,
     ) {
-        val accessToken = resolveAccessToken(request)
+        val tokenCandidate = resolveToken(request)
 
-        if (accessToken != null && SecurityContextHolder.getContext().authentication == null) {
+        if (tokenCandidate != null && SecurityContextHolder.getContext().authentication == null) {
             try {
-                val claims = jwtTokenProvider.parseAuthenticationToken(accessToken)
+                val claims = jwtTokenProvider.parseAuthenticationToken(tokenCandidate.value)
+                if (claims.tokenType != tokenCandidate.expectedType) {
+                    throw InvalidJwtTokenException()
+                }
                 val authentication =
                     UsernamePasswordAuthenticationToken(
                         claims.userPublicId,
@@ -38,14 +43,22 @@ class JwtAuthenticationFilter(
             } catch (exception: AuthException) {
                 SecurityContextHolder.clearContext()
                 request.setAttribute(AUTH_ERROR_CODE_ATTRIBUTE, exception.errorCode)
+                if (tokenCandidate.source == TokenSource.COOKIE) {
+                    signupTokenCookieManager.clear(response)
+                }
             }
         }
 
         filterChain.doFilter(request, response)
     }
 
-    private fun resolveAccessToken(request: HttpServletRequest): String? {
-        val authorization = request.getHeader(HttpHeaders.AUTHORIZATION)?.trim() ?: return null
+    private fun resolveToken(request: HttpServletRequest): TokenCandidate? {
+        val authorization = request.getHeader(HttpHeaders.AUTHORIZATION)?.trim()
+        if (authorization == null) {
+            return signupTokenCookieManager.resolve(request)?.let {
+                TokenCandidate(it, JwtTokenProvider.AuthenticationTokenType.SIGNUP, TokenSource.COOKIE)
+            }
+        }
         if (!authorization.startsWith(BEARER_PREFIX, ignoreCase = true)) {
             request.setAttribute(AUTH_ERROR_CODE_ATTRIBUTE, AuthErrorCode.INVALID_TOKEN)
             return null
@@ -55,10 +68,22 @@ class JwtAuthenticationFilter(
             .substring(BEARER_PREFIX.length)
             .trim()
             .takeIf { it.isNotEmpty() }
+            ?.let { TokenCandidate(it, JwtTokenProvider.AuthenticationTokenType.ACCESS, TokenSource.HEADER) }
             ?: run {
                 request.setAttribute(AUTH_ERROR_CODE_ATTRIBUTE, AuthErrorCode.INVALID_TOKEN)
                 null
             }
+    }
+
+    private data class TokenCandidate(
+        val value: String,
+        val expectedType: JwtTokenProvider.AuthenticationTokenType,
+        val source: TokenSource,
+    )
+
+    private enum class TokenSource {
+        HEADER,
+        COOKIE,
     }
 
     companion object {
