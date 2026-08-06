@@ -16,6 +16,11 @@ class ApTransactionService(
     private val userRepository: UserRepository,
     private val apTransactionRepository: ApTransactionRepository,
 ) {
+    data class ChangeResult(
+        val deltaAp: Int,
+        val balanceAp: Int,
+    )
+
     data class Target(
         val type: ApTransactionTargetType,
         val id: Long,
@@ -27,22 +32,56 @@ class ApTransactionService(
         deltaAp: Int,
         reason: ApTransactionReason,
         target: Target? = null,
-    ): Int {
+    ): Int = changeLocked(userId, deltaAp, reason, target, floorAtZero = false).balanceAp
+
+    @Transactional
+    fun settleDecision(
+        userId: UUID,
+        plannedDeltaAp: Int,
+        reason: ApTransactionReason,
+        decisionId: Long,
+    ): ChangeResult {
+        require(reason in DECISION_REASONS) { "Invalid decision AP reason: $reason" }
+        return changeLocked(
+            userId = userId,
+            requestedDeltaAp = plannedDeltaAp,
+            reason = reason,
+            target = Target(ApTransactionTargetType.DECISION, decisionId),
+            floorAtZero = true,
+        )
+    }
+
+    private fun changeLocked(
+        userId: UUID,
+        requestedDeltaAp: Int,
+        reason: ApTransactionReason,
+        target: Target?,
+        floorAtZero: Boolean,
+    ): ChangeResult {
         val user = userRepository.findForUpdateByPublicId(userId) ?: throw UserNotFoundException()
-        if (user.balanceAp + deltaAp < 0) {
+        if (!floorAtZero && user.balanceAp + requestedDeltaAp < 0) {
             throw InsufficientApBalanceException()
         }
+        val actualDelta = if (floorAtZero) requestedDeltaAp.coerceAtLeast(-user.balanceAp) else requestedDeltaAp
         val transaction =
             ApTransaction.create(
                 user = user,
-                amount = deltaAp,
+                amount = actualDelta,
                 reason = reason,
                 targetType = target?.type,
                 targetId = target?.id,
             )
-
-        user.changeAp(deltaAp)
+        user.changeAp(actualDelta)
         apTransactionRepository.save(transaction)
-        return user.balanceAp
+        return ChangeResult(actualDelta, user.balanceAp)
+    }
+
+    private companion object {
+        val DECISION_REASONS =
+            setOf(
+                ApTransactionReason.DECISION_WIN,
+                ApTransactionReason.DECISION_LOSE,
+                ApTransactionReason.NEUTRAL_HIT,
+            )
     }
 }

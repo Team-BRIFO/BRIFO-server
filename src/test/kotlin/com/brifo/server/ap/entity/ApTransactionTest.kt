@@ -8,6 +8,25 @@ import kotlin.test.assertFailsWith
 
 class ApTransactionTest {
     @Test
+    fun `결정 오답 거래는 실제 차감액이 없어도 생성할 수 있다`() {
+        val user = User.create(
+            provider = OAuthProvider.KAKAO,
+            socialId = "social-id",
+            email = "user@example.com",
+        )
+
+        val transaction = ApTransaction.create(
+            user = user,
+            amount = 0,
+            reason = ApTransactionReason.DECISION_LOSE,
+            targetType = ApTransactionTargetType.DECISION,
+            targetId = 1L,
+        )
+
+        assertEquals(0, transaction.amount)
+    }
+
+    @Test
     fun `급여와 환불 거래는 반대 부호로 생성된다`() {
         val user = User.create(
             provider = OAuthProvider.KAKAO,
