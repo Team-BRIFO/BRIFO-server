@@ -301,6 +301,7 @@ class UserQueryServiceTest {
             source = NewsSource.NAVER,
             stockId = UUID.randomUUID(),
             stockName = "삼성전자",
+            logoUrl = "https://cdn.example.com/005930.png",
             changeRate = BigDecimal("1.34"),
         )
 }

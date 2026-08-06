@@ -52,7 +52,8 @@ data class GetUserHomeResponse(
         data class HomeNewsStock(
             val stockId: UUID,
             val name: String,
-            val changeRate: BigDecimal?,
+            val logoUrl: String?,
+            val changeRate: BigDecimal,
         )
     }
 }

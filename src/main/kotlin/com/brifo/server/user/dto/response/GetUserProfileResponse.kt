@@ -12,5 +12,6 @@ data class GetUserProfileResponse(
     data class UserProfileStock(
         val stockId: UUID,
         val name: String,
+        val logoUrl: String?,
     )
 }
