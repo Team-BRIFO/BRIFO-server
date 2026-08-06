@@ -3,6 +3,7 @@ package com.brifo.server.batch.generation
 import com.brifo.server.news.repository.NewsCardRepository
 import com.brifo.server.notification.entity.NotificationCode
 import com.brifo.server.notification.entity.NotificationTargetType
+import com.brifo.server.notification.repository.NewsCardArrival
 import com.brifo.server.notification.repository.NotificationRepository
 import com.brifo.server.notification.service.NotificationCreationService
 import com.brifo.server.stock.entity.Stock
@@ -16,6 +17,9 @@ import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import org.springframework.batch.core.scope.context.ChunkContext
 import org.springframework.batch.core.step.StepContribution
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import java.time.LocalDate
 import java.util.UUID
 
@@ -38,16 +42,16 @@ class NewsCardNotificationTaskletTest {
         `when`(userStock.stock).thenReturn(stock)
         `when`(userStock.user).thenReturn(user)
         `when`(cardRepository.findDistinctStockIdsByDisplayDate(displayDate)).thenReturn(listOf(1L))
-        `when`(userStockRepository.findAllByStockIdIn(listOf(1L))).thenReturn(listOf(userStock))
+        `when`(userStockRepository.findAllByStockIdIn(listOf(1L), firstPage())).thenReturn(PageImpl(listOf(userStock)))
         `when`(
-            notificationRepository.existsNewsCardArrival(
-                2L,
+            notificationRepository.findNewsCardArrivals(
+                setOf(2L),
                 NotificationCode.NEWS_CARD_ARRIVED.name,
                 NotificationTargetType.NEWS_CARD_LIST,
-                stockPublicId,
+                setOf(stockPublicId),
                 displayDate,
             ),
-        ).thenReturn(true)
+        ).thenReturn(setOf(NewsCardArrival(2L, stockPublicId)))
 
         tasklet().execute(mock(StepContribution::class.java), mock(ChunkContext::class.java))
 
@@ -67,7 +71,16 @@ class NewsCardNotificationTaskletTest {
         `when`(userStock.stock).thenReturn(stock)
         `when`(userStock.user).thenReturn(user)
         `when`(cardRepository.findDistinctStockIdsByDisplayDate(displayDate)).thenReturn(listOf(1L))
-        `when`(userStockRepository.findAllByStockIdIn(listOf(1L))).thenReturn(listOf(userStock))
+        `when`(userStockRepository.findAllByStockIdIn(listOf(1L), firstPage())).thenReturn(PageImpl(listOf(userStock)))
+        `when`(
+            notificationRepository.findNewsCardArrivals(
+                setOf(2L),
+                NotificationCode.NEWS_CARD_ARRIVED.name,
+                NotificationTargetType.NEWS_CARD_LIST,
+                setOf(stockPublicId),
+                displayDate,
+            ),
+        ).thenReturn(emptySet())
 
         tasklet().execute(mock(StepContribution::class.java), mock(ChunkContext::class.java))
 
@@ -87,4 +100,6 @@ class NewsCardNotificationTaskletTest {
             notificationRepository,
             notificationService,
         )
+
+    private fun firstPage() = PageRequest.of(0, 500, Sort.by("id"))
 }

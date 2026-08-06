@@ -39,11 +39,11 @@ class NewsGenerationCandidateRepositoryTest {
     private lateinit var entityManager: EntityManager
 
     @Test
-    fun `원래 상위 2건을 선정한 뒤 이미 카드가 있는 뉴스를 제외한다`() {
+    fun `이미 카드가 있는 뉴스를 제외한 뒤 상위 2건을 선정한다`() {
         val stock = stockRepository.save(Stock.create("BRF001", "브리포주식", "금융"))
         val first = saveNews(stock, "first", "0.90", LocalDateTime.of(2026, 8, 3, 11, 0))
         val second = saveNews(stock, "second", "0.80", LocalDateTime.of(2026, 8, 3, 10, 0))
-        saveNews(stock, "third", "0.70", LocalDateTime.of(2026, 8, 3, 9, 0))
+        val third = saveNews(stock, "third", "0.70", LocalDateTime.of(2026, 8, 3, 9, 0))
         cardRepository.save(
             NewsCard.create(
                 news = first,
@@ -62,7 +62,7 @@ class NewsGenerationCandidateRepositoryTest {
             LocalDate.of(2026, 8, 4).atStartOfDay(),
         )
 
-        assertEquals(listOf(requireNotNull(second.id)), candidates)
+        assertEquals(listOf(requireNotNull(second.id), requireNotNull(third.id)), candidates)
     }
 
     private fun saveNews(

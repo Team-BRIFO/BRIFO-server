@@ -44,23 +44,30 @@ class NotificationQueryRepositoryImpl(
             .fetch()
             .map(NotificationRow::toResponseItem)
 
-    override fun existsNewsCardArrival(
-        userId: Long,
+    override fun findNewsCardArrivals(
+        userIds: Collection<Long>,
         code: String,
         targetType: NotificationTargetType,
-        targetPublicId: UUID,
+        targetPublicIds: Collection<UUID>,
         eventDate: LocalDate,
-    ): Boolean =
+    ): Set<NewsCardArrival> =
         queryFactory
-            .selectOne()
+            .select(
+                Projections.constructor(
+                    NewsCardArrival::class.java,
+                    notification.user.id,
+                    notification.targetPublicId,
+                ),
+            ).distinct()
             .from(notification)
             .where(
-                notification.user.id.eq(userId),
+                notification.user.id.`in`(userIds),
                 notification.notificationType.code.eq(code),
                 notification.targetType.eq(targetType),
-                notification.targetPublicId.eq(targetPublicId),
+                notification.targetPublicId.`in`(targetPublicIds),
                 notification.eventDate.eq(eventDate),
-            ).fetchFirst() != null
+            ).fetch()
+            .toSet()
 }
 
 data class NotificationRow(

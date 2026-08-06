@@ -25,10 +25,12 @@ class NewsCardPersistenceService(
         item: GeneratedNewsCardItem,
         displayDate: LocalDate,
     ) {
-        if (newsCardRepository.existsByNewsId(item.newsId)) return
-
         val news = newsRepository.findById(item.newsId).orElseThrow {
             IllegalStateException("뉴스를 찾을 수 없습니다: ${item.newsId}")
+        }
+        if (newsCardRepository.existsByNewsId(item.newsId)) {
+            news.markProcessed()
+            return
         }
         val generated = item.card
         require(generated.headline.isNotBlank()) { "생성된 headline은 비어 있을 수 없습니다." }

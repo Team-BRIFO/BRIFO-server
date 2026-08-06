@@ -97,6 +97,14 @@ class DevBatchCleanupQueryRepository(
                 decision.createdAt.lt(cutoff),
             ).fetch()
 
+    fun findCardIdsByBriefingIds(briefingIds: List<Long>): List<Long> =
+        queryFactory
+            .select(briefingNewsCard.newsCard.id)
+            .distinct()
+            .from(briefingNewsCard)
+            .where(briefingNewsCard.briefing.id.`in`(briefingIds))
+            .fetch()
+
     fun findStockIdsByDecisionIds(decisionIds: List<Long>): List<Long> =
         queryFactory
             .select(briefingNewsCard.newsCard.news.stock.id)

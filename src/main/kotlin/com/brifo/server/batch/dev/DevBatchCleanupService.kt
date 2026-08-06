@@ -58,7 +58,7 @@ class DevBatchCleanupService(
 
         deleteDecisionNotifications(decisionIds)
         jdbc.updateByIds("DELETE FROM diary_entries WHERE decision_id IN (:ids)", decisionIds)
-        val settlements = jdbc.updateByIds("DELETE FROM decision_results WHERE decision_id IN (:ids)", decisionIds)
+        val settlements = deleteSettlementsAndRestoreRewards(decisionIds)
         if (stockIds.isNotEmpty()) {
             jdbc.update(
                 """
@@ -76,23 +76,54 @@ class DevBatchCleanupService(
     private fun cleanupNewsCards(newsIds: List<Long>): DevBatchCleanupResult {
         if (newsIds.isEmpty()) return DevBatchCleanupResult()
 
-        val cardIds = queryRepository.findCardIds(newsIds)
+        var cardIds = queryRepository.findCardIds(newsIds).toSet()
         if (cardIds.isEmpty()) return DevBatchCleanupResult()
 
-        val briefingIds = queryRepository.findBriefingIds(cardIds)
-        val decisionIds = if (briefingIds.isEmpty()) emptyList() else queryRepository.findDecisionIds(briefingIds)
+        var briefingIds: Set<Long>
+        while (true) {
+            briefingIds = queryRepository.findBriefingIds(cardIds.toList()).toSet()
+            val expandedCardIds = cardIds + queryRepository.findCardIdsByBriefingIds(briefingIds.toList())
+            if (expandedCardIds == cardIds) break
+            cardIds = expandedCardIds
+        }
+
+        val cleanupCardIds = cardIds.toList()
+        val cleanupBriefingIds = briefingIds.toList()
+        val decisionIds =
+            if (cleanupBriefingIds.isEmpty()) emptyList()
+            else queryRepository.findDecisionIds(cleanupBriefingIds)
 
         deleteDecisionNotifications(decisionIds)
-        deleteBriefingNotifications(briefingIds)
-        deleteNewsCardNotifications(cardIds)
+        deleteBriefingNotifications(cleanupBriefingIds)
+        deleteNewsCardNotifications(cleanupCardIds)
 
         jdbc.updateByIds("DELETE FROM diary_entries WHERE decision_id IN (:ids)", decisionIds)
-        val settlements = jdbc.updateByIds("DELETE FROM decision_results WHERE decision_id IN (:ids)", decisionIds)
+        val settlements = deleteSettlementsAndRestoreRewards(decisionIds)
         val decisions = jdbc.updateByIds("DELETE FROM decisions WHERE id IN (:ids)", decisionIds)
-        jdbc.updateByIds("DELETE FROM briefing_news_cards WHERE briefing_id IN (:ids)", briefingIds)
-        val briefings = jdbc.updateByIds("DELETE FROM briefings WHERE id IN (:ids)", briefingIds)
-        jdbc.updateByIds("DELETE FROM news_card_terms WHERE card_id IN (:ids)", cardIds)
-        val cards = jdbc.updateByIds("DELETE FROM news_cards WHERE id IN (:ids)", cardIds)
+        jdbc.update(
+            """
+            DELETE FROM briefing_news_cards
+            WHERE briefing_id IN (:briefingIds)
+              AND card_id IN (:cardIds)
+            """,
+            MapSqlParameterSource()
+                .addValue("briefingIds", cleanupBriefingIds)
+                .addValue("cardIds", cleanupCardIds),
+        )
+        val briefings =
+            jdbc.update(
+                """
+                DELETE FROM briefings briefing
+                WHERE briefing.id IN (:ids)
+                  AND NOT EXISTS (
+                      SELECT 1 FROM briefing_news_cards link
+                      WHERE link.briefing_id = briefing.id
+                  )
+                """,
+                ids(cleanupBriefingIds),
+            )
+        jdbc.updateByIds("DELETE FROM news_card_terms WHERE card_id IN (:ids)", cleanupCardIds)
+        val cards = jdbc.updateByIds("DELETE FROM news_cards WHERE id IN (:ids)", cleanupCardIds)
 
         return DevBatchCleanupResult(
             newsCards = cards,
@@ -101,6 +132,147 @@ class DevBatchCleanupService(
             settlements = settlements,
         )
     }
+
+    private fun deleteSettlementsAndRestoreRewards(decisionIds: List<Long>): Int {
+        if (decisionIds.isEmpty()) return 0
+
+        jdbc.update(
+            """
+            UPDATE users user_account
+            SET balance_ap = user_account.balance_ap - reward.total_amount
+            FROM (
+                SELECT user_id, SUM(amount) AS total_amount
+                FROM ap_transactions
+                WHERE target_type = 'DECISION'
+                  AND target_id IN (:ids)
+                GROUP BY user_id
+            ) reward
+            WHERE user_account.id = reward.user_id
+            """,
+            ids(decisionIds),
+        )
+        jdbc.updateByIds(
+            "DELETE FROM ap_transactions WHERE target_type = 'DECISION' AND target_id IN (:ids)",
+            decisionIds,
+        )
+        val settlements = jdbc.updateByIds("DELETE FROM decision_results WHERE decision_id IN (:ids)", decisionIds)
+
+        jdbc.update(
+            """
+            UPDATE agents agent
+            SET level = LEAST(10, 1 + experience.total_exp / 100),
+                exp = CASE WHEN experience.total_exp >= 900 THEN 0 ELSE experience.total_exp % 100 END
+            FROM (
+                SELECT affected_agent.id,
+                       COALESCE(SUM(
+                           CASE
+                               WHEN result.id IS NULL THEN 0
+                               WHEN result.is_correct = FALSE THEN 10
+                               WHEN decision.direction = 'NEUTRAL' THEN 20
+                               ELSE 50
+                           END
+                       ), 0)::INTEGER AS total_exp
+                FROM (
+                    SELECT DISTINCT briefing.agent_id AS id
+                    FROM decisions decision
+                    JOIN briefings briefing ON briefing.id = decision.briefing_id
+                    WHERE decision.id IN (:ids)
+                ) affected_agent
+                LEFT JOIN briefings briefing ON briefing.agent_id = affected_agent.id
+                LEFT JOIN decisions decision ON decision.briefing_id = briefing.id
+                LEFT JOIN decision_results result ON result.decision_id = decision.id
+                GROUP BY affected_agent.id
+            ) experience
+            WHERE agent.id = experience.id
+            """,
+            ids(decisionIds),
+        )
+
+        val userBadgeIds = findInvalidSettlementBadgeIds(decisionIds)
+        if (userBadgeIds.isNotEmpty()) {
+            jdbc.update(
+                """
+                UPDATE users user_account
+                SET balance_ap = user_account.balance_ap - reward.total_amount
+                FROM (
+                    SELECT user_id, SUM(amount) AS total_amount
+                    FROM ap_transactions
+                    WHERE target_type = 'USER_BADGE'
+                      AND target_id IN (:ids)
+                    GROUP BY user_id
+                ) reward
+                WHERE user_account.id = reward.user_id
+                """,
+                ids(userBadgeIds),
+            )
+            jdbc.update(
+                """
+                DELETE FROM notifications notification
+                USING notification_types type, user_badges user_badge, badges badge
+                WHERE notification.notification_type_id = type.id
+                  AND type.code = 'BADGE_AWARDED'
+                  AND notification.user_id = user_badge.user_id
+                  AND notification.target_public_id = badge.public_id
+                  AND user_badge.badge_id = badge.id
+                  AND user_badge.id IN (:ids)
+                """,
+                ids(userBadgeIds),
+            )
+            jdbc.updateByIds(
+                "DELETE FROM ap_transactions WHERE target_type = 'USER_BADGE' AND target_id IN (:ids)",
+                userBadgeIds,
+            )
+            jdbc.updateByIds("DELETE FROM user_badges WHERE id IN (:ids)", userBadgeIds)
+        }
+        return settlements
+    }
+
+    private fun findInvalidSettlementBadgeIds(decisionIds: List<Long>): List<Long> =
+        jdbc.queryForList(
+            """
+            WITH affected_users AS (
+                SELECT DISTINCT agent.user_id
+                FROM decisions decision
+                JOIN briefings briefing ON briefing.id = decision.briefing_id
+                JOIN agents agent ON agent.id = briefing.agent_id
+                WHERE decision.id IN (:ids)
+            ), settlement_stats AS (
+                SELECT affected_user.user_id,
+                       COUNT(result.id) FILTER (WHERE result.is_correct = TRUE) AS correct_count,
+                       COUNT(result.id) FILTER (
+                           WHERE result.is_correct = TRUE AND decision.direction = 'NEUTRAL'
+                       ) AS neutral_hit_count,
+                       COALESCE(BOOL_OR(
+                           result.is_correct = TRUE AND decision.confidence_level = 5
+                       ), FALSE) AS has_high_confidence_hit,
+                       EXISTS (
+                           SELECT 1 FROM agents user_agent
+                           WHERE user_agent.user_id = affected_user.user_id AND user_agent.level >= 5
+                       ) AS has_level_five_agent
+                FROM affected_users affected_user
+                LEFT JOIN agents agent ON agent.user_id = affected_user.user_id
+                LEFT JOIN briefings briefing ON briefing.agent_id = agent.id
+                LEFT JOIN decisions decision ON decision.briefing_id = briefing.id
+                LEFT JOIN decision_results result ON result.decision_id = decision.id
+                GROUP BY affected_user.user_id
+            )
+            SELECT user_badge.id
+            FROM user_badges user_badge
+            JOIN badges badge ON badge.id = user_badge.badge_id
+            JOIN settlement_stats stats ON stats.user_id = user_badge.user_id
+            WHERE badge.code IN ('B03', 'B04', 'B07', 'B08', 'B09', 'B10')
+              AND NOT CASE badge.code
+                  WHEN 'B03' THEN stats.correct_count >= 1
+                  WHEN 'B04' THEN stats.has_high_confidence_hit
+                  WHEN 'B07' THEN stats.correct_count >= 10
+                  WHEN 'B08' THEN stats.correct_count >= 50
+                  WHEN 'B09' THEN stats.neutral_hit_count >= 5
+                  WHEN 'B10' THEN stats.has_level_five_agent
+              END
+            """,
+            ids(decisionIds),
+            java.lang.Long::class.java,
+        ).map { it.toLong() }
 
     private fun deleteDecisionNotifications(decisionIds: List<Long>) {
         if (decisionIds.isEmpty()) return

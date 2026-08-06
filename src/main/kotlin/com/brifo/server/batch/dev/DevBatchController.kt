@@ -2,14 +2,13 @@ package com.brifo.server.batch.dev
 
 import com.brifo.server.global.code.SuccessCode
 import com.brifo.server.global.common.ApiResponse
+import jakarta.validation.Valid
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Profile
-import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import java.util.UUID
 
 @RestController
 @Profile("dev")
@@ -20,22 +19,19 @@ class DevBatchController(
 ) {
     @PostMapping("/news-collection/rerun")
     fun rerunNewsCollection(
-        @AuthenticationPrincipal userPublicId: UUID,
-        @RequestBody request: DevNewsCollectionBatchRequest,
+        @Valid @RequestBody request: DevNewsCollectionBatchRequest,
     ): ApiResponse<DevBatchRunResponse> =
-        ApiResponse.success(SuccessCode.OK, service.rerunNewsCollection(userPublicId, request))
+        ApiResponse.success(SuccessCode.OK, service.rerunNewsCollection(request))
 
     @PostMapping("/news-card-generation/rerun")
     fun rerunNewsCardGeneration(
-        @AuthenticationPrincipal userPublicId: UUID,
-        @RequestBody request: DevDateBatchRequest,
+        @Valid @RequestBody request: DevDateBatchRequest,
     ): ApiResponse<DevBatchRunResponse> =
-        ApiResponse.success(SuccessCode.OK, service.rerunNewsCardGeneration(userPublicId, request.targetDate))
+        ApiResponse.success(SuccessCode.OK, service.rerunNewsCardGeneration(request))
 
     @PostMapping("/decision-settlement/rerun")
     fun rerunDecisionSettlement(
-        @AuthenticationPrincipal userPublicId: UUID,
-        @RequestBody request: DevDateBatchRequest,
+        @Valid @RequestBody request: DevDateBatchRequest,
     ): ApiResponse<DevBatchRunResponse> =
-        ApiResponse.success(SuccessCode.OK, service.rerunDecisionSettlement(userPublicId, request.targetDate))
+        ApiResponse.success(SuccessCode.OK, service.rerunDecisionSettlement(request))
 }

@@ -27,11 +27,11 @@ interface NewsRepository : JpaRepository<News, Long> {
                 FROM news n
                 WHERE n.published_at >= :from
                   AND n.published_at < :to
+                  AND NOT EXISTS (
+                      SELECT 1 FROM news_cards nc WHERE nc.news_id = n.id
+                  )
             ) ranked
             WHERE ranked.rank <= 2
-              AND NOT EXISTS (
-                  SELECT 1 FROM news_cards nc WHERE nc.news_id = ranked.id
-              )
             ORDER BY ranked.stock_id ASC, ranked.rank ASC
             """,
         nativeQuery = true,

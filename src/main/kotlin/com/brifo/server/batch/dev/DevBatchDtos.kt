@@ -1,15 +1,27 @@
 package com.brifo.server.batch.dev
 
 import com.brifo.server.batch.collection.CollectionRound
+import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.NotNull
+import jakarta.validation.constraints.PastOrPresent
 import org.springframework.batch.core.BatchStatus
 import java.time.LocalDate
 
 data class DevNewsCollectionBatchRequest(
+    @field:NotBlank
+    val password: String,
+    @field:NotNull
+    @field:PastOrPresent
     val targetDate: LocalDate,
+    @field:NotNull
     val collectionRound: CollectionRound,
 )
 
 data class DevDateBatchRequest(
+    @field:NotBlank
+    val password: String,
+    @field:NotNull
+    @field:PastOrPresent
     val targetDate: LocalDate,
 )
 

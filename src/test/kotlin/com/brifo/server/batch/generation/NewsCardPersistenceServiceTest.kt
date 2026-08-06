@@ -40,12 +40,14 @@ class NewsCardPersistenceServiceTest {
 
     @Test
     fun `이미 카드가 있는 뉴스는 외부 응답을 다시 저장하지 않는다`() {
+        val news = mock(News::class.java)
         `when`(cardRepository.existsByNewsId(1L)).thenReturn(true)
+        `when`(newsRepository.findById(1L)).thenReturn(Optional.of(news))
 
         service.save(item(1L), LocalDate.of(2026, 8, 4))
 
-        verify(newsRepository, never()).findById(1L)
         verify(cardRepository, never()).save(any(NewsCard::class.java))
+        verify(news).markProcessed()
     }
 
     @Test

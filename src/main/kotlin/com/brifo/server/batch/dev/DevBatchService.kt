@@ -1,12 +1,12 @@
 package com.brifo.server.batch.dev
 
+import com.brifo.server.auth.dev.DevAuthProperties
 import com.brifo.server.batch.collection.NewsCollectionJobConfiguration
 import com.brifo.server.batch.common.BatchJobParameters
 import com.brifo.server.batch.generation.NewsCardGenerationJobConfiguration
 import com.brifo.server.batch.settlement.DecisionSettlementJobConfiguration
 import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.exception.BusinessException
-import com.brifo.server.user.repository.UserRepository
 import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.job.JobExecution
 import org.springframework.batch.core.launch.JobOperator
@@ -14,14 +14,14 @@ import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
-import java.time.LocalDate
-import java.util.UUID
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 
 @Service
 @Profile("dev")
 @ConditionalOnProperty(prefix = "app.dev-auth", name = ["enabled"], havingValue = "true")
 class DevBatchService(
-    private val userRepository: UserRepository,
+    private val properties: DevAuthProperties,
     private val cleanupService: DevBatchCleanupService,
     private val jobOperator: JobOperator,
     @Qualifier(NewsCollectionJobConfiguration.JOB_NAME)
@@ -33,10 +33,9 @@ class DevBatchService(
 ) {
     @Synchronized
     fun rerunNewsCollection(
-        userPublicId: UUID,
         request: DevNewsCollectionBatchRequest,
     ): DevBatchRunResponse {
-        verifyDevUser(userPublicId)
+        verifyPassword(request.password)
         cleanupService.cleanupForCollection(request.targetDate, request.collectionRound)
         val execution = jobOperator.start(
             newsCollectionJob,
@@ -47,29 +46,31 @@ class DevBatchService(
 
     @Synchronized
     fun rerunNewsCardGeneration(
-        userPublicId: UUID,
-        targetDate: LocalDate,
+        request: DevDateBatchRequest,
     ): DevBatchRunResponse {
-        verifyDevUser(userPublicId)
-        cleanupService.cleanupForGeneration(targetDate)
-        val execution = jobOperator.start(newsCardGenerationJob, BatchJobParameters.forDevDate(targetDate))
+        verifyPassword(request.password)
+        cleanupService.cleanupForGeneration(request.targetDate)
+        val execution = jobOperator.start(newsCardGenerationJob, BatchJobParameters.forDevDate(request.targetDate))
         return execution.toResponse()
     }
 
     @Synchronized
     fun rerunDecisionSettlement(
-        userPublicId: UUID,
-        targetDate: LocalDate,
+        request: DevDateBatchRequest,
     ): DevBatchRunResponse {
-        verifyDevUser(userPublicId)
-        cleanupService.cleanupForSettlement(targetDate)
-        val execution = jobOperator.start(decisionSettlementJob, BatchJobParameters.forDevDate(targetDate))
+        verifyPassword(request.password)
+        cleanupService.cleanupForSettlement(request.targetDate)
+        val execution = jobOperator.start(decisionSettlementJob, BatchJobParameters.forDevDate(request.targetDate))
         return execution.toResponse()
     }
 
-    private fun verifyDevUser(userPublicId: UUID) {
-        val user = userRepository.findByPublicId(userPublicId) ?: throw BusinessException(ErrorCode.FORBIDDEN)
-        if (!user.socialId.startsWith(DEV_SOCIAL_ID_PREFIX)) throw BusinessException(ErrorCode.FORBIDDEN)
+    private fun verifyPassword(actual: String) {
+        val matches =
+            MessageDigest.isEqual(
+                properties.password.toByteArray(StandardCharsets.UTF_8),
+                actual.toByteArray(StandardCharsets.UTF_8),
+            )
+        if (!matches) throw BusinessException(ErrorCode.UNAUTHORIZED)
     }
 
     private fun JobExecution.toResponse(): DevBatchRunResponse =
@@ -79,8 +80,4 @@ class DevBatchService(
             jobExecutionId = id,
             status = status,
         )
-
-    private companion object {
-        const val DEV_SOCIAL_ID_PREFIX = "dev:"
-    }
 }

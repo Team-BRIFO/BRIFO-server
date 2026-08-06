@@ -16,6 +16,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.Clock
 import java.time.LocalDate
+import java.util.concurrent.ConcurrentHashMap
 
 @Component
 @ConditionalOnProperty(prefix = "app.batch", name = ["scheduling-enabled"], havingValue = "true")
@@ -28,21 +29,37 @@ class NewsCardGenerationScheduler(
     private val businessDateCalculator: BusinessDateCalculator,
     private val clock: Clock,
 ) {
+    private val deferredTargetDates: MutableSet<LocalDate> = ConcurrentHashMap.newKeySet()
+
     @Scheduled(cron = "0 0 0 * * MON-FRI", zone = SEOUL_ZONE)
     fun generate() {
         val displayDate = LocalDate.now(clock)
         val targetDate = businessDateCalculator.previousBusinessDay(displayDate)
         if (!closingCollectionCompleted(targetDate)) {
-            log.warn("마감 수집이 완료되지 않아 카드뉴스 생성을 건너뜁니다. targetDate={}", targetDate)
+            deferredTargetDates.add(targetDate)
+            log.warn("마감 수집 완료 후 카드뉴스 생성을 재시도합니다. targetDate={}", targetDate)
             return
         }
+        generate(targetDate)
+    }
+
+    @Scheduled(fixedDelayString = "\${app.batch.generation-retry-delay-ms:60000}")
+    fun retryDeferred() {
+        deferredTargetDates.removeIf { targetDate ->
+            if (!closingCollectionCompleted(targetDate)) return@removeIf false
+            generate(targetDate)
+        }
+    }
+
+    private fun generate(targetDate: LocalDate): Boolean {
         if (newsRepository.findGenerationCandidateIds(targetDate.atStartOfDay(), targetDate.plusDays(1).atStartOfDay()).isEmpty()) {
             log.info("생성 대상 뉴스가 없어 카드뉴스 생성을 건너뜁니다. targetDate={}", targetDate)
-            return
+            return true
         }
 
-        runCatching { jobOperator.start(job, BatchJobParameters.forDate(targetDate)) }
+        return runCatching { jobOperator.start(job, BatchJobParameters.forDate(targetDate)) }
             .onFailure { log.error("카드뉴스 생성 배치 실행에 실패했습니다. targetDate={}", targetDate, it) }
+            .isSuccess
     }
 
     private fun closingCollectionCompleted(targetDate: LocalDate): Boolean {

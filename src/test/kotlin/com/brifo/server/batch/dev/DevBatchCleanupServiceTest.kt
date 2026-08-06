@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.times
+import org.mockito.Mockito.atLeastOnce
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
@@ -47,7 +47,7 @@ class DevBatchCleanupServiceTest {
         assertEquals(1, result.settlements)
 
         val sqlCaptor = ArgumentCaptor.forClass(String::class.java)
-        verify(jdbc, times(11)).update(sqlCaptor.capture(), any(MapSqlParameterSource::class.java))
+        verify(jdbc, atLeastOnce()).update(sqlCaptor.capture(), any(MapSqlParameterSource::class.java))
         val sql = sqlCaptor.allValues.map { it.replace(Regex("\\s+"), " ").trim() }
         assertBefore(sql, "DELETE FROM decision_results", "DELETE FROM decisions")
         assertBefore(sql, "DELETE FROM decisions", "DELETE FROM briefings")

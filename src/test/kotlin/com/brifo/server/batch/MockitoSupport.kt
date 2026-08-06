@@ -1,16 +1,8 @@
 package com.brifo.server.batch
 
-import org.mockito.Mockito
 import org.mockito.ArgumentCaptor
+import org.mockito.Mockito
 
-@Suppress("UNCHECKED_CAST")
-fun <T> anyKotlin(): T {
-    Mockito.any<T>()
-    return null as T
-}
+fun <T> anyKotlin(): T = Mockito.any<T>()
 
-@Suppress("UNCHECKED_CAST")
-fun <T> captureKotlin(captor: ArgumentCaptor<T>): T {
-    captor.capture()
-    return null as T
-}
+fun <T> captureKotlin(captor: ArgumentCaptor<T>): T = captor.capture()

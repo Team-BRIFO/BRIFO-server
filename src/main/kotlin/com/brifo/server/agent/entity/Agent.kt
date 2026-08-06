@@ -86,12 +86,12 @@ class Agent private constructor(
         if (level >= MAX_LEVEL || amount == 0) return false
 
         val previousLevel = level
-        exp += amount
-        while (level < MAX_LEVEL && exp >= EXP_PER_LEVEL) {
-            exp -= EXP_PER_LEVEL
+        var accumulatedExp = exp.toLong() + amount.toLong()
+        while (level < MAX_LEVEL && accumulatedExp >= EXP_PER_LEVEL) {
+            accumulatedExp -= EXP_PER_LEVEL
             level++
         }
-        if (level == MAX_LEVEL) exp = 0
+        exp = if (level == MAX_LEVEL) 0 else accumulatedExp.toInt()
         return level > previousLevel
     }
 

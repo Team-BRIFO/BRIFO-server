@@ -12,11 +12,16 @@ interface NotificationQueryRepository {
         limit: Int,
     ): List<GetNotificationsResponse.NotificationItem>
 
-    fun existsNewsCardArrival(
-        userId: Long,
+    fun findNewsCardArrivals(
+        userIds: Collection<Long>,
         code: String,
         targetType: NotificationTargetType,
-        targetPublicId: UUID,
+        targetPublicIds: Collection<UUID>,
         eventDate: LocalDate,
-    ): Boolean
+    ): Set<NewsCardArrival>
 }
+
+data class NewsCardArrival(
+    val userId: Long,
+    val targetPublicId: UUID,
+)

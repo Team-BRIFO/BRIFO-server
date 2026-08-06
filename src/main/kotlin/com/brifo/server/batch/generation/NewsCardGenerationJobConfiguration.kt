@@ -48,12 +48,13 @@ class NewsCardGenerationJobConfiguration {
     fun generateNewsCardStep(
         jobRepository: JobRepository,
         @Qualifier("newsCardGenerationReader") reader: ItemReader<Long>,
-        processor: ItemProcessor<Long, GeneratedNewsCardItem>,
+        @Qualifier("newsCardGenerationProcessor") processor: ItemProcessor<Long, GeneratedNewsCardItem>,
         @Qualifier("newsCardGenerationWriter") writer: ItemWriter<GeneratedNewsCardItem>,
+        transactionManager: PlatformTransactionManager,
         properties: BatchProperties,
     ): Step =
         StepBuilder("generateNewsCardStep", jobRepository)
-            .chunk<Long, GeneratedNewsCardItem>(1)
+            .chunk<Long, GeneratedNewsCardItem>(1, transactionManager)
             .reader(reader)
             .processor(processor)
             .writer(writer)
@@ -64,7 +65,7 @@ class NewsCardGenerationJobConfiguration {
     fun createNewsCardNotificationStep(
         jobRepository: JobRepository,
         transactionManager: PlatformTransactionManager,
-        newsCardNotificationTasklet: Tasklet,
+        @Qualifier("newsCardNotificationTasklet") newsCardNotificationTasklet: Tasklet,
         properties: BatchProperties,
     ): Step =
         StepBuilder("createNewsCardNotificationStep", jobRepository)

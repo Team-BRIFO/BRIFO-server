@@ -47,7 +47,7 @@ class DevAuthSecurityConfig {
                     .hasAuthority(JwtAuthenticationFilter.SIGNUP_AUTHORITY)
                 it
                     .requestMatchers(HttpMethod.POST, "/api/dev/batches/**")
-                    .hasAuthority(JwtAuthenticationFilter.ACCESS_AUTHORITY)
+                    .permitAll()
                 it.anyRequest().denyAll()
             }.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .build()
