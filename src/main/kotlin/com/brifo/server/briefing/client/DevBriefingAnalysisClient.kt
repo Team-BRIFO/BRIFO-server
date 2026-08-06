@@ -43,8 +43,14 @@ class DevBriefingAnalysisClient(
                                 "카드뉴스를 찾을 수 없습니다: $newsCardId"
                             }
 
+                        val newsId =
+                            checkNotNull(newsCard.news.publicId) {
+                                "카드뉴스에 연결된 뉴스의 publicId가 없습니다: $newsCardId"
+                            }
+
                         AiRequest.NewsCard(
                             cardId = newsCardId.toString(),
+                            newsId = newsId.toString(),
                             headline = newsCard.headline,
                             points = newsCard.points,
                         )
@@ -204,6 +210,7 @@ class DevBriefingAnalysisClient(
     ) {
         data class NewsCard(
             val cardId: String,
+            val newsId: String,
             val headline: String,
             val points: List<String>,
         )
