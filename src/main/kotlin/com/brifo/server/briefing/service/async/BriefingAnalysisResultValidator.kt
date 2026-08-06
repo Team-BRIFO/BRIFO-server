@@ -1,5 +1,6 @@
 package com.brifo.server.briefing.service.async
 
+import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.briefing.client.BriefingAnalysisClient
 import org.springframework.stereotype.Component
 import java.math.BigDecimal
@@ -13,22 +14,23 @@ class BriefingAnalysisResultValidator {
         response: BriefingAnalysisClient.Result,
     ): BriefingAnalysisTask.ValidationResult {
         val requestedBriefingPublicIds = context.targets.map { it.briefingPublicId }
-        if (hasInvalidBatch(response, requestedBriefingPublicIds.toSet())) {
+        val requestedAgentTypes = context.targets.map { it.agentType }.toSet()
+        if (hasInvalidBatch(response, requestedAgentTypes)) {
             return BriefingAnalysisTask.ValidationResult(
                 completions = emptyList(),
                 failedBriefingPublicIds = requestedBriefingPublicIds,
             )
         }
 
-        val results = response.briefings.associateBy { it.briefingId }
+        val results = response.briefings.associateBy { it.agentType }
         val completions = mutableListOf<BriefingAnalysisTask.Completion>()
         val failedBriefingPublicIds = mutableListOf<UUID>()
         context.targets.forEach { target ->
-            val result = results[target.briefingPublicId]
+            val result = results[target.agentType]
             if (result == null || !isValid(result, target)) {
                 failedBriefingPublicIds += target.briefingPublicId
             } else {
-                completions += result.toCompletion()
+                completions += result.toCompletion(target.briefingPublicId)
             }
         }
 
@@ -40,38 +42,36 @@ class BriefingAnalysisResultValidator {
 
     private fun hasInvalidBatch(
         response: BriefingAnalysisClient.Result,
-        requestedBriefingPublicIds: Set<UUID>,
+        requestedAgentTypes: Set<AgentType>,
     ): Boolean =
         response.briefings
-            .groupingBy(BriefingAnalysisClient.BriefingResult::briefingId)
+            .groupingBy(BriefingAnalysisClient.BriefingResult::agentType)
             .eachCount()
-            .any { (briefingPublicId, count) ->
-                count > 1 || briefingPublicId !in requestedBriefingPublicIds
+            .any { (agentType, count) ->
+                count > 1 || agentType !in requestedAgentTypes
             }
 
     private fun isValid(
         result: BriefingAnalysisClient.BriefingResult,
         target: BriefingAnalysisTask.Context.Target,
     ): Boolean =
-        result.agentId == target.agentPublicId &&
-            result.agentType == target.agentType &&
+        result.agentType == target.agentType &&
             result.modelName == target.modelName &&
-            result.probability >= BigDecimal.ZERO &&
-            result.probability <= BigDecimal.ONE &&
+            result.confidenceRate in 0..100 &&
             result.headline.isNotBlank() &&
             result.summary.isNotBlank() &&
-            result.commonAnalysis.isNotBlank() &&
-            result.closingComment.isNotBlank()
+            result.contentText.isNotBlank() &&
+            result.oneLiner.isNotBlank()
 
-    private fun BriefingAnalysisClient.BriefingResult.toCompletion(): BriefingAnalysisTask.Completion =
+    private fun BriefingAnalysisClient.BriefingResult.toCompletion(briefingPublicId: UUID): BriefingAnalysisTask.Completion =
         BriefingAnalysisTask.Completion(
-            briefingPublicId = briefingId,
+            briefingPublicId = briefingPublicId,
             direction = direction,
-            probability = probability,
+            probability = BigDecimal(confidenceRate).movePointLeft(2),
             headline = headline,
             summary = summary,
             personalComment = personalComment,
-            commonAnalysis = commonAnalysis,
-            closingComment = closingComment,
+            commonAnalysis = contentText,
+            closingComment = oneLiner,
         )
 }

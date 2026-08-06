@@ -2,6 +2,7 @@ package com.brifo.server.briefing.client
 
 import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.briefing.entity.BriefingDirection
+import com.brifo.server.decision.entity.DecisionDirection
 import java.math.BigDecimal
 import java.util.UUID
 
@@ -10,14 +11,25 @@ interface BriefingAnalysisClient {
 
     data class Request(
         val userId: UUID,
-        val newsCardIds: List<UUID>,
-        val targets: List<Target>,
-        val recentDecisionIds: List<UUID>,
+        val newsCard: List<NewsCard>,
+        val agentTypes: List<AgentType>,
+        val levelRange: String,
+        val recentDecisions: List<RecentDecision>,
     )
 
-    data class Target(
-        val briefingId: UUID,
-        val agentId: UUID,
+    data class NewsCard(
+        val cardId: UUID,
+        val newsId: UUID,
+        val headline: String,
+        val points: List<String>,
+    )
+
+    data class RecentDecision(
+        val stockName: String,
+        val direction: DecisionDirection,
+        val confidence: Int,
+        val isCorrect: Boolean,
+        val actualChange: BigDecimal,
     )
 
     data class Result(
@@ -25,16 +37,14 @@ interface BriefingAnalysisClient {
     )
 
     data class BriefingResult(
-        val briefingId: UUID,
-        val agentId: UUID,
         val agentType: AgentType,
         val direction: BriefingDirection,
-        val probability: BigDecimal,
+        val confidenceRate: Int,
         val headline: String,
         val summary: String,
         val personalComment: String?,
-        val commonAnalysis: String,
-        val closingComment: String,
+        val contentText: String,
+        val oneLiner: String,
         val modelName: String,
         val cached: Boolean,
         val personalCached: Boolean,

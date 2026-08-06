@@ -61,7 +61,25 @@ class BriefingRequestTransactionIntegrationTest @Autowired constructor(
     }
 
     @Test
-    fun `카드뉴스가 두 개가 아니면 브리핑과 급여 거래를 만들지 않는다`() {
+    fun `카드뉴스 한 개로도 브리핑을 생성할 수 있다`() {
+        val date = LocalDate.now(ZoneId.of("Asia/Seoul"))
+        val scenario = BriefingDatabaseFixture(entityManager).requestScenario(date, cardCount = 1, agentCount = 1)
+
+        val result = service.request(command(scenario, date))
+        entityManager.flush()
+        entityManager.clear()
+
+        val briefings = briefingRepository.findDailyBriefings(
+            scenario.user.publicId!!,
+            scenario.stock.publicId!!,
+            date,
+        )
+        assertEquals(1, result.requestedCount)
+        assertEquals(1, briefings.single().newsCards.size)
+    }
+
+    @Test
+    fun `카드뉴스가 세 개이면 브리핑과 급여 거래를 만들지 않는다`() {
         val date = LocalDate.of(2026, 7, 18)
         val scenario = BriefingDatabaseFixture(entityManager).requestScenario(date, cardCount = 3, agentCount = 1)
         val briefingCount = briefingRepository.count()

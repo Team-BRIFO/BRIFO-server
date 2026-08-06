@@ -53,25 +53,36 @@ class BriefingAnalysisTransactionService(
 
         return BriefingAnalysisTask.Context(
             userPublicId = command.userPublicId,
-            newsCardPublicIds = newsCards.map { newsCard ->
-                checkNotNull(newsCard.publicId) { "Persisted news card must have a publicId" }
+            newsCards = newsCards.map { newsCard ->
+                BriefingAnalysisTask.Context.NewsCard(
+                    cardPublicId = checkNotNull(newsCard.publicId) { "Persisted news card must have a publicId" },
+                    newsPublicId = checkNotNull(newsCard.news.publicId) { "Persisted news must have a publicId" },
+                    headline = newsCard.headline,
+                    points = newsCard.points,
+                )
             },
             targets = briefings.map { briefing ->
                 BriefingAnalysisTask.Context.Target(
                     briefingPublicId = checkNotNull(briefing.publicId) {
                         "Persisted briefing must have a publicId"
                     },
-                    agentPublicId = checkNotNull(briefing.agent.publicId) {
-                        "Persisted agent must have a publicId"
-                    },
                     agentType = briefing.agent.agentType,
                     modelName = briefing.agent.modelName,
+                    level = briefing.agent.level,
                 )
             },
-            recentDecisionPublicIds = decisionRepository.findRecentSettledDecisionIds(
+            recentDecisions = decisionRepository.findRecentSettledDecisions(
                 userPublicId = command.userPublicId,
                 limit = RECENT_DECISION_LIMIT,
-            ),
+            ).map { decision ->
+                BriefingAnalysisTask.Context.RecentDecision(
+                    stockName = decision.stockName,
+                    direction = decision.direction,
+                    confidence = decision.confidence,
+                    isCorrect = decision.isCorrect,
+                    actualChange = decision.actualChange,
+                )
+            },
         )
     }
 

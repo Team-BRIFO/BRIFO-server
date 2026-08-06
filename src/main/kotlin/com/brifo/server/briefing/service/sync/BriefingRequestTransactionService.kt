@@ -80,7 +80,7 @@ class BriefingRequestTransactionService(
             command.requestedAt.toLocalDate(),
         )
         // 카드뉴스가 존재하는지 검증한다.
-        if (newsCards.size != REQUIRED_NEWS_CARD_COUNT) {
+        if (newsCards.size !in MIN_REQUIRED_NEWS_CARD_COUNT..MAX_REQUIRED_NEWS_CARD_COUNT) {
             throw NewsCardNotFoundException()
         }
 
@@ -217,7 +217,8 @@ class BriefingRequestTransactionService(
         )
 
     private companion object {
-        const val REQUIRED_NEWS_CARD_COUNT = 2
+        const val MIN_REQUIRED_NEWS_CARD_COUNT = 1
+        const val MAX_REQUIRED_NEWS_CARD_COUNT = 2
         const val RETRY_COOLDOWN_SECONDS = 30L
     }
 

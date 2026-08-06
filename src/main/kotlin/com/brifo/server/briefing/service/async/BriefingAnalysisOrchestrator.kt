@@ -72,13 +72,24 @@ class BriefingAnalysisOrchestrator(
     private fun BriefingAnalysisTask.Context.toClientRequest(): BriefingAnalysisClient.Request =
         BriefingAnalysisClient.Request(
             userId = userPublicId,
-            newsCardIds = newsCardPublicIds,
-            targets = targets.map { target ->
-                BriefingAnalysisClient.Target(
-                    briefingId = target.briefingPublicId,
-                    agentId = target.agentPublicId,
+            newsCard = newsCards.map { card ->
+                BriefingAnalysisClient.NewsCard(
+                    cardId = card.cardPublicId,
+                    newsId = card.newsPublicId,
+                    headline = card.headline,
+                    points = card.points,
                 )
             },
-            recentDecisionIds = recentDecisionPublicIds,
+            agentTypes = targets.map { it.agentType },
+            levelRange = "${targets.minOf { it.level }}-${targets.maxOf { it.level }}",
+            recentDecisions = recentDecisions.map { decision ->
+                BriefingAnalysisClient.RecentDecision(
+                    stockName = decision.stockName,
+                    direction = decision.direction,
+                    confidence = decision.confidence,
+                    isCorrect = decision.isCorrect,
+                    actualChange = decision.actualChange,
+                )
+            },
         )
 }

@@ -6,7 +6,6 @@ import com.brifo.server.briefing.entity.BriefingDirection
 import com.brifo.server.briefing.service.async.BriefingAnalysisResultValidator
 import com.brifo.server.briefing.service.async.BriefingAnalysisTask
 import org.junit.jupiter.api.Test
-import java.math.BigDecimal
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -26,8 +25,8 @@ class BriefingAnalysisResultValidatorTest {
 
     @Test
     fun `결과가 누락되면 해당 브리핑만 실패로 분류한다`() {
-        val first = target()
-        val second = target()
+        val first = target(AgentType.ROOKIE)
+        val second = target(AgentType.PRO)
 
         val result = validator.validate(context(first, second), response(briefingResult(first)))
 
@@ -48,13 +47,13 @@ class BriefingAnalysisResultValidatorTest {
 
     @Test
     fun `확률이 범위를 벗어나거나 필수 문자열이 비어 있으면 해당 브리핑만 실패로 분류한다`() {
-        val invalidProbabilityTarget = target()
-        val blankContentTarget = target()
+        val invalidProbabilityTarget = target(AgentType.ROOKIE)
+        val blankContentTarget = target(AgentType.PRO)
 
         val result = validator.validate(
             context(invalidProbabilityTarget, blankContentTarget),
             response(
-                briefingResult(invalidProbabilityTarget).copy(probability = BigDecimal("1.01")),
+                briefingResult(invalidProbabilityTarget).copy(confidenceRate = 101),
                 briefingResult(blankContentTarget).copy(summary = " "),
             ),
         )
@@ -68,9 +67,9 @@ class BriefingAnalysisResultValidatorTest {
 
     @Test
     fun `결과에 중복되거나 요청하지 않은 브리핑이 있으면 전체 실패로 분류한다`() {
-        val first = target()
-        val second = target()
-        val unknown = target()
+        val first = target(AgentType.ROOKIE)
+        val second = target(AgentType.PRO)
+        val unknown = target(AgentType.TANKER)
 
         val duplicateResult = validator.validate(
             context(first, second),
@@ -88,20 +87,20 @@ class BriefingAnalysisResultValidatorTest {
         assertTrue(unknownResult.completions.isEmpty())
     }
 
-    private fun target(): BriefingAnalysisTask.Context.Target =
+    private fun target(agentType: AgentType = AgentType.ROOKIE): BriefingAnalysisTask.Context.Target =
         BriefingAnalysisTask.Context.Target(
             briefingPublicId = UUID.randomUUID(),
-            agentPublicId = UUID.randomUUID(),
-            agentType = AgentType.ROOKIE,
+            agentType = agentType,
             modelName = "model",
+            level = 1,
         )
 
     private fun context(vararg targets: BriefingAnalysisTask.Context.Target): BriefingAnalysisTask.Context =
         BriefingAnalysisTask.Context(
             userPublicId = UUID.randomUUID(),
-            newsCardPublicIds = listOf(UUID.randomUUID(), UUID.randomUUID()),
+            newsCards = emptyList(),
             targets = targets.toList(),
-            recentDecisionPublicIds = emptyList(),
+            recentDecisions = emptyList(),
         )
 
     private fun response(vararg results: BriefingAnalysisClient.BriefingResult): BriefingAnalysisClient.Result =
@@ -109,16 +108,14 @@ class BriefingAnalysisResultValidatorTest {
 
     private fun briefingResult(target: BriefingAnalysisTask.Context.Target): BriefingAnalysisClient.BriefingResult =
         BriefingAnalysisClient.BriefingResult(
-            briefingId = target.briefingPublicId,
-            agentId = target.agentPublicId,
             agentType = target.agentType,
             direction = BriefingDirection.UP,
-            probability = BigDecimal("0.72"),
+            confidenceRate = 72,
             headline = "헤드라인",
             summary = "요약",
             personalComment = null,
-            commonAnalysis = "공통 분석",
-            closingComment = "마무리 의견",
+            contentText = "공통 분석",
+            oneLiner = "마무리 의견",
             modelName = target.modelName,
             cached = false,
             personalCached = false,
