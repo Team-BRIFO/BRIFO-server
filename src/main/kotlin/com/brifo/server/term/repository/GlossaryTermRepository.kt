@@ -6,4 +6,6 @@ import java.util.UUID
 
 interface GlossaryTermRepository : JpaRepository<GlossaryTerm, Long> {
     fun findByPublicId(publicId: UUID): GlossaryTerm?
+
+    fun findByTerm(term: String): GlossaryTerm?
 }

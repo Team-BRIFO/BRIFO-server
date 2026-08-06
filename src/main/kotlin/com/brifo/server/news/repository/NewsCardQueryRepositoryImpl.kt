@@ -28,4 +28,13 @@ class NewsCardQueryRepositoryImpl(
                 newsCard.displayDate.eq(displayDate),
             ).orderBy(newsCard.id.asc())
             .fetch()
+
+    override fun findDistinctStockIdsByDisplayDate(displayDate: LocalDate): List<Long> =
+        queryFactory
+            .select(newsCard.news.stock.id)
+            .distinct()
+            .from(newsCard)
+            .where(newsCard.displayDate.eq(displayDate))
+            .orderBy(newsCard.news.stock.id.asc())
+            .fetch()
 }
