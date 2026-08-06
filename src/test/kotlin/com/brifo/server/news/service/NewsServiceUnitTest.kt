@@ -58,7 +58,7 @@ class NewsServiceUnitTest {
         `when`(stock.id).thenReturn(2L)
 
         `when`(
-            priceRepository.findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDesc(
+            priceRepository.findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDescFetchedAtDescIdDesc(
                 2L,
                 displayDate,
             ),
@@ -70,7 +70,7 @@ class NewsServiceUnitTest {
             }
 
         verify(priceRepository)
-            .findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDesc(
+            .findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDescFetchedAtDescIdDesc(
                 2L,
                 displayDate,
             )
