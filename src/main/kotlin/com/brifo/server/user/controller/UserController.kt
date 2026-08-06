@@ -1,5 +1,6 @@
 package com.brifo.server.user.controller
 
+import com.brifo.server.auth.security.SignupTokenCookieManager
 import com.brifo.server.global.common.ApiResponse
 import com.brifo.server.global.code.SuccessCode
 import com.brifo.server.user.code.UserSuccessCode
@@ -11,6 +12,7 @@ import com.brifo.server.user.dto.response.GetUserHomeResponse
 import com.brifo.server.user.dto.response.GetUserProfileResponse
 import com.brifo.server.user.service.UserService
 import com.brifo.server.user.service.UserQueryService
+import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -27,6 +29,7 @@ import java.util.UUID
 class UserController(
     private val userService: UserService,
     private val userQueryService: UserQueryService,
+    private val signupTokenCookieManager: SignupTokenCookieManager,
 ) {
     @PatchMapping("/onboarding/profile")
     fun updateOnboardingProfile(
@@ -40,8 +43,10 @@ class UserController(
     @PostMapping("/onboarding/complete")
     fun completeOnboarding(
         @AuthenticationPrincipal userPublicId: UUID,
+        response: HttpServletResponse,
     ): ApiResponse<CompleteOnboardingResponse> {
         val result = userService.completeOnboarding(userPublicId)
+        signupTokenCookieManager.clear(response)
         return ApiResponse.success(UserSuccessCode.ONBOARDING_COMPLETED, result)
     }
 

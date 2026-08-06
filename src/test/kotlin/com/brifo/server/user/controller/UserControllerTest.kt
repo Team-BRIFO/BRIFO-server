@@ -1,5 +1,6 @@
 package com.brifo.server.user.controller
 
+import com.brifo.server.auth.security.SignupTokenCookieManager
 import com.brifo.server.authenticatedUserId
 import com.brifo.server.user.dto.request.UpdateOnboardingProfileRequest
 import com.brifo.server.user.dto.request.UpdateUserProfileRequest
@@ -10,6 +11,7 @@ import com.brifo.server.user.dto.response.GetUserProfileResponse
 import com.brifo.server.user.service.UserQueryService
 import com.brifo.server.user.service.UserService
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito.mockingDetails
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.springframework.beans.factory.annotation.Autowired
@@ -26,6 +28,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.LocalDate
 import java.util.UUID
+import kotlin.test.assertTrue
 
 @WebMvcTest(UserController::class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -38,6 +41,9 @@ class UserControllerTest {
 
     @MockitoBean
     private lateinit var userQueryService: UserQueryService
+
+    @MockitoBean
+    private lateinit var signupTokenCookieManager: SignupTokenCookieManager
 
     @Test
     fun `온보딩 프로필 요청을 서비스에 전달한다`() {
@@ -73,6 +79,9 @@ class UserControllerTest {
             .andExpect(jsonPath("$.result").exists())
 
         verify(userService).completeOnboarding(userId)
+        assertTrue(
+            mockingDetails(signupTokenCookieManager).invocations.any { it.method.name == "clear" },
+        )
     }
 
     @Test

@@ -1,8 +1,11 @@
 package com.brifo.server.auth.controller
 
+import com.brifo.server.auth.dto.request.KakaoLoginRequest
 import com.brifo.server.auth.dto.request.RefreshTokenRequest
+import com.brifo.server.auth.dto.response.OAuthLoginResponse
 import com.brifo.server.auth.dto.response.ReissueResponse
 import com.brifo.server.auth.dto.response.TokenInfo
+import com.brifo.server.auth.security.SignupTokenCookieManager
 import com.brifo.server.auth.service.KakaoLoginService
 import com.brifo.server.auth.service.LogoutService
 import com.brifo.server.auth.service.NaverLoginService
@@ -12,7 +15,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
+import org.mockito.Mockito.mockingDetails
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -20,11 +25,14 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import java.util.UUID
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @ExtendWith(MockitoExtension::class)
 class AuthControllerTest {
@@ -40,14 +48,24 @@ class AuthControllerTest {
     @Mock
     private lateinit var tokenReissueService: TokenReissueService
 
+    @Mock
+    private lateinit var signupTokenCookieManager: SignupTokenCookieManager
+
     private lateinit var mockMvc: MockMvc
 
     @BeforeEach
     fun setUp() {
         mockMvc =
             MockMvcBuilders
-                .standaloneSetup(AuthController(kakaoLoginService, naverLoginService, logoutService, tokenReissueService))
-                .setCustomArgumentResolvers(AuthenticationPrincipalArgumentResolver())
+                .standaloneSetup(
+                    AuthController(
+                        kakaoLoginService,
+                        naverLoginService,
+                        logoutService,
+                        tokenReissueService,
+                        signupTokenCookieManager,
+                    ),
+                ).setCustomArgumentResolvers(AuthenticationPrincipalArgumentResolver())
                 .build()
     }
 
@@ -96,5 +114,41 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.result.token.refreshToken").value("new-refresh-token"))
             .andExpect(jsonPath("$.result.token.accessTokenExpiresIn").value(3600))
             .andExpect(jsonPath("$.result.token.refreshTokenExpiresIn").value(604800))
+    }
+
+    @Test
+    fun `온보딩이 필요하면 Signup Token을 응답에서 숨기고 쿠키로 전달한다`() {
+        val request = KakaoLoginRequest("authorization-code", "http://localhost:3000/oauth/callback/kakao")
+        val result = OAuthLoginResponse.SignupRequired(signupToken = "signup-token")
+        `when`(kakaoLoginService.login(request)).thenReturn(result)
+
+        mockMvc
+            .perform(
+                post("/api/auth/login/kakao")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """{"authorizationCode":"authorization-code","redirectUri":"http://localhost:3000/oauth/callback/kakao"}""",
+                    ),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.result.loginType").value("SIGNUP_REQUIRED"))
+            .andExpect(jsonPath("$.result.signupToken").doesNotExist())
+
+        val cookieInvocation =
+            mockingDetails(signupTokenCookieManager).invocations.single { it.method.name == "set" }
+        assertEquals("signup-token", cookieInvocation.arguments[1])
+    }
+
+    @Test
+    fun `Signup CSRF 토큰 재발급을 쿠키 관리자에 위임한다`() {
+        mockMvc
+            .perform(get("/api/auth/signup/csrf"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.code").value("COMMON_200"))
+
+        assertTrue(
+            mockingDetails(signupTokenCookieManager).invocations.any {
+                it.method.name == "refreshCsrfToken"
+            },
+        )
     }
 }

@@ -1,8 +1,11 @@
 package com.brifo.server.auth.dev
 
+import com.brifo.server.auth.security.SignupTokenCookieManager
 import com.brifo.server.global.code.SuccessCode
 import com.brifo.server.global.common.ApiResponse
 import com.brifo.server.user.dto.response.CompleteOnboardingResponse
+import jakarta.servlet.http.HttpServletResponse
+import jakarta.validation.Valid
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Profile
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -18,19 +21,25 @@ import java.util.UUID
 @RequestMapping("/api/dev/")
 class DevAuthController(
     private val devAuthService: DevAuthService,
+    private val signupTokenCookieManager: SignupTokenCookieManager,
 ) {
     @PostMapping("/signup")
     fun signUp(
-        @RequestBody request: DevSignUpRequest,
-    ): ApiResponse<DevSignUpResponse> =
-        ApiResponse.success(SuccessCode.OK, devAuthService.signUp(request))
+        @Valid @RequestBody request: DevSignUpRequest,
+        response: HttpServletResponse,
+    ): ApiResponse<DevSignUpResponse> {
+        val result = devAuthService.signUp(request)
+        signupTokenCookieManager.set(response, result.signupToken)
+        return ApiResponse.success(SuccessCode.OK, result)
+    }
 
     @PostMapping("/onboarding/complete")
     fun completeOnboarding(
         @AuthenticationPrincipal userPublicId: UUID,
-    ): ApiResponse<CompleteOnboardingResponse> =
-        ApiResponse.success(
-            SuccessCode.OK,
-            devAuthService.completeOnboarding(userPublicId),
-        )
+        response: HttpServletResponse,
+    ): ApiResponse<CompleteOnboardingResponse> {
+        val result = devAuthService.completeOnboarding(userPublicId)
+        signupTokenCookieManager.clear(response)
+        return ApiResponse.success(SuccessCode.OK, result)
+    }
 }
