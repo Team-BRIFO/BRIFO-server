@@ -42,8 +42,9 @@ class StockQueryRepositoryImpl(
                 stock.publicId,
                 stock.code,
                 stock.name,
-                dailyStockPrice.price,
-                dailyStockPrice.changeRate,
+                stock.logoUrl,
+                dailyStockPrice.price.coalesce(0.toBigDecimal()),
+                dailyStockPrice.changeRate.coalesce(0.toBigDecimal()),
             )
 
         val query =
@@ -62,6 +63,7 @@ class StockQueryRepositoryImpl(
                     stock.publicId,
                     stock.code,
                     stock.name,
+                    stock.logoUrl,
                     dailyStockPrice.price,
                     dailyStockPrice.changeRate,
                 ).orderBy(
@@ -117,8 +119,9 @@ class StockQueryRepositoryImpl(
                 stock.publicId,
                 stock.code,
                 stock.name,
-                dailyStockPrice.price,
-                dailyStockPrice.changeRate,
+                stock.logoUrl,
+                dailyStockPrice.price.coalesce(0.toBigDecimal()),
+                dailyStockPrice.changeRate.coalesce(0.toBigDecimal()),
             )
 
         val query =

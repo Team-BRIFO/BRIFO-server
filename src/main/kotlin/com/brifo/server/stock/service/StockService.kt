@@ -23,7 +23,7 @@ class StockService(
                 stockRepository.findPopularStocks().mapIndexed { index, stock ->
                     stock.copy(
                         rank = index + 1,
-                        changeRate = stock.changeRate?.setScale(1, RoundingMode.HALF_UP),
+                        changeRate = stock.changeRate.setScale(1, RoundingMode.HALF_UP),
                     )
                 }
 
@@ -56,7 +56,7 @@ class StockService(
                 .take(request.size)
                 .map { stock ->
                     stock.copy(
-                        changeRate = stock.changeRate?.setScale(1, RoundingMode.HALF_UP),
+                        changeRate = stock.changeRate.setScale(1, RoundingMode.HALF_UP),
                     )
                 }
 

@@ -34,6 +34,7 @@ class UserHomeQueryRepositoryImpl(
                     news.source,
                     stock.publicId,
                     stock.name,
+                    stock.logoUrl,
                     latestPrice.changeRate,
                 ),
             ).from(userStock)

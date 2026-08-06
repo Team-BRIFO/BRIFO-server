@@ -98,7 +98,7 @@ class UserControllerTest {
                 48,
                 5,
                 24,
-                listOf(GetMyPageResponse.MyPageStock(stockId, "삼성전자")),
+                listOf(GetMyPageResponse.MyPageStock(stockId, "삼성전자", null)),
             ),
         )
 
@@ -149,7 +149,7 @@ class UserControllerTest {
             GetUserProfileResponse(
                 nickname = "brifo",
                 companyName = "회사",
-                stocks = listOf(GetUserProfileResponse.UserProfileStock(stockId, "삼성전자")),
+                stocks = listOf(GetUserProfileResponse.UserProfileStock(stockId, "삼성전자", null)),
             ),
         )
 

@@ -47,6 +47,7 @@ class BriefingQueryRepositoryJpaTest @Autowired constructor(
         assertEquals(listOf(2, 2, 2), dailyBriefings.map { it.newsCards.size })
         assertEquals(3, items.size)
         assertEquals(1, office.size)
+        assertEquals(scenario.stock.publicId, office.single().stockId)
         assertEquals(3, office.single().agents.size)
     }
 

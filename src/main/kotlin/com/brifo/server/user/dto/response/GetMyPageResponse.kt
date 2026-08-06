@@ -18,5 +18,6 @@ data class GetMyPageResponse(
     data class MyPageStock(
         val stockId: UUID,
         val name: String,
+        val logoUrl: String?,
     )
 }

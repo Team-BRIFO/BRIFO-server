@@ -20,6 +20,7 @@ import com.brifo.server.user.repository.UserHomeQueryRepository
 import com.brifo.server.user.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Clock
 import java.time.DayOfWeek
@@ -84,6 +85,7 @@ class UserQueryService(
                     GetMyPageResponse.MyPageStock(
                         stockId = requireNotNull(stock.publicId) { "Persisted stock must have a public id." },
                         name = stock.name,
+                        logoUrl = stock.logoUrl,
                     )
                 },
         )
@@ -157,6 +159,7 @@ class UserQueryService(
                     GetUserProfileResponse.UserProfileStock(
                         stockId = requireNotNull(stock.publicId) { "Persisted stock must have a public id." },
                         name = stock.name,
+                        logoUrl = stock.logoUrl,
                     )
                 },
         )
@@ -215,7 +218,8 @@ class UserQueryService(
                             GetUserHomeResponse.TodayNewsCards.HomeNewsStock(
                                 it.stockId,
                                 it.stockName,
-                                it.changeRate?.setScale(1, RoundingMode.HALF_UP),
+                                it.logoUrl,
+                                (it.changeRate ?: BigDecimal.ZERO).setScale(1, RoundingMode.HALF_UP),
                             ),
                     )
                 },
