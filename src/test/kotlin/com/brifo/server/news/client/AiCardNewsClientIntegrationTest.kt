@@ -12,8 +12,8 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 // 실제 AI 서버 주소와 인증키가 있을 때만 실행한다.
-@EnabledIfEnvironmentVariable(named = "AI_BASE_URL", matches = ".+")
-@EnabledIfEnvironmentVariable(named = "AI_INTERNAL_API_KEY", matches = ".+")
+//@EnabledIfEnvironmentVariable(named = "AI_BASE_URL", matches = ".+")
+//@EnabledIfEnvironmentVariable(named = "AI_INTERNAL_API_KEY", matches = ".+")
 @Import(ServerTestConfiguration::class)
 @ActiveProfiles("test")
 @SpringBootTest(
