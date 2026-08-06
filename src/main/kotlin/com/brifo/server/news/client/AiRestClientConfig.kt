@@ -30,8 +30,8 @@ class AiRestClientConfig {
             .builder()
             .baseUrl(baseUrl)
             .defaultHeader(
-                HttpHeaders.AUTHORIZATION,
-                "Bearer $apiKey",
+                "AI_INTERNAL_API_KEY",
+                apiKey,
             )
             .requestFactory(requestFactory)
             .build()
