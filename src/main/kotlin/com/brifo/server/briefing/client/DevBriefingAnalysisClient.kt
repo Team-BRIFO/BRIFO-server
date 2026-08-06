@@ -1,12 +1,17 @@
 package com.brifo.server.briefing.client
 
 import com.brifo.server.agent.entity.AgentType
+import com.brifo.server.agent.exception.AgentNotFoundException
 import com.brifo.server.agent.repository.AgentRepository
 import com.brifo.server.briefing.entity.BriefingDirection
 import com.brifo.server.decision.entity.DecisionDirection
+import com.brifo.server.decision.exception.DecisionNotFoundException
 import com.brifo.server.decision.repository.DecisionResultRepository
 import com.brifo.server.externalapi.ExternalApiCallPolicy
 import com.brifo.server.externalapi.ExternalApiCallService
+import com.brifo.server.global.code.ErrorCode
+import com.brifo.server.global.exception.BusinessException
+import com.brifo.server.news.exception.NewsCardNotFoundException
 import com.brifo.server.news.repository.NewsCardRepository
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Profile
@@ -37,16 +42,17 @@ class DevBriefingAnalysisClient(
                 val newsCards =
                     request.newsCardIds.map { newsCardId ->
                         val newsCard =
-                            checkNotNull(
-                                newsCardRepository.findByPublicId(newsCardId),
-                            ) {
-                                "카드뉴스를 찾을 수 없습니다: $newsCardId"
-                            }
+                            newsCardRepository.findByPublicId(newsCardId)
+                                ?: throw NewsCardNotFoundException(
+                                    "카드뉴스를 찾을 수 없습니다: $newsCardId",
+                                )
 
                         val newsId =
-                            checkNotNull(newsCard.news.publicId) {
-                                "카드뉴스에 연결된 뉴스의 publicId가 없습니다: $newsCardId"
-                            }
+                            newsCard.news.publicId
+                                ?: throw BusinessException(
+                                    errorCode = ErrorCode.INTERNAL_SERVER_ERROR,
+                                    message = "카드뉴스에 연결된 뉴스의 publicId가 없습니다: $newsCardId",
+                                )
 
                         AiRequest.NewsCard(
                             cardId = newsCardId.toString(),
@@ -60,11 +66,10 @@ class DevBriefingAnalysisClient(
                 val targets =
                     request.targets.map { target ->
                         val agent =
-                            checkNotNull(
-                                agentRepository.findByPublicId(target.agentId),
-                            ) {
-                                "사원을 찾을 수 없습니다: ${target.agentId}"
-                            }
+                            agentRepository.findByPublicId(target.agentId)
+                                ?: throw AgentNotFoundException(
+                                    "사원을 찾을 수 없습니다: ${target.agentId}",
+                                )
 
                         TargetData(
                             briefingId = target.briefingId,
@@ -78,11 +83,10 @@ class DevBriefingAnalysisClient(
                 val recentDecisions =
                     request.recentDecisionIds.map { decisionId ->
                         val decisionResult =
-                            checkNotNull(
-                                decisionResultRepository.findByDecisionPublicId(decisionId),
-                            ) {
-                                "결정 결과를 찾을 수 없습니다: $decisionId"
-                            }
+                            decisionResultRepository.findByDecisionPublicId(decisionId)
+                                ?: throw DecisionNotFoundException(
+                                    "결정 결과를 찾을 수 없습니다: $decisionId",
+                                )
 
                         val decision = decisionResult.decision
                         val stock =
@@ -118,7 +122,10 @@ class DevBriefingAnalysisClient(
                         ),
                     targets = targets,
                 )
-            } ?: error("브리핑 요청 데이터 조회에 실패했습니다.")
+            } ?: throw BusinessException(
+                errorCode = ErrorCode.INTERNAL_SERVER_ERROR,
+                message = "브리핑 요청 데이터 조회에 실패했습니다.",
+            )
 
         // DB 조회가 끝난 후 AI 서버를 호출한다.
         val response =
@@ -139,15 +146,20 @@ class DevBriefingAnalysisClient(
             }
 
         // AI가 실패 결과를 반환하면 예외로 처리한다.
-        check(response.isSuccess) {
-            "브리핑 생성에 실패했습니다: ${response.message}"
+        if (!response.isSuccess) {
+            throw BusinessException(
+                errorCode = ErrorCode.INTERNAL_SERVER_ERROR,
+                message = "브리핑 생성에 실패했습니다: ${response.message}",
+            )
         }
 
         // 성공 응답에는 result가 필요하다.
         val result =
-            checkNotNull(response.result) {
-                "브리핑 생성 결과가 없습니다."
-            }
+            response.result
+                ?: throw BusinessException(
+                    errorCode = ErrorCode.INTERNAL_SERVER_ERROR,
+                    message = "브리핑 생성 결과가 없습니다.",
+                )
 
         // agentType으로 내부 ID를 다시 연결한다.
         val briefings =
