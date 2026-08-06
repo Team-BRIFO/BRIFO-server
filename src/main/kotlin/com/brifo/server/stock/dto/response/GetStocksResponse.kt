@@ -17,8 +17,9 @@ data class GetStocksResponse(
         val stockId: UUID,
         val code: String,
         val name: String,
-        val price: BigDecimal?,
-        val changeRate: BigDecimal?,
+        val logoUrl: String?,
+        val price: BigDecimal,
+        val changeRate: BigDecimal,
     )
 
     enum class Mode {

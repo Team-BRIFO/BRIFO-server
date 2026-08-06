@@ -88,6 +88,7 @@ class StockControllerTest {
                                 stockId = UUID.randomUUID(),
                                 code = "005930",
                                 name = "삼성전자",
+                                logoUrl = "https://cdn.example.com/005930.png",
                                 price = BigDecimal("71000.00"),
                                 changeRate = BigDecimal("2.1"),
                             ),
