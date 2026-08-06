@@ -19,6 +19,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 @Import(TestcontainersConfiguration::class)
 @ActiveProfiles("dev")
@@ -94,23 +95,25 @@ class DevBriefingAnalysisClientIntegrationTest @Autowired constructor(
         val userId = assertNotNull(scenario.user.publicId)
         val newsCardId = assertNotNull(newsCard.publicId)
 
+        // 요청 대상 브리핑과 사원 ID를 만든다.
+        val targets =
+            briefings.map { briefing ->
+                val briefingId = assertNotNull(briefing.publicId)
+                val agentId = assertNotNull(briefing.agent.publicId)
+
+                BriefingAnalysisClient.Target(
+                    briefingId = briefingId,
+                    agentId = agentId,
+                )
+            }
+
         // 배치에서 사용할 기존 브리핑 생성 메서드를 호출한다.
         val result =
             briefingAnalysisClient.createBriefings(
                 BriefingAnalysisClient.Request(
                     userId = userId,
                     newsCardIds = listOf(newsCardId),
-                    targets =
-                        briefings.map { briefing ->
-                            // 각 브리핑과 사원의 ID를 확인한다.
-                            val briefingId = assertNotNull(briefing.publicId)
-                            val agentId = assertNotNull(briefing.agent.publicId)
-
-                            BriefingAnalysisClient.Target(
-                                briefingId = briefingId,
-                                agentId = agentId,
-                            )
-                        },
+                    targets = targets,
                     recentDecisionIds = emptyList(),
                 ),
             )
@@ -122,7 +125,28 @@ class DevBriefingAnalysisClientIntegrationTest @Autowired constructor(
                 .writeValueAsString(result),
         )
 
-        // 세 사원의 브리핑이 생성됐는지 확인한다.
-        assertEquals(3, result.briefings.size)
+        // 요청한 수만큼 브리핑이 생성됐는지 확인한다.
+        assertEquals(targets.size, result.briefings.size)
+
+        val expectedTargets =
+            targets
+                .map { target -> target.briefingId to target.agentId }
+                .toSet()
+
+        val actualTargets =
+            result.briefings
+                .map { briefing -> briefing.briefingId to briefing.agentId }
+                .toSet()
+
+        // 요청과 응답의 브리핑 및 사원 ID가 일치하는지 확인한다.
+        assertEquals(expectedTargets, actualTargets)
+
+        // AI 응답의 필수 내용이 비어 있지 않은지 확인한다.
+        result.briefings.forEach { briefing ->
+            assertTrue(briefing.headline.isNotBlank())
+            assertTrue(briefing.summary.isNotBlank())
+            assertTrue(briefing.commonAnalysis.isNotBlank())
+            assertTrue(briefing.closingComment.isNotBlank())
+        }
     }
 }
