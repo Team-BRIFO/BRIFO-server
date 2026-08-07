@@ -41,10 +41,6 @@ class DevBatchCleanupService(
             displayDate = displayDate,
         )
         val cleanup = cleanupNewsCards(newsIds)
-        jdbc.updateByIds(
-            "UPDATE news SET processing_status = 'PENDING' WHERE id IN (:ids)",
-            newsIds,
-        )
         return cleanup
     }
 
@@ -89,6 +85,12 @@ class DevBatchCleanupService(
 
         val cleanupCardIds = cardIds.toList()
         val cleanupBriefingIds = briefingIds.toList()
+        val cleanupNewsIds =
+            jdbc.queryForList(
+                "SELECT news_id FROM news_cards WHERE id IN (:ids)",
+                ids(cleanupCardIds),
+                Long::class.javaObjectType,
+            )
         val decisionIds =
             if (cleanupBriefingIds.isEmpty()) emptyList()
             else queryRepository.findDecisionIds(cleanupBriefingIds)
@@ -124,6 +126,10 @@ class DevBatchCleanupService(
             )
         jdbc.updateByIds("DELETE FROM news_card_terms WHERE card_id IN (:ids)", cleanupCardIds)
         val cards = jdbc.updateByIds("DELETE FROM news_cards WHERE id IN (:ids)", cleanupCardIds)
+        jdbc.updateByIds(
+            "UPDATE news SET processing_status = 'PENDING' WHERE id IN (:ids)",
+            cleanupNewsIds,
+        )
 
         return DevBatchCleanupResult(
             newsCards = cards,
@@ -271,8 +277,8 @@ class DevBatchCleanupService(
               END
             """,
             ids(decisionIds),
-            java.lang.Long::class.java,
-        ).map { it.toLong() }
+            Long::class.javaObjectType,
+        )
 
     private fun deleteDecisionNotifications(decisionIds: List<Long>) {
         if (decisionIds.isEmpty()) return
