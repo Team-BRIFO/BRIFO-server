@@ -108,10 +108,10 @@ class StockQueryRepositoryIntegrationTest {
         assertEquals(BigDecimal("71000.00"), samsungResult.price)
         assertEquals(BigDecimal("2.14"), samsungResult.changeRate)
 
-        // 저장된 가격이 없는 종목은 가격 필드를 null로 반환한다.
+        // 저장된 가격이 없는 종목도 화면 필수 필드를 0으로 반환한다.
         val hynixResult = result[1]
-        assertNull(hynixResult.price)
-        assertNull(hynixResult.changeRate)
+        assertEquals(BigDecimal.ZERO, hynixResult.price)
+        assertEquals(BigDecimal.ZERO, hynixResult.changeRate)
     }
 
     @Test

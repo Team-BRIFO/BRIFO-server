@@ -140,13 +140,14 @@ class StockServiceUnitTest {
 
     private fun stockItem(
         name: String,
-        changeRate: BigDecimal? = BigDecimal("1.0"),
+        changeRate: BigDecimal = BigDecimal("1.0"),
     ): GetStocksResponse.StockItem =
         GetStocksResponse.StockItem(
             rank = null,
             stockId = UUID.randomUUID(),
             code = "005930",
             name = name,
+            logoUrl = null,
             price = BigDecimal("71000.00"),
             changeRate = changeRate,
         )

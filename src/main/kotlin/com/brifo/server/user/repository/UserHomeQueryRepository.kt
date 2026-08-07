@@ -21,5 +21,6 @@ data class UserHomeNewsCard(
     val source: NewsSource,
     val stockId: UUID,
     val stockName: String,
+    val logoUrl: String?,
     val changeRate: BigDecimal?,
 )

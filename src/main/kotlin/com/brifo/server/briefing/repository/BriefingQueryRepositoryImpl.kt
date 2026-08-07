@@ -106,6 +106,7 @@ class BriefingQueryRepositoryImpl(
             .values
             .map { stockRows ->
                 OfficeBriefingItemResponse(
+                    stockId = stockRows.first().stockPublicId,
                     stockName = stockRows.first().stockName,
                     agents = stockRows.map { row ->
                         OfficeBriefingAgentResponse(
@@ -130,6 +131,7 @@ class BriefingQueryRepositoryImpl(
                     BriefingStockResponse::class.java,
                     stock.publicId,
                     stock.name,
+                    stock.logoUrl,
                     dailyStockPrice.price,
                     dailyStockPrice.changeRate,
                     dailyStockPrice.tradeDate,

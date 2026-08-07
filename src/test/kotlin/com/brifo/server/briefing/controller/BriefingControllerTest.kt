@@ -119,6 +119,7 @@ class BriefingControllerTest {
                 stock = BriefingStockResponse(
                     stockId,
                     "삼성전자",
+                    null,
                     BigDecimal("72420"),
                     BigDecimal("2.0"),
                     LocalDate.of(2026, 7, 18),
