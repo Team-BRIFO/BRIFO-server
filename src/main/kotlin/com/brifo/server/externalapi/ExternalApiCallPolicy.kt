@@ -27,4 +27,9 @@ enum class ExternalApiCallPolicy(
         timeout = Duration.ofSeconds(15),
         maxRetries = 1,
     ),
+    // 브리핑은 응답 시간이 길어서 30초를 적용한다.
+    AI_BRIEFING(
+        timeout = Duration.ofSeconds(30),
+        maxRetries = 0,
+    ),
 }

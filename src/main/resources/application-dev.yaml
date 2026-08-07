@@ -46,6 +46,9 @@ logging:
 external:
   kis:
     base-url: ${KIS_BASE_URL:disabled}
+  ai:
+    base-url: ${AI_BASE_URL:disabled}
+    api-key: ${AI_INTERNAL_API_KEY:disabled}
 
 server:
   forward-headers-strategy: framework
