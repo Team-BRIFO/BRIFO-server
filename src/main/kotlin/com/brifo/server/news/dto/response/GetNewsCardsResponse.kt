@@ -3,6 +3,7 @@ package com.brifo.server.news.dto.response
 import com.brifo.server.news.entity.ImportanceBadge
 import com.brifo.server.news.entity.NewsSource
 import java.math.BigDecimal
+import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
@@ -14,6 +15,7 @@ data class GetNewsCardsResponse(
         val stockId: UUID,
         val name: String,
         val sector: String,
+        val logoUrl: String?,
         val price: BigDecimal,
         val changeRate: BigDecimal,
         val tradeDate: LocalDate,
@@ -24,7 +26,8 @@ data class GetNewsCardsResponse(
         val source: NewsSource,
         val headline: String,
         val importanceBadge: ImportanceBadge,
-        val publishedDate: LocalDate,
+        val publishedDate: Instant,
+        val imageUrl: String?,
         val points: List<String>,
         val keywords: List<String>,
         val terms: List<Term>,

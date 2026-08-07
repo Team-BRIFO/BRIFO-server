@@ -3,6 +3,7 @@ package com.brifo.server.auth.dev
 import com.brifo.server.auth.security.JwtAuthenticationFilter
 import com.brifo.server.auth.security.RestAccessDeniedHandler
 import com.brifo.server.auth.security.RestAuthenticationEntryPoint
+import com.brifo.server.auth.security.SignupCsrfFilter
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
@@ -25,11 +26,13 @@ class DevAuthSecurityConfig {
     fun devAuthSecurityFilterChain(
         http: HttpSecurity,
         jwtAuthenticationFilter: JwtAuthenticationFilter,
+        signupCsrfFilter: SignupCsrfFilter,
         authenticationEntryPoint: RestAuthenticationEntryPoint,
         accessDeniedHandler: RestAccessDeniedHandler,
     ): SecurityFilterChain =
         http
             .securityMatcher("/api/dev/**")
+            // Cookie-authenticated signup requests are protected by SignupCsrfFilter.
             .csrf { it.disable() }
             .cors { }
             .sessionManagement {
@@ -50,5 +53,6 @@ class DevAuthSecurityConfig {
                     .permitAll()
                 it.anyRequest().denyAll()
             }.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .addFilterAfter(signupCsrfFilter, JwtAuthenticationFilter::class.java)
             .build()
 }

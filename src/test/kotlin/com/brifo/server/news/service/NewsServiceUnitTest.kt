@@ -50,17 +50,25 @@ class NewsServiceUnitTest {
         val news = mock(News::class.java)
         val stock = mock(Stock::class.java)
 
-        `when`(newsCardRepository.findAnalysisCards(stockId, displayDate))
-            .thenReturn(listOf(firstNewsCard))
+        `when`(
+            newsCardRepository.findAnalysisCards(
+                stockId,
+                displayDate,
+            ),
+        ).thenReturn(
+            listOf(firstNewsCard, secondNewsCard),
+        )
+
         `when`(firstNewsCard.news).thenReturn(news)
         `when`(news.stock).thenReturn(stock)
         `when`(stock.id).thenReturn(2L)
 
         `when`(
-            priceRepository.findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDescFetchedAtDescIdDesc(
-                2L,
-                displayDate,
-            ),
+            priceRepository
+                .findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDescFetchedAtDescIdDesc(
+                    2L,
+                    displayDate,
+                ),
         ).thenReturn(null)
 
         val exception =
@@ -73,6 +81,10 @@ class NewsServiceUnitTest {
                 2L,
                 displayDate,
             )
-        assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, exception.errorCode)
+
+        assertEquals(
+            ErrorCode.INTERNAL_SERVER_ERROR,
+            exception.errorCode,
+        )
     }
 }

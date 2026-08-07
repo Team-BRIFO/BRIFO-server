@@ -29,6 +29,7 @@ class NewsCard private constructor(
     keywords: List<String>,
     importanceBadge: ImportanceBadge,
     displayDate: LocalDate,
+    imageUrl: String?,
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "newsCardIdGenerator")
@@ -70,6 +71,10 @@ class NewsCard private constructor(
     var displayDate: LocalDate = displayDate
         protected set
 
+    @Column(name = "image_url", columnDefinition = "TEXT")
+    var imageUrl: String? = imageUrl
+        protected set
+
     companion object {
         fun create(
             news: News,
@@ -78,6 +83,7 @@ class NewsCard private constructor(
             keywords: List<String>,
             importanceBadge: ImportanceBadge,
             displayDate: LocalDate,
+            imageUrl: String? = null,
         ): NewsCard {
             return NewsCard(
                 news = news,
@@ -86,6 +92,7 @@ class NewsCard private constructor(
                 keywords = keywords,
                 importanceBadge = importanceBadge,
                 displayDate = displayDate,
+                imageUrl = imageUrl,
             )
         }
     }

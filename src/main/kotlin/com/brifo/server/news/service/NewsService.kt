@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.math.RoundingMode
 import java.time.Clock
 import java.time.LocalDate
+import java.time.ZoneId
 import java.util.UUID
 
 @Service
@@ -44,6 +45,7 @@ class NewsService(
                 stockId = requireNotNull(stock.publicId),
                 name = stock.name,
                 sector = stock.sector,
+                logoUrl = stock.logoUrl,
                 price = price.price,
                 changeRate = price.changeRate.setScale(1, RoundingMode.HALF_UP),
                 tradeDate = price.tradeDate,
@@ -59,7 +61,8 @@ class NewsService(
                 source = news.source,
                 headline = newsCard.headline,
                 importanceBadge = newsCard.importanceBadge,
-                publishedDate = news.publishedAt.toLocalDate(),
+                publishedDate = news.publishedAt.atZone(SEOUL_ZONE).toInstant(),
+                imageUrl = newsCard.imageUrl,
                 points = newsCard.points,
                 keywords = newsCard.keywords,
                 terms = terms.map {
@@ -81,5 +84,7 @@ class NewsService(
     private companion object {
         const val MIN_REQUIRED_NEWS_CARD_COUNT = 1
         const val MAX_REQUIRED_NEWS_CARD_COUNT = 2
+        const val REQUIRED_NEWS_CARD_COUNT = 2
+        val SEOUL_ZONE: ZoneId = ZoneId.of("Asia/Seoul")
     }
 }

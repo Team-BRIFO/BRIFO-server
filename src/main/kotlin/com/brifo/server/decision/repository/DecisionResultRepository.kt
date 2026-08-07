@@ -10,6 +10,8 @@ interface DecisionResultRepository : JpaRepository<DecisionResult, Long> {
 
     fun existsByDecisionPublicId(decisionPublicId: UUID): Boolean
 
+    fun findByDecisionPublicId(decisionPublicId: UUID): DecisionResult?
+
     fun countByDecisionBriefingAgentUserId(userId: Long): Long
 
     fun countByDecisionBriefingAgentUserIdAndIsCorrect(

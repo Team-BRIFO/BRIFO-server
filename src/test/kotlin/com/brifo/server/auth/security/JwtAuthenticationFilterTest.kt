@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
+import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.http.HttpHeaders
@@ -26,11 +27,14 @@ class JwtAuthenticationFilterTest {
     @Mock
     private lateinit var jwtTokenProvider: JwtTokenProvider
 
+    @Mock
+    private lateinit var signupTokenCookieManager: SignupTokenCookieManager
+
     private lateinit var filter: JwtAuthenticationFilter
 
     @BeforeEach
     fun setUp() {
-        filter = JwtAuthenticationFilter(jwtTokenProvider)
+        filter = JwtAuthenticationFilter(jwtTokenProvider, signupTokenCookieManager)
         SecurityContextHolder.clearContext()
     }
 
@@ -67,10 +71,11 @@ class JwtAuthenticationFilterTest {
     @Test
     fun `유효한 Signup Token은 사용자 공개 ID와 Signup 권한으로 인증한다`() {
         val userId = UUID.randomUUID()
-        val request = MockHttpServletRequest().apply { addHeader(HttpHeaders.AUTHORIZATION, "Bearer signup-token") }
+        val request = MockHttpServletRequest()
         val response = MockHttpServletResponse()
         var authentication: Authentication? = null
         val filterChain = FilterChain { _, _ -> authentication = SecurityContextHolder.getContext().authentication }
+        `when`(signupTokenCookieManager.resolve(request)).thenReturn("signup-token")
         `when`(jwtTokenProvider.parseAuthenticationToken("signup-token"))
             .thenReturn(
                 JwtTokenProvider.AuthenticationTokenClaims(
@@ -89,6 +94,28 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
+    fun `Signup Token은 Authorization 헤더로 인증할 수 없다`() {
+        val userId = UUID.randomUUID()
+        val request = MockHttpServletRequest().apply { addHeader(HttpHeaders.AUTHORIZATION, "Bearer signup-token") }
+        val response = MockHttpServletResponse()
+        `when`(jwtTokenProvider.parseAuthenticationToken("signup-token"))
+            .thenReturn(
+                JwtTokenProvider.AuthenticationTokenClaims(
+                    userId,
+                    JwtTokenProvider.AuthenticationTokenType.SIGNUP,
+                ),
+            )
+
+        filter.doFilter(request, response, FilterChain { _, _ -> })
+
+        assertNull(SecurityContextHolder.getContext().authentication)
+        assertSame(
+            AuthErrorCode.INVALID_TOKEN,
+            request.getAttribute(JwtAuthenticationFilter.AUTH_ERROR_CODE_ATTRIBUTE),
+        )
+    }
+
+    @Test
     fun `유효하지 않은 Access Token은 인증하지 않고 오류 코드를 보존한다`() {
         val request = MockHttpServletRequest().apply { addHeader(HttpHeaders.AUTHORIZATION, "Bearer invalid-token") }
         val response = MockHttpServletResponse()
@@ -102,6 +129,19 @@ class JwtAuthenticationFilterTest {
             AuthErrorCode.INVALID_TOKEN,
             request.getAttribute(JwtAuthenticationFilter.AUTH_ERROR_CODE_ATTRIBUTE),
         )
+    }
+
+    @Test
+    fun `유효하지 않은 Signup Token 쿠키는 삭제한다`() {
+        val request = MockHttpServletRequest()
+        val response = MockHttpServletResponse()
+        `when`(signupTokenCookieManager.resolve(request)).thenReturn("invalid-signup-token")
+        `when`(jwtTokenProvider.parseAuthenticationToken("invalid-signup-token")).thenThrow(InvalidJwtTokenException())
+
+        filter.doFilter(request, response, FilterChain { _, _ -> })
+
+        assertNull(SecurityContextHolder.getContext().authentication)
+        verify(signupTokenCookieManager).clear(response)
     }
 
     @Test

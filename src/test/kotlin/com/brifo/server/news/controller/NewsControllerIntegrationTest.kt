@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.Clock
 import java.time.LocalDate
+import java.time.ZoneId
 import java.util.UUID
 
 @Import(ServerTestConfiguration::class)
@@ -49,10 +50,16 @@ class NewsControllerIntegrationTest @Autowired constructor(
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.code").value("COMMON_200"))
             .andExpect(jsonPath("$.result.stock.stockId").value(stockId.toString()))
+            .andExpect(jsonPath("$.result.stock.logoUrl").value("https://cdn.example.com/005930.png"))
             .andExpect(jsonPath("$.result.stock.tradeDate").value(displayDate.minusDays(1).toString()))
             .andExpect(jsonPath("$.result.stock.changeRate").value(2.1))
             .andExpect(jsonPath("$.result.newsCards").isArray)
             .andExpect(jsonPath("$.result.newsCards.length()").value(2))
+            .andExpect(
+                jsonPath("$.result.newsCards[0].publishedDate")
+                    .value(displayDate.atTime(10, 0).atZone(ZoneId.of("Asia/Seoul")).toInstant().toString()),
+            )
+            .andExpect(jsonPath("$.result.newsCards[0].imageUrl").value("https://cdn.example.com/news/1.png"))
             .andExpect(jsonPath("$.result.newsCards[0].terms[0].displayOrder").value(0))
             .andExpect(jsonPath("$.result.newsCards[0].terms[1].displayOrder").value(1))
             .andExpect(jsonPath("$.result.newsCards[0].terms[1].surface").value("순매수"))
@@ -78,7 +85,12 @@ class NewsControllerIntegrationTest @Autowired constructor(
 
     private fun saveNewsCardData(): UUID {
         val displayDate = LocalDate.now(clock)
-        val stock = Stock.create(code = "005930", name = "삼성전자", sector = "반도체")
+        val stock = Stock.create(
+            code = "005930",
+            name = "삼성전자",
+            sector = "반도체",
+            logoUrl = "https://cdn.example.com/005930.png",
+        )
         entityManager.persist(stock)
 
         val firstNews =
@@ -102,6 +114,7 @@ class NewsControllerIntegrationTest @Autowired constructor(
                 keywords = listOf("HBM3E"),
                 importanceBadge = ImportanceBadge.HOT,
                 displayDate = displayDate,
+                imageUrl = "https://cdn.example.com/news/1.png",
             )
         entityManager.persist(firstNewsCard)
 

@@ -7,6 +7,7 @@ import java.util.UUID
 data class BriefingStockResponse(
     val stockId: UUID,
     val name: String,
+    val logoUrl: String?,
     val price: BigDecimal,
     val changeRate: BigDecimal,
     val tradeDate: LocalDate,

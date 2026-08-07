@@ -20,6 +20,7 @@ import com.brifo.server.user.repository.UserHomeQueryRepository
 import com.brifo.server.user.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Clock
 import java.time.DayOfWeek
@@ -84,6 +85,7 @@ class UserQueryService(
                     GetMyPageResponse.MyPageStock(
                         stockId = requireNotNull(stock.publicId) { "Persisted stock must have a public id." },
                         name = stock.name,
+                        logoUrl = stock.logoUrl,
                     )
                 },
         )
@@ -96,6 +98,15 @@ class UserQueryService(
         val today = LocalDate.now(clock)
         val todayStart = today.atStartOfDay()
         val tomorrowStart = todayStart.plusDays(1)
+        val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).atStartOfDay()
+        val nextWeekStart = weekStart.plusWeeks(1)
+        val weeklyAttendances =
+            attendanceRewardRepository
+                .findAllByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtAsc(
+                    userId,
+                    weekStart,
+                    nextWeekStart,
+                )
         val newsCards = userHomeQueryRepository.findTodayNewsCards(userId, today)
 
         return GetUserHomeResponse(
@@ -106,6 +117,14 @@ class UserQueryService(
                     balanceAp = user.balanceAp,
                 ),
             agents = mapAgents(userId),
+            attendedToday =
+                attendanceRewardRepository.existsByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                    userId,
+                    todayStart,
+                    tomorrowStart,
+                ),
+            weeklyAttendanceDays = weeklyAttendances.size,
+            dates = weeklyAttendances.map { requireNotNull(it.createdAt).toLocalDate() },
             todayDecisions =
                 GetUserHomeResponse.TodayDecisions(
                     Math.toIntExact(
@@ -140,6 +159,7 @@ class UserQueryService(
                     GetUserProfileResponse.UserProfileStock(
                         stockId = requireNotNull(stock.publicId) { "Persisted stock must have a public id." },
                         name = stock.name,
+                        logoUrl = stock.logoUrl,
                     )
                 },
         )
@@ -198,7 +218,8 @@ class UserQueryService(
                             GetUserHomeResponse.TodayNewsCards.HomeNewsStock(
                                 it.stockId,
                                 it.stockName,
-                                it.changeRate?.setScale(1, RoundingMode.HALF_UP),
+                                it.logoUrl,
+                                (it.changeRate ?: BigDecimal.ZERO).setScale(1, RoundingMode.HALF_UP),
                             ),
                     )
                 },
