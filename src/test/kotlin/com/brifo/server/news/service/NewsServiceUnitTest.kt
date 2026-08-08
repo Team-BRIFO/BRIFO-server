@@ -32,7 +32,7 @@ class NewsServiceUnitTest {
     private val newsService = NewsService(newsCardRepository, priceRepository, termRepository, clock)
 
     @Test
-    fun `노출할 카드뉴스가 두 개가 아니면 예외가 발생한다`() {
+    fun `노출할 카드뉴스가 없으면 예외가 발생한다`() {
         val stockId = UUID.randomUUID()
 
         `when`(newsCardRepository.findAnalysisCards(stockId, LocalDate.of(2026, 7, 4))).thenReturn(emptyList())
@@ -47,7 +47,6 @@ class NewsServiceUnitTest {
         val stockId = UUID.randomUUID()
         val displayDate = LocalDate.of(2026, 7, 4)
         val firstNewsCard = mock(NewsCard::class.java)
-        val secondNewsCard = mock(NewsCard::class.java)
         val news = mock(News::class.java)
         val stock = mock(Stock::class.java)
 

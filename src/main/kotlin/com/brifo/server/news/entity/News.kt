@@ -86,6 +86,10 @@ class News private constructor(
     var crawledAt: LocalDateTime? = null
         protected set
 
+    fun markProcessed() {
+        processingStatus = NewsProcessingStatus.PROCESSED
+    }
+
     companion object {
         fun create(
             stock: Stock,

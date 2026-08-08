@@ -81,7 +81,24 @@ class Agent private constructor(
     var updatedAt: LocalDateTime? = null
         protected set
 
+    fun addExperience(amount: Int): Boolean {
+        require(amount >= 0) { "EXP amount must not be negative" }
+        if (level >= MAX_LEVEL || amount == 0) return false
+
+        val previousLevel = level
+        var accumulatedExp = exp.toLong() + amount.toLong()
+        while (level < MAX_LEVEL && accumulatedExp >= EXP_PER_LEVEL) {
+            accumulatedExp -= EXP_PER_LEVEL
+            level++
+        }
+        exp = if (level == MAX_LEVEL) 0 else accumulatedExp.toInt()
+        return level > previousLevel
+    }
+
     companion object {
+        private const val MAX_LEVEL = 10
+        private const val EXP_PER_LEVEL = 100
+
         fun create(
             user: User,
             agentType: AgentType,

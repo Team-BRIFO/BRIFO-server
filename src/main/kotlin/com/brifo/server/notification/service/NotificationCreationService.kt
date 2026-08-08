@@ -50,14 +50,21 @@ class NotificationCreationService(
         code: NotificationCode,
         target: Target,
         eventId: Long? = null,
+        eventDate: LocalDate? = null,
     ) {
         require(target.type == TARGET_TYPES.getValue(code)) { "Invalid target type for $code" }
+        require(code == NotificationCode.NEWS_CARD_ARRIVED || eventDate == null) {
+            "eventDate is only supported for NEWS_CARD_ARRIVED"
+        }
+        if (code == NotificationCode.NEWS_CARD_ARRIVED) requireNotNull(eventDate) {
+            "eventDate is required for NEWS_CARD_ARRIVED"
+        }
 
         val user = userRepository.findByPublicId(userId) ?: throw UserNotFoundException()
         val type =
             notificationTypeRepository.findByCode(code.name)
                 ?: error("Unknown notification type: ${code.name}")
-        val content = resolveContent(userId, code, target.id, eventId)
+        val content = resolveContent(userId, code, target.id, eventId, eventDate)
 
         notificationRepository.save(
             Notification.create(
@@ -67,6 +74,7 @@ class NotificationCreationService(
                 body = content.body,
                 targetType = target.type,
                 targetPublicId = target.id,
+                eventDate = eventDate,
             ),
         )
     }
@@ -76,11 +84,13 @@ class NotificationCreationService(
         code: NotificationCode,
         targetId: UUID?,
         eventId: Long?,
+        eventDate: LocalDate?,
     ): Content =
         when (code) {
             NotificationCode.DECISION_RESULT -> decisionResultContent(userId, requireNotNull(targetId))
             NotificationCode.BRIEFING_READY -> briefingReadyContent(userId, requireNotNull(targetId))
-            NotificationCode.NEWS_CARD_ARRIVED -> newsCardArrivedContent(userId, requireNotNull(targetId))
+            NotificationCode.NEWS_CARD_ARRIVED ->
+                newsCardArrivedContent(userId, requireNotNull(targetId), requireNotNull(eventDate))
             NotificationCode.BADGE_AWARDED -> badgeAwardedContent(userId, requireNotNull(eventId))
             NotificationCode.ATTENDANCE_REWARDED -> attendanceRewardedContent(userId, requireNotNull(eventId))
             NotificationCode.AGENT_SALARY_PAID -> agentSalaryPaidContent(userId, requireNotNull(targetId))
@@ -115,8 +125,9 @@ class NotificationCreationService(
     private fun newsCardArrivedContent(
         userId: UUID,
         stockId: UUID,
+        displayDate: LocalDate,
     ): Content {
-        val cards = notificationRepository.findNewsCardContents(userId, stockId, today())
+        val cards = notificationRepository.findNewsCardContents(userId, stockId, displayDate)
         require(cards.isNotEmpty()) { "No news cards found for notification" }
         val stockNames = cards.map { it.stockName }.distinct().joinToString(" · ")
         return Content(

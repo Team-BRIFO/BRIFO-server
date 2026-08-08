@@ -44,7 +44,7 @@ class BriefingAnalysisTransactionIntegrationTest @Autowired constructor(
 
         val briefing = briefingRepository.findByPublicId(prepared.briefingPublicId)!!
         assertEquals(listOf(prepared.briefingPublicId), context!!.targets.map { it.briefingPublicId })
-        assertEquals(2, context.newsCardPublicIds.size)
+        assertEquals(2, context.newsCards.size)
         assertEquals(BriefingStatus.COMPLETED, briefing.status)
         assertEquals(BriefingDirection.UP, briefing.direction)
         assertEquals(72, briefing.confidenceRate)

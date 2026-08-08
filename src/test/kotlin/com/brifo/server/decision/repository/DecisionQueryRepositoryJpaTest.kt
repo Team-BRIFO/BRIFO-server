@@ -17,6 +17,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -152,6 +153,36 @@ class DecisionQueryRepositoryJpaTest @Autowired constructor(
                 date,
             ).isEmpty(),
         )
+    }
+
+    @Test
+    fun `정산 대상은 장 마감 전에 등록된 결정만 포함한다`() {
+        val date = LocalDate.of(2026, 8, 3)
+        val beforeCloseScenario = BriefingDatabaseFixture(entityManager).requestScenario(date, agentCount = 1)
+        val atCloseScenario = BriefingDatabaseFixture(entityManager).requestScenario(date, agentCount = 1)
+        val beforeClose = persistDecision(beforeCloseScenario, DecisionDirection.UP)
+        val atClose = persistDecision(atCloseScenario, DecisionDirection.DOWN)
+        entityManager.flush()
+
+        updateCreatedAt(requireNotNull(beforeClose.id), date.atTime(15, 29, 59))
+        updateCreatedAt(requireNotNull(atClose.id), date.atTime(15, 30))
+        entityManager.clear()
+
+        assertEquals(listOf(requireNotNull(beforeClose.id)), decisionRepository.findUnsettledIds(date))
+        assertEquals(
+            listOf(requireNotNull(beforeCloseScenario.stock.id)),
+            decisionRepository.findUnsettledStockIds(date),
+        )
+    }
+
+    private fun updateCreatedAt(
+        decisionId: Long,
+        createdAt: LocalDateTime,
+    ) {
+        entityManager.createNativeQuery("UPDATE decisions SET created_at = :createdAt WHERE id = :decisionId")
+            .setParameter("createdAt", createdAt)
+            .setParameter("decisionId", decisionId)
+            .executeUpdate()
     }
 
     private fun persistDecision(

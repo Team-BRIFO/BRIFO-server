@@ -114,11 +114,18 @@ class BriefingAnalysisOrchestratorTest {
     private fun context(command: BriefingAnalysisTask.Command): BriefingAnalysisTask.Context =
         BriefingAnalysisTask.Context(
             userPublicId = command.userPublicId,
-            newsCardPublicIds = listOf(UUID.randomUUID(), UUID.randomUUID()),
-            targets = command.briefingPublicIds.map {
-                BriefingAnalysisTask.Context.Target(it, UUID.randomUUID(), AgentType.ROOKIE, "model")
+            newsCards = listOf(
+                BriefingAnalysisTask.Context.NewsCard(UUID.randomUUID(), UUID.randomUUID(), "헤드라인", listOf("포인트")),
+            ),
+            targets = command.briefingPublicIds.mapIndexed { index, briefingId ->
+                BriefingAnalysisTask.Context.Target(
+                    briefingId,
+                    AgentType.entries[index],
+                    "model",
+                    1,
+                )
             },
-            recentDecisionPublicIds = emptyList(),
+            recentDecisions = emptyList(),
         )
 
     private fun completion(briefingId: UUID): BriefingAnalysisTask.Completion =
@@ -136,10 +143,11 @@ class BriefingAnalysisOrchestratorTest {
     private fun clientRequest(context: BriefingAnalysisTask.Context): BriefingAnalysisClient.Request =
         BriefingAnalysisClient.Request(
             userId = context.userPublicId,
-            newsCardIds = context.newsCardPublicIds,
-            targets = context.targets.map {
-                BriefingAnalysisClient.Target(it.briefingPublicId, it.agentPublicId)
+            newsCard = context.newsCards.map {
+                BriefingAnalysisClient.NewsCard(it.cardPublicId, it.newsPublicId, it.headline, it.points)
             },
-            recentDecisionIds = context.recentDecisionPublicIds,
+            agentTypes = context.targets.map { it.agentType },
+            levelRange = "1-1",
+            recentDecisions = emptyList(),
         )
 }

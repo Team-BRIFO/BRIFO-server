@@ -1,5 +1,6 @@
 package com.brifo.server.decision.repository
 
+import com.brifo.server.decision.DecisionMarketPolicy
 import com.brifo.server.ap.entity.ApTransactionTargetType
 import com.brifo.server.ap.entity.QApTransaction.Companion.apTransaction
 import com.brifo.server.briefing.entity.QBriefingNewsCard
@@ -162,13 +163,21 @@ class DecisionQueryRepositoryImpl(
             ).fetch()
     }
 
-    override fun findRecentSettledDecisionIds(
+    override fun findRecentSettledDecisions(
         userPublicId: UUID,
         limit: Long,
-    ): List<UUID> =
+    ): List<RecentSettledDecision> =
         queryFactory
-            .select(decision.publicId)
-            .from(decisionResult)
+            .select(
+                Projections.constructor(
+                    RecentSettledDecision::class.java,
+                    decisionResult.dailyStockPrice.stock.name,
+                    decision.direction,
+                    decision.confidenceLevel.intValue(),
+                    decisionResult.isCorrect,
+                    decisionResult.dailyStockPrice.changeRate,
+                ),
+            ).from(decisionResult)
             .join(decisionResult.decision, decision)
             .where(decision.briefing.agent.user.publicId.eq(userPublicId))
             .orderBy(decision.createdAt.desc(), decision.id.desc())
@@ -188,4 +197,42 @@ class DecisionQueryRepositoryImpl(
                 decision.createdAt.goe(from),
                 decision.createdAt.lt(to),
             ).fetchOne() ?: 0L
+
+    override fun findUnsettledIds(targetDate: LocalDate): List<Long> =
+        queryFactory
+            .select(decision.id)
+            .from(decision)
+            .where(
+                JPAExpressions
+                    .selectOne()
+                    .from(briefingNewsCard)
+                    .where(
+                        briefingNewsCard.briefing.eq(decision.briefing),
+                        briefingNewsCard.newsCard.displayDate.eq(targetDate),
+                    ).exists(),
+                JPAExpressions
+                    .selectOne()
+                    .from(decisionResult)
+                    .where(decisionResult.decision.eq(decision))
+                    .notExists(),
+                decision.createdAt.lt(DecisionMarketPolicy.settlementCutoff(targetDate)),
+            ).orderBy(decision.createdAt.asc(), decision.id.asc())
+            .fetch()
+
+    override fun findUnsettledStockIds(targetDate: LocalDate): List<Long> =
+        queryFactory
+            .select(briefingNewsCard.newsCard.news.stock.id)
+            .distinct()
+            .from(decision)
+            .join(decision.briefing.briefingNewsCards, briefingNewsCard)
+            .where(
+                briefingNewsCard.newsCard.displayDate.eq(targetDate),
+                JPAExpressions
+                    .selectOne()
+                    .from(decisionResult)
+                    .where(decisionResult.decision.eq(decision))
+                    .notExists(),
+                decision.createdAt.lt(DecisionMarketPolicy.settlementCutoff(targetDate)),
+            ).orderBy(briefingNewsCard.newsCard.news.stock.id.asc())
+            .fetch()
 }

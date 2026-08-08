@@ -98,6 +98,45 @@ class ApTransactionServiceTest {
         verify(apTransactionRepository, never()).save(any(ApTransaction::class.java))
     }
 
+    @Test
+    fun `결정 오답 차감액이 잔액보다 크면 잔액까지만 차감한다`() {
+        val userId = UUID.randomUUID()
+        val user = statefulUser(id = 1L, balance = 30)
+        `when`(userRepository.findForUpdateByPublicId(userId)).thenReturn(user)
+
+        val result = service.settleDecision(
+            userId = userId,
+            plannedDeltaAp = -50,
+            reason = ApTransactionReason.DECISION_LOSE,
+            decisionId = 11L,
+        )
+
+        assertEquals(-30, result.deltaAp)
+        assertEquals(0, result.balanceAp)
+        val transaction = captureSavedTransaction()
+        assertEquals(-30, transaction.amount)
+        assertEquals(ApTransactionTargetType.DECISION, transaction.targetType)
+        assertEquals(11L, transaction.targetId)
+    }
+
+    @Test
+    fun `잔액이 없는 결정 오답도 0원 원장을 저장한다`() {
+        val userId = UUID.randomUUID()
+        val user = statefulUser(id = 1L, balance = 0)
+        `when`(userRepository.findForUpdateByPublicId(userId)).thenReturn(user)
+
+        val result = service.settleDecision(
+            userId = userId,
+            plannedDeltaAp = -50,
+            reason = ApTransactionReason.DECISION_LOSE,
+            decisionId = 11L,
+        )
+
+        assertEquals(0, result.deltaAp)
+        assertEquals(0, result.balanceAp)
+        assertEquals(0, captureSavedTransaction().amount)
+    }
+
     private fun statefulUser(
         id: Long,
         balance: Int,

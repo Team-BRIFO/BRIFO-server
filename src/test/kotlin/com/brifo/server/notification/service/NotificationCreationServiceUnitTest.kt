@@ -106,6 +106,7 @@ class NotificationCreationServiceUnitTest {
                 userId,
                 NotificationCode.NEWS_CARD_ARRIVED,
                 NotificationCreationService.Target(NotificationTargetType.NEWS_CARD_LIST, stockId),
+                eventDate = LocalDate.of(2026, 8, 4),
             )
         }
         verifyNoInteractions(notificationRepository)
@@ -165,7 +166,8 @@ class NotificationCreationServiceUnitTest {
     fun `카드뉴스와 사원 의뢰비 템플릿은 사용자 단위 목록을 집계한다`() {
         val userId = UUID.randomUUID()
         val stockId = UUID.randomUUID()
-        `when`(notificationRepository.findNewsCardContents(userId, stockId, LocalDate.now(SEOUL_ZONE))).thenReturn(
+        val displayDate = LocalDate.of(2026, 8, 4)
+        `when`(notificationRepository.findNewsCardContents(userId, stockId, displayDate)).thenReturn(
             listOf(
                 NotificationContentProjection.NewsCard("삼성전자"),
                 NotificationContentProjection.NewsCard("삼성전자"),
@@ -186,6 +188,7 @@ class NotificationCreationServiceUnitTest {
             target = NotificationCreationService.Target(NotificationTargetType.NEWS_CARD_LIST, stockId),
             expectedTitle = "새 카드뉴스 3건이 도착했어요",
             expectedBody = "관심 종목 삼성전자 · NAVER 관련 새 소식이 올라왔어요",
+            eventDate = displayDate,
         )
         assertCreatedContent(
             userId = userId,
@@ -261,11 +264,12 @@ class NotificationCreationServiceUnitTest {
         expectedTitle: String,
         expectedBody: String,
         eventId: Long? = null,
+        eventDate: LocalDate? = null,
     ) {
         `when`(userRepository.findByPublicId(userId)).thenReturn(mock(User::class.java))
         `when`(notificationTypeRepository.findByCode(code.name)).thenReturn(mock(NotificationType::class.java))
 
-        service.create(userId, code, target, eventId)
+        service.create(userId, code, target, eventId, eventDate)
 
         val captor = ArgumentCaptor.forClass(Notification::class.java)
         verify(notificationRepository).save(captor.capture())
@@ -274,7 +278,7 @@ class NotificationCreationServiceUnitTest {
         clearInvocations(notificationRepository)
     }
 
-    companion object {
-        private val SEOUL_ZONE = java.time.ZoneId.of("Asia/Seoul")
+    private companion object {
+        val SEOUL_ZONE = java.time.ZoneId.of("Asia/Seoul")
     }
 }

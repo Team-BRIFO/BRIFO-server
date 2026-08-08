@@ -8,6 +8,7 @@ import com.brifo.server.user.entity.QUser.Companion.user
 import com.querydsl.core.types.Projections
 import com.querydsl.jpa.impl.JPAQueryFactory
 import org.springframework.stereotype.Repository
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -42,6 +43,31 @@ class NotificationQueryRepositoryImpl(
             .limit(limit.toLong())
             .fetch()
             .map(NotificationRow::toResponseItem)
+
+    override fun findNewsCardArrivals(
+        userIds: Collection<Long>,
+        code: String,
+        targetType: NotificationTargetType,
+        targetPublicIds: Collection<UUID>,
+        eventDate: LocalDate,
+    ): Set<NewsCardArrival> =
+        queryFactory
+            .select(
+                Projections.constructor(
+                    NewsCardArrival::class.java,
+                    notification.user.id,
+                    notification.targetPublicId,
+                ),
+            ).distinct()
+            .from(notification)
+            .where(
+                notification.user.id.`in`(userIds),
+                notification.notificationType.code.eq(code),
+                notification.targetType.eq(targetType),
+                notification.targetPublicId.`in`(targetPublicIds),
+                notification.eventDate.eq(eventDate),
+            ).fetch()
+            .toSet()
 }
 
 data class NotificationRow(

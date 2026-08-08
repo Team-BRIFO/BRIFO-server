@@ -1,0 +1,54 @@
+package com.brifo.server.batch.collection
+
+import com.brifo.server.news.client.NewsCollectionClient
+import com.brifo.server.news.entity.News
+import com.brifo.server.news.repository.NewsRepository
+import com.brifo.server.stock.repository.StockRepository
+import org.springframework.batch.core.scope.context.ChunkContext
+import org.springframework.batch.core.step.StepContribution
+import org.springframework.batch.core.step.tasklet.Tasklet
+import org.springframework.batch.infrastructure.repeat.RepeatStatus
+import java.time.LocalDate
+
+class NewsCollectionTasklet(
+    private val targetDate: LocalDate,
+    private val collectionRound: CollectionRound,
+    private val client: NewsCollectionClient,
+    private val stockRepository: StockRepository,
+    private val newsRepository: NewsRepository,
+    private val importanceCalculator: NewsImportanceCalculator,
+) : Tasklet {
+    override fun execute(
+        contribution: StepContribution,
+        chunkContext: ChunkContext,
+    ): RepeatStatus {
+        val cutoff = collectionRound.cutoffAt(targetDate)
+        client.collect(NewsCollectionClient.Request(targetDate, cutoff)).news
+            .asSequence()
+            .filter { it.publishedAt.toLocalDate() == targetDate }
+            .filter { !it.publishedAt.isAfter(cutoff) }
+            .filterNot { newsRepository.existsByDedupKey(it.dedupKey) }
+            .forEach { collected ->
+                val stock = checkNotNull(stockRepository.findByCode(collected.stockCode)) {
+                    "알 수 없는 종목 코드입니다: ${collected.stockCode}"
+                }
+                val importance = importanceCalculator.calculate(
+                    uniqueKeywordCount = collected.importantKeywords.size,
+                    round = CollectionRound.fromPublishedAt(collected.publishedAt),
+                )
+                newsRepository.save(
+                    News.create(
+                        stock = stock,
+                        source = collected.source,
+                        sourceUrl = collected.sourceUrl,
+                        title = collected.title,
+                        summary = collected.summary,
+                        importance = importance,
+                        dedupKey = collected.dedupKey,
+                        publishedAt = collected.publishedAt,
+                    ),
+                )
+            }
+        return RepeatStatus.FINISHED
+    }
+}

@@ -7,6 +7,7 @@ import com.brifo.server.briefing.exception.BriefingNotFoundException
 import com.brifo.server.briefing.repository.BriefingRepository
 import com.brifo.server.badge.code.BadgeCode
 import com.brifo.server.badge.service.BadgeAwardService
+import com.brifo.server.decision.DecisionMarketPolicy
 import com.brifo.server.decision.dto.response.CreateDecisionResponse
 import com.brifo.server.decision.entity.Decision
 import com.brifo.server.decision.entity.DecisionDirection
@@ -20,7 +21,6 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.util.UUID
 
 /** 오늘 완료된 브리핑 하나를 채택하여 결정을 등록한다. */
@@ -77,7 +77,7 @@ class DecisionRequestService(
         if (confidenceLevel !in 1..5) {
             throw BusinessException(ErrorCode.INVALID_REQUEST)
         }
-        if (!requestedAt.toLocalTime().isBefore(REQUEST_CUTOFF)) {
+        if (!DecisionMarketPolicy.isRegistrationOpen(requestedAt)) {
             throw DecisionRequestClosedException()
         }
     }
@@ -104,9 +104,5 @@ class DecisionRequestService(
             throw DecisionAlreadyExistsException()
         }
         return newsCard
-    }
-
-    private companion object {
-        val REQUEST_CUTOFF: LocalTime = LocalTime.of(15, 30)
     }
 }

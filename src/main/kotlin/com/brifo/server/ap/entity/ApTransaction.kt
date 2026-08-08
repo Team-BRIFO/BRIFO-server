@@ -137,10 +137,12 @@ class ApTransaction private constructor(
             reason: ApTransactionReason,
             amount: Int,
         ) {
-            val mustBeNegative = reason == ApTransactionReason.DECISION_LOSE ||
-                reason == ApTransactionReason.SALARY
-
-            require(if (mustBeNegative) amount < 0 else amount > 0) {
+            val valid = when (reason) {
+                ApTransactionReason.DECISION_LOSE -> amount <= 0
+                ApTransactionReason.SALARY -> amount < 0
+                else -> amount > 0
+            }
+            require(valid) {
                 "amount sign is not valid for reason $reason"
             }
         }

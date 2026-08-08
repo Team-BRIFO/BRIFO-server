@@ -37,6 +37,10 @@ management:
       show-details: never
 
 app:
+  batch:
+    scheduling-enabled: ${BATCH_SCHEDULING_ENABLED:false}
+    restart-delay: 10m
+    max-executions: 3
   auth:
     jwt:
       secret-base64: ${JWT_SECRET_BASE64}

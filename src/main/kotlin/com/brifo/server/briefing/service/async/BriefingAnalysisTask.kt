@@ -2,6 +2,7 @@ package com.brifo.server.briefing.service.async
 
 import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.briefing.entity.BriefingDirection
+import com.brifo.server.decision.entity.DecisionDirection
 import java.math.BigDecimal
 import java.util.UUID
 
@@ -13,15 +14,30 @@ object BriefingAnalysisTask {
 
     data class Context(
         val userPublicId: UUID,
-        val newsCardPublicIds: List<UUID>,
+        val newsCards: List<NewsCard>,
         val targets: List<Target>,
-        val recentDecisionPublicIds: List<UUID>,
+        val recentDecisions: List<RecentDecision>,
     ) {
+        data class NewsCard(
+            val cardPublicId: UUID,
+            val newsPublicId: UUID,
+            val headline: String,
+            val points: List<String>,
+        )
+
         data class Target(
             val briefingPublicId: UUID,
-            val agentPublicId: UUID,
             val agentType: AgentType,
             val modelName: String,
+            val level: Int,
+        )
+
+        data class RecentDecision(
+            val stockName: String,
+            val direction: DecisionDirection,
+            val confidence: Int,
+            val isCorrect: Boolean,
+            val actualChange: BigDecimal,
         )
     }
 

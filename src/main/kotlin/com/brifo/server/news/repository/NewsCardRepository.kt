@@ -7,5 +7,6 @@ import java.util.UUID
 interface NewsCardRepository :
     JpaRepository<NewsCard, Long>,
     NewsCardQueryRepository {
+    fun existsByNewsId(newsId: Long): Boolean
     fun findByPublicId(publicId: UUID): NewsCard?
 }

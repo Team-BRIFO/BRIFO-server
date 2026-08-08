@@ -9,4 +9,6 @@ interface NewsCardQueryRepository {
         stockPublicId: UUID,
         displayDate: LocalDate,
     ): List<NewsCard>
+
+    fun findDistinctStockIdsByDisplayDate(displayDate: LocalDate): List<Long>
 }
