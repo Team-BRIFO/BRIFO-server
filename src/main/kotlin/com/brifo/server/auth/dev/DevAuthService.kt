@@ -32,7 +32,6 @@ class DevAuthService(
     private val stockRepository: StockRepository,
     private val userRepository: UserRepository,
     private val userService: UserService,
-    private val devOnboardingDataService: DevOnboardingDataService,
 ) {
     @Transactional
     fun signUp(request: DevSignUpRequest): DevSignUpResponse {
@@ -81,9 +80,7 @@ class DevAuthService(
             ),
         )
         policyService.agreePolicies(userPublicId, activePolicies.map { requireNotNull(it.publicId) })
-        val response = userService.completeOnboarding(userPublicId)
-        devOnboardingDataService.seed(userPublicId)
-        return response
+        return userService.completeOnboarding(userPublicId)
     }
 
     private fun verifyPassword(actual: String) {
