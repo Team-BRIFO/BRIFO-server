@@ -8,7 +8,9 @@ import com.brifo.server.briefing.exception.BriefingNotCompletedException
 import com.brifo.server.briefing.exception.BriefingNotFoundException
 import com.brifo.server.briefing.exception.BriefingProcessingFailedException
 import com.brifo.server.stock.exception.StockNotFoundException
+import com.brifo.server.stock.repository.StockRepository
 import com.brifo.server.stock.repository.UserStockRepository
+import com.brifo.server.stock.service.StockPriceService
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verifyNoInteractions
@@ -22,9 +24,13 @@ import kotlin.test.assertFailsWith
 class BriefingQueryServiceTest {
     private val briefingRepository = mock(BriefingRepository::class.java)
     private val userStockRepository = mock(UserStockRepository::class.java)
+    private val stockRepository = mock(StockRepository::class.java)
+    private val stockPriceService = mock(StockPriceService::class.java)
     private val service = BriefingQueryService(
         briefingRepository,
         userStockRepository,
+        stockRepository,
+        stockPriceService,
         Clock.fixed(Instant.parse("2026-07-18T06:20:00Z"), ZoneId.of("Asia/Seoul")),
     )
 

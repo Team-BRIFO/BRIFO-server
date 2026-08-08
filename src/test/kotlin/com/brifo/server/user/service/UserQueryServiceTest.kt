@@ -15,6 +15,7 @@ import com.brifo.server.stock.entity.Stock
 import com.brifo.server.stock.entity.UserStock
 import com.brifo.server.stock.repository.PendingUserStockRepository
 import com.brifo.server.stock.repository.UserStockRepository
+import com.brifo.server.stock.service.StockPriceService
 import com.brifo.server.term.repository.UserLearnedTermRepository
 import com.brifo.server.user.entity.User
 import com.brifo.server.user.exception.UserNotFoundException
@@ -49,6 +50,7 @@ class UserQueryServiceTest {
     private val decisionResultRepository = mock(DecisionResultRepository::class.java)
     private val userLearnedTermRepository = mock(UserLearnedTermRepository::class.java)
     private val userHomeQueryRepository = mock(UserHomeQueryRepository::class.java)
+    private val stockPriceService = mock(StockPriceService::class.java)
     private val validationService = mock(UserValidationService::class.java)
     private val clock = Clock.fixed(Instant.parse("2026-07-21T09:00:00Z"), ZoneId.of("Asia/Seoul"))
     private lateinit var queryService: UserQueryService
@@ -67,6 +69,7 @@ class UserQueryServiceTest {
                 decisionResultRepository,
                 userLearnedTermRepository,
                 userHomeQueryRepository,
+                stockPriceService,
                 validationService,
                 clock,
             )

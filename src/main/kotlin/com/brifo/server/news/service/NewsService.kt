@@ -1,14 +1,13 @@
 package com.brifo.server.news.service
 
-import com.brifo.server.global.code.ErrorCode
-import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.news.dto.response.GetNewsCardsResponse
 import com.brifo.server.news.exception.NewsCardNotFoundException
 import com.brifo.server.news.repository.NewsCardRepository
-import com.brifo.server.news.repository.NewsDailyStockPriceRepository
+import com.brifo.server.stock.service.StockPriceService
 import com.brifo.server.term.repository.NewsCardTermRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Clock
 import java.time.LocalDate
@@ -18,8 +17,8 @@ import java.util.UUID
 @Service
 class NewsService(
     private val newsCardRepository: NewsCardRepository,
-    private val newsDailyStockPriceRepository: NewsDailyStockPriceRepository,
     private val newsCardTermRepository: NewsCardTermRepository,
+    private val stockPriceService: StockPriceService,
     private val clock: Clock,
 ) {
     @Transactional(readOnly = true)
@@ -31,14 +30,7 @@ class NewsService(
         }
         val stock = newsCards.first().news.stock
 
-        val price =
-            newsDailyStockPriceRepository.findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDescFetchedAtDescIdDesc(
-                stockId = requireNotNull(stock.id),
-                tradeDate = displayDate,
-            ) ?: throw BusinessException(
-                errorCode = ErrorCode.INTERNAL_SERVER_ERROR,
-                message = "카드뉴스 기준일의 종목 가격 데이터가 없습니다.",
-            )
+        val price = stockPriceService.getCurrentPrice(requireNotNull(stock.id), stock.code)
 
         val stockResponse =
             GetNewsCardsResponse.NewsStock(
@@ -46,9 +38,9 @@ class NewsService(
                 name = stock.name,
                 sector = stock.sector,
                 logoUrl = stock.logoUrl,
-                price = price.price,
-                changeRate = price.changeRate.setScale(1, RoundingMode.HALF_UP),
-                tradeDate = price.tradeDate,
+                price = price.currentPrice,
+                changeRate = (price.changeRate ?: BigDecimal.ZERO).setScale(1, RoundingMode.HALF_UP),
+                tradeDate = price.tradeDate ?: displayDate,
             )
 
         val newsCardResponses = newsCards.map { newsCard ->
