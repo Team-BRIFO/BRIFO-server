@@ -3,8 +3,12 @@ spring:
     name: server
   jackson:
     default-property-inclusion: non_null
+    time-zone: Asia/Seoul
   profiles:
     default: dev
+  datasource:
+    hikari:
+      connection-init-sql: SET TIME ZONE 'Asia/Seoul'
   jpa:
     hibernate:
       ddl-auto: validate
@@ -12,8 +16,12 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          time_zone: Asia/Seoul
   flyway:
     enabled: true
+    init-sqls:
+      - SET TIME ZONE 'Asia/Seoul'
     locations: classpath:db/migration,classpath:db/data
   batch:
     job:
