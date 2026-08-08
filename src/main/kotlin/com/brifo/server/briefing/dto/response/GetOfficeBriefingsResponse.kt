@@ -11,6 +11,7 @@ data class GetOfficeBriefingsResponse(
 data class OfficeBriefingItemResponse(
     val stockId: UUID,
     val stockName: String,
+    val logoUrl: String?,
     val agents: List<OfficeBriefingAgentResponse>,
 )
 
