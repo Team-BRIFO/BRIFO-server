@@ -25,9 +25,11 @@ class SignupTokenCookieManager(
     fun set(
         response: HttpServletResponse,
         signupToken: String,
-    ) {
+    ): String {
+        val csrfToken = createCsrfToken(signupToken)
         addCookie(response, cookie(COOKIE_NAME, signupToken, jwtProperties.signupTokenExpiration, httpOnly = true))
-        setCsrfToken(response, createCsrfToken(signupToken))
+        setCsrfToken(response, csrfToken)
+        return csrfToken
     }
 
     fun refreshCsrfToken(

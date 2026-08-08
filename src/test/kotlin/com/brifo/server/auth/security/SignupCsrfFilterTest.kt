@@ -89,4 +89,5 @@ class SignupCsrfFilterTest {
         assertTrue(filterChainCalled)
         assertFalse(accessDenied)
     }
+
 }

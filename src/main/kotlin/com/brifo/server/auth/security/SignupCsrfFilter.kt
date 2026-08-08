@@ -26,7 +26,7 @@ class SignupCsrfFilter(
     }
 
     private fun requiresProtection(request: HttpServletRequest): Boolean {
-        if (request.method in SAFE_METHODS) {
+        if (request.method in SAFE_METHODS || request.requestURI == request.contextPath + DEV_SIGNUP_PATH) {
             return false
         }
 
@@ -38,6 +38,7 @@ class SignupCsrfFilter(
     }
 
     companion object {
+        private const val DEV_SIGNUP_PATH = "/api/dev/signup"
         private val SAFE_METHODS = setOf("GET", "HEAD", "OPTIONS", "TRACE")
     }
 }
