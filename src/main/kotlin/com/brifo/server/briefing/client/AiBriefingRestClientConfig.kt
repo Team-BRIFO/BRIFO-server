@@ -9,9 +9,9 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory
 import org.springframework.web.client.RestClient
 
 @Configuration
-class BriefingAiRestClientConfig {
-    @Bean("briefingAiRestClient")
-    fun briefingAiRestClient(
+class AiBriefingRestClientConfig {
+    @Bean("aiBriefingRestClient")
+    fun aiBriefingRestClient(
         @Value("\${external.ai.base-url:disabled}")
         baseUrl: String,
         @Value("\${external.ai.api-key:disabled}")
@@ -30,10 +30,7 @@ class BriefingAiRestClientConfig {
         return RestClient
             .builder()
             .baseUrl(baseUrl)
-            .defaultHeader(
-                "AI_INTERNAL_API_KEY",
-                apiKey,
-            )
+            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
             .requestFactory(requestFactory)
             .build()
     }

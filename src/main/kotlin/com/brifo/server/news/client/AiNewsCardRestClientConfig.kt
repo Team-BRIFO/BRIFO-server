@@ -9,15 +9,15 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory
 import org.springframework.web.client.RestClient
 
 @Configuration
-class AiRestClientConfig {
-    @Bean("aiRestClient")
-    fun aiRestClient(
+class AiNewsCardRestClientConfig {
+    @Bean("aiNewsCardRestClient")
+    fun aiNewsCardRestClient(
         @Value("\${external.ai.base-url:disabled}")
         baseUrl: String,
         @Value("\${external.ai.api-key:disabled}")
         apiKey: String,
     ): RestClient {
-        val policy = ExternalApiCallPolicy.FAST_API
+        val policy = ExternalApiCallPolicy.AI_CARD_NEWS
 
         // 기존 FastAPI timeout 정책을 사용한다.
         val requestFactory =
@@ -29,10 +29,7 @@ class AiRestClientConfig {
         return RestClient
             .builder()
             .baseUrl(baseUrl)
-            .defaultHeader(
-                "AI_INTERNAL_API_KEY",
-                apiKey,
-            )
+            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
             .requestFactory(requestFactory)
             .build()
     }

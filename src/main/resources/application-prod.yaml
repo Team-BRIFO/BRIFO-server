@@ -49,5 +49,8 @@ logging:
     org.hibernate.orm.jdbc.bind: OFF
 
 external:
-  kis:
-    base-url: ${KIS_BASE_URL}
+  data-server:
+    base-url: ${DATA_SERVER_BASE_URL}
+  ai:
+    base-url: ${AI_BASE_URL}
+    api-key: ${AI_INTERNAL_API_KEY}

@@ -3,11 +3,13 @@ package com.brifo.server.externalapi.kis
 import com.brifo.server.externalapi.kis.dto.KisTokenRequest
 import com.brifo.server.externalapi.kis.dto.KisTokenResponse
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import java.time.Instant
 
 @Component
+@ConditionalOnProperty(prefix = "app.stock-price", name = ["provider"], havingValue = "kis")
 class KisTokenProvider(
     @Qualifier("kisCurrentPriceRestClient")
     private val restClient: RestClient,

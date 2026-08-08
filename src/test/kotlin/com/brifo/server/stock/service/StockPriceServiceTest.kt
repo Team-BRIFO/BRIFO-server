@@ -1,8 +1,7 @@
 package com.brifo.server.stock.service
 
-import com.brifo.server.externalapi.kis.KisCurrentPriceClient
-import com.brifo.server.externalapi.kis.KisDailyPriceClient
-import com.brifo.server.externalapi.kis.dto.KisCurrentPriceResult
+import com.brifo.server.stock.client.ClosingPriceClient
+import com.brifo.server.stock.client.CurrentStockPriceClient
 import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.stock.cache.StockCurrentPriceCache
 import com.brifo.server.stock.cache.StockCurrentPriceCacheRepository
@@ -20,6 +19,7 @@ import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import java.math.BigDecimal
+import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.concurrent.CountDownLatch
@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 class StockPriceServiceTest {
-    private lateinit var kisCurrentPriceClient: KisCurrentPriceClient
+    private lateinit var kisCurrentPriceClient: CurrentStockPriceClient
     private lateinit var cacheRepository: StockCurrentPriceCacheRepository
     private lateinit var dailyPriceRepository: DailyStockPriceRepository
     private lateinit var service: StockPriceService
@@ -36,7 +36,7 @@ class StockPriceServiceTest {
     @BeforeEach
     fun setUp() {
         kisCurrentPriceClient =
-            mock(KisCurrentPriceClient::class.java)
+            mock(CurrentStockPriceClient::class.java)
 
         cacheRepository =
             mock(StockCurrentPriceCacheRepository::class.java)
@@ -46,11 +46,12 @@ class StockPriceServiceTest {
 
         service =
             StockPriceService(
-                kisCurrentPriceClient = kisCurrentPriceClient,
-                kisDailyPriceClient =
-                    mock(KisDailyPriceClient::class.java),
+                currentStockPriceClient = kisCurrentPriceClient,
+                closingPriceClient =
+                    mock(ClosingPriceClient::class.java),
                 currentPriceCacheRepository = cacheRepository,
                 dailyStockPriceRepository = dailyPriceRepository,
+                clock = Clock.systemDefaultZone(),
             )
     }
 
@@ -100,7 +101,7 @@ class StockPriceServiceTest {
                 stockCode = "005930",
             ),
         ).thenReturn(
-            KisCurrentPriceResult(
+            CurrentStockPriceClient.Result(
                 stockCode = "005930",
                 currentPrice = BigDecimal("79800"),
                 priceChange = BigDecimal("5900"),
@@ -302,7 +303,7 @@ class StockPriceServiceTest {
             finishKis.await(3, TimeUnit.SECONDS)
 
             val kisPrice =
-                KisCurrentPriceResult(
+                CurrentStockPriceClient.Result(
                     stockCode = "005930",
                     currentPrice = BigDecimal("79800"),
                     priceChange = BigDecimal("5900"),

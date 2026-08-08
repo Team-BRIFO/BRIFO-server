@@ -6,7 +6,7 @@ import java.time.LocalDateTime
 data class StockCurrentPriceCache(
     val code: String,
     val currentPrice: BigDecimal,
-    val priceChange: BigDecimal,
+    val priceChange: BigDecimal?,
     val changeRate: BigDecimal,
     val fetchedAt: LocalDateTime,
 )

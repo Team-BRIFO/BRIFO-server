@@ -14,7 +14,7 @@ spring:
         format_sql: true
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations: classpath:db/migration,classpath:db/data
   batch:
     job:
       enabled: false
@@ -51,11 +51,16 @@ app:
     refresh-token:
       cleanup-cron: ${REFRESH_TOKEN_CLEANUP_CRON:0 0 4 * * *}
   stock-price:
+    provider: ${STOCK_PRICE_PROVIDER:data-server}
     cache-ttl: 60s
     last-success-ttl: 3m
 
 external:
+  data-server:
+    base-url: ${DATA_SERVER_BASE_URL:disabled}
+    connect-timeout: 3s
+    read-timeout: 5s
   kis:
-    base-url: https://openapi.koreainvestment.com:9443
-    app-key: ${KIS_APP_KEY}
-    app-secret: ${KIS_APP_SECRET}
+    base-url: ${KIS_BASE_URL:disabled}
+    app-key: ${KIS_APP_KEY:disabled}
+    app-secret: ${KIS_APP_SECRET:disabled}

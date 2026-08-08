@@ -1,6 +1,6 @@
 spring:
   flyway:
-    locations: classpath:db/migration,classpath:db/dev
+    locations: classpath:db/migration,classpath:db/data
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -37,6 +37,7 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
+    with-credentials: true
 
 logging:
   level:
@@ -44,8 +45,8 @@ logging:
     org.hibernate.orm.jdbc.bind: TRACE
 
 external:
-  kis:
-    base-url: ${KIS_BASE_URL:disabled}
+  data-server:
+    base-url: ${DATA_SERVER_BASE_URL:disabled}
   ai:
     base-url: ${AI_BASE_URL:disabled}
     api-key: ${AI_INTERNAL_API_KEY:disabled}

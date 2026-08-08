@@ -8,22 +8,20 @@ enum class ExternalApiCallPolicy(
     val maxRetries: Int,
 ) {
     // timeout 3초, 최초 요청 실패 시 1회 추가 요청
-    KIS_CURRENT_PRICE(
-        timeout = Duration.ofSeconds(3),
-        maxRetries = 1,
-    ),
-    // timeout 5초, 최초 요청 실패 시 1회 추가 요청
-    KIS_CLOSING_PRICE(
+    STOCK_PRICE(
         timeout = Duration.ofSeconds(5),
         maxRetries = 1,
     ),
-    // 뉴스와 공시 API 공통 정책
-    NEWS_DISCLOSURE(
+    NEWS_COLLECTION(
+        timeout = Duration.ofSeconds(5),
+        maxRetries = 1,
+    ),
+    DISCLOSURE(
         timeout = Duration.ofSeconds(5),
         maxRetries = 1,
     ),
     // FastAPI 서버 정책
-    FAST_API(
+    AI_CARD_NEWS(
         timeout = Duration.ofSeconds(15),
         maxRetries = 1,
     ),
