@@ -73,6 +73,7 @@ class DecisionQueryRepositoryImpl(
                         GetDecisionsResponse.DecisionListStock::class.java,
                         briefingNewsCard.newsCard.news.stock.publicId,
                         briefingNewsCard.newsCard.news.stock.name,
+                        briefingNewsCard.newsCard.news.stock.logoUrl,
                         price,
                         roundedChangeRate,
                         dailyStockPrice.tradeDate,
@@ -80,7 +81,7 @@ class DecisionQueryRepositoryImpl(
                 ),
             ).from(decision)
             .join(decision.briefing.briefingNewsCards, briefingNewsCard)
-            .leftJoin(dailyStockPrice)
+            .join(dailyStockPrice)
             .on(
                 dailyStockPrice.stock.eq(briefingNewsCard.newsCard.news.stock),
                 dailyStockPrice.tradeDate.eq(

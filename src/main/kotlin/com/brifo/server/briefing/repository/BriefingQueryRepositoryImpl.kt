@@ -84,6 +84,7 @@ class BriefingQueryRepositoryImpl(
                     OfficeBriefingRow::class.java,
                     briefingNewsCard.newsCard.news.stock.publicId,
                     briefingNewsCard.newsCard.news.stock.name,
+                    briefingNewsCard.newsCard.news.stock.logoUrl,
                     briefing.publicId,
                     briefing.agent.publicId,
                     briefing.agent.nickname,
@@ -108,6 +109,7 @@ class BriefingQueryRepositoryImpl(
                 OfficeBriefingItemResponse(
                     stockId = stockRows.first().stockPublicId,
                     stockName = stockRows.first().stockName,
+                    logoUrl = stockRows.first().logoUrl,
                     agents = stockRows.map { row ->
                         OfficeBriefingAgentResponse(
                             briefingId = row.briefingPublicId,
@@ -188,6 +190,7 @@ class BriefingQueryRepositoryImpl(
 data class OfficeBriefingRow(
     val stockPublicId: UUID,
     val stockName: String,
+    val logoUrl: String?,
     val briefingPublicId: UUID,
     val agentPublicId: UUID,
     val nickname: String,
