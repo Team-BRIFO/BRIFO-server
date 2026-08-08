@@ -1,5 +1,6 @@
 package com.brifo.server.stock.cache
 
+import com.brifo.server.stock.config.StockPriceProperties
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -53,8 +54,11 @@ class StockCurrentPriceCacheRepositoryIntegrationTest {
                 objectMapper =
                     jacksonObjectMapper()
                         .findAndRegisterModules(),
-                cacheTtl = Duration.ofSeconds(60),
-                lastSuccessTtl = Duration.ofMinutes(3),
+                properties =
+                    StockPriceProperties(
+                        cacheTtl = Duration.ofSeconds(60),
+                        lastSuccessTtl = Duration.ofMinutes(3),
+                    ),
             )
 
         redisTemplate.delete(CURRENT_PRICE_KEY)

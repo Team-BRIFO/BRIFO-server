@@ -1,7 +1,7 @@
 package com.brifo.server.briefing.client
 
 import com.brifo.server.externalapi.ExternalApiCallPolicy
-import org.springframework.beans.factory.annotation.Value
+import com.brifo.server.externalapi.ai.AiProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpHeaders
@@ -12,10 +12,7 @@ import org.springframework.web.client.RestClient
 class AiBriefingRestClientConfig {
     @Bean("aiBriefingRestClient")
     fun aiBriefingRestClient(
-        @Value("\${external.ai.base-url:disabled}")
-        baseUrl: String,
-        @Value("\${external.ai.api-key:disabled}")
-        apiKey: String,
+        properties: AiProperties,
     ): RestClient {
         val policy = ExternalApiCallPolicy.AI_BRIEFING
 
@@ -29,8 +26,8 @@ class AiBriefingRestClientConfig {
         // 기본 URL과 Bearer 인증 헤더를 설정한다.
         return RestClient
             .builder()
-            .baseUrl(baseUrl)
-            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
+            .baseUrl(properties.baseUrl)
+            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer ${properties.apiKey}")
             .requestFactory(requestFactory)
             .build()
     }

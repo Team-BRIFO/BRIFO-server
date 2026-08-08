@@ -1,5 +1,6 @@
 package com.brifo.server.stock.cache
 
+import com.brifo.server.stock.config.StockPriceProperties
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
@@ -24,8 +25,11 @@ class StockCurrentPriceCacheRepositoryTest {
         StockCurrentPriceCacheRepository(
             redisTemplate = redisTemplate,
             objectMapper = objectMapper,
-            cacheTtl = Duration.ofSeconds(60),
-            lastSuccessTtl = Duration.ofMinutes(3),
+            properties =
+                StockPriceProperties(
+                    cacheTtl = Duration.ofSeconds(60),
+                    lastSuccessTtl = Duration.ofMinutes(3),
+                ),
         )
 
     @Test

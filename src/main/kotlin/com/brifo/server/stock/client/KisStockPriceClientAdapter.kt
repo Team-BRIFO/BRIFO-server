@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component
 
 @Component
 @ConditionalOnProperty(
-    prefix = "app.stock-price",
-    name = ["provider"],
+    prefix = "app.data-provider",
+    name = ["type"],
     havingValue = "kis",
 )
 class KisStockPriceClientAdapter(

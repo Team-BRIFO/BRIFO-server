@@ -1,7 +1,7 @@
 package com.brifo.server.news.client
 
 import com.brifo.server.externalapi.ExternalApiCallPolicy
-import org.springframework.beans.factory.annotation.Value
+import com.brifo.server.externalapi.ai.AiProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpHeaders
@@ -12,10 +12,7 @@ import org.springframework.web.client.RestClient
 class AiNewsCardRestClientConfig {
     @Bean("aiNewsCardRestClient")
     fun aiNewsCardRestClient(
-        @Value("\${external.ai.base-url:disabled}")
-        baseUrl: String,
-        @Value("\${external.ai.api-key:disabled}")
-        apiKey: String,
+        properties: AiProperties,
     ): RestClient {
         val policy = ExternalApiCallPolicy.AI_CARD_NEWS
 
@@ -28,8 +25,8 @@ class AiNewsCardRestClientConfig {
 
         return RestClient
             .builder()
-            .baseUrl(baseUrl)
-            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer $apiKey")
+            .baseUrl(properties.baseUrl)
+            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer ${properties.apiKey}")
             .requestFactory(requestFactory)
             .build()
     }

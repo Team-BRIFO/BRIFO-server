@@ -15,7 +15,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @Component
-@ConditionalOnProperty(prefix = "app.stock-price", name = ["provider"], havingValue = "kis")
+@ConditionalOnProperty(prefix = "app.data-provider", name = ["type"], havingValue = "kis")
 class KisDailyPriceClient(
     @Qualifier("kisDailyPriceRestClient")
     private val restClient: RestClient,

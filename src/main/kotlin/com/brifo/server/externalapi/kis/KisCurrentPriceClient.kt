@@ -13,7 +13,7 @@ import org.springframework.web.client.RestClient
 import java.time.LocalDate
 
 @Component
-@ConditionalOnProperty(prefix = "app.stock-price", name = ["provider"], havingValue = "kis")
+@ConditionalOnProperty(prefix = "app.data-provider", name = ["type"], havingValue = "kis")
 class KisCurrentPriceClient(
     @Qualifier("kisCurrentPriceRestClient")
     private val restClient: RestClient,

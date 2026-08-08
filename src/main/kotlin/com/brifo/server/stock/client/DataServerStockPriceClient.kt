@@ -16,8 +16,8 @@ import java.time.LocalDate
 
 @Component
 @ConditionalOnProperty(
-    prefix = "app.stock-price",
-    name = ["provider"],
+    prefix = "app.data-provider",
+    name = ["type"],
     havingValue = "data-server",
     matchIfMissing = true,
 )

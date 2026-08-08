@@ -9,7 +9,7 @@ import org.springframework.web.client.RestClient
 import java.time.Instant
 
 @Component
-@ConditionalOnProperty(prefix = "app.stock-price", name = ["provider"], havingValue = "kis")
+@ConditionalOnProperty(prefix = "app.data-provider", name = ["type"], havingValue = "kis")
 class KisTokenProvider(
     @Qualifier("kisCurrentPriceRestClient")
     private val restClient: RestClient,

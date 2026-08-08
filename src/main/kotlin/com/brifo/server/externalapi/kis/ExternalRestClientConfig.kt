@@ -9,7 +9,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory
 import org.springframework.web.client.RestClient
 
 @Configuration
-@ConditionalOnProperty(prefix = "app.stock-price", name = ["provider"], havingValue = "kis")
+@ConditionalOnProperty(prefix = "app.data-provider", name = ["type"], havingValue = "kis")
 @EnableConfigurationProperties(KisProperties::class)
 class ExternalRestClientConfig {
     @Bean("kisCurrentPriceRestClient")
