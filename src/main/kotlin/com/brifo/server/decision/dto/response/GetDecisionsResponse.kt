@@ -26,8 +26,8 @@ data class GetDecisionsResponse(
         val stockId: UUID,
         val name: String,
         val logoUrl: String?,
-        val price: Long,
-        val changeRate: BigDecimal,
+        val price: Long?,
+        val changeRate: BigDecimal?,
         val tradeDate: LocalDate?,
     )
 }

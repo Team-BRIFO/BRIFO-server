@@ -97,7 +97,7 @@ class DecisionControllerTest {
                         direction = DecisionDirection.DOWN,
                         confidenceLevel = 3,
                         agent = GetDecisionsResponse.DecisionListAgent(agentId, AgentType.TANKER),
-                        stock = GetDecisionsResponse.DecisionListStock(stockId, "삼성전자", null, null, null),
+                        stock = GetDecisionsResponse.DecisionListStock(stockId, "삼성전자", null, null, null, null),
                     ),
                 ),
             ),

@@ -81,7 +81,7 @@ class DecisionQueryRepositoryImpl(
                 ),
             ).from(decision)
             .join(decision.briefing.briefingNewsCards, briefingNewsCard)
-            .join(dailyStockPrice)
+            .leftJoin(dailyStockPrice)
             .on(
                 dailyStockPrice.stock.eq(briefingNewsCard.newsCard.news.stock),
                 dailyStockPrice.tradeDate.eq(
