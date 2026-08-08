@@ -25,6 +25,7 @@ class News private constructor(
     stock: Stock,
     source: NewsSource,
     sourceUrl: String,
+    sourceImageUrl: String?,
     title: String,
     summary: String?,
     importance: BigDecimal?,
@@ -55,6 +56,10 @@ class News private constructor(
 
     @Column(name = "source_url", nullable = false, columnDefinition = "TEXT")
     var sourceUrl: String = sourceUrl
+        protected set
+
+    @Column(name = "source_image_url", columnDefinition = "TEXT")
+    var sourceImageUrl: String? = sourceImageUrl
         protected set
 
     @Column(name = "title", nullable = false, length = 500)
@@ -95,6 +100,7 @@ class News private constructor(
             stock: Stock,
             source: NewsSource,
             sourceUrl: String,
+            sourceImageUrl: String? = null,
             title: String,
             summary: String?,
             importance: BigDecimal?,
@@ -105,6 +111,7 @@ class News private constructor(
                 stock = stock,
                 source = source,
                 sourceUrl = sourceUrl,
+                sourceImageUrl = sourceImageUrl,
                 title = title,
                 summary = summary,
                 importance = importance,

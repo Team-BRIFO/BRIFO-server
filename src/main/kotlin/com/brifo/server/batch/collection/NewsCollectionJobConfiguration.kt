@@ -3,6 +3,7 @@ package com.brifo.server.batch.collection
 import com.brifo.server.batch.common.BatchJobParameters
 import com.brifo.server.batch.common.BatchProperties
 import com.brifo.server.batch.common.BatchRestartListener
+import com.brifo.server.news.client.DisclosureClient
 import com.brifo.server.news.client.NewsCollectionClient
 import com.brifo.server.news.repository.NewsRepository
 import com.brifo.server.stock.repository.StockRepository
@@ -51,6 +52,7 @@ class NewsCollectionJobConfiguration {
         @Value("#{jobParameters['${BatchJobParameters.TARGET_DATE}']}") targetDate: String,
         @Value("#{jobParameters['${BatchJobParameters.COLLECTION_ROUND}']}") collectionRound: String,
         client: NewsCollectionClient,
+        disclosureClient: DisclosureClient,
         stockRepository: StockRepository,
         newsRepository: NewsRepository,
         importanceCalculator: NewsImportanceCalculator,
@@ -59,6 +61,7 @@ class NewsCollectionJobConfiguration {
             targetDate = LocalDate.parse(targetDate),
             collectionRound = CollectionRound.valueOf(collectionRound),
             client = client,
+            disclosureClient = disclosureClient,
             stockRepository = stockRepository,
             newsRepository = newsRepository,
             importanceCalculator = importanceCalculator,
