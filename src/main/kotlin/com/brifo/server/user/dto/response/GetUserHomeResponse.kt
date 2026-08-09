@@ -2,6 +2,7 @@ package com.brifo.server.user.dto.response
 
 import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.news.entity.NewsSource
+import com.fasterxml.jackson.annotation.JsonFormat
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -33,6 +34,7 @@ data class GetUserHomeResponse(
     )
 
     data class TodayNewsCards(
+        @field:JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss[.SSSSSS]")
         val batchTime: LocalDateTime?,
         val items: List<NewsCardItem>,
     ) {
@@ -45,6 +47,7 @@ data class GetUserHomeResponse(
 
         data class News(
             val newsId: UUID,
+            @field:JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss[.SSSSSS]")
             val publishedAt: LocalDateTime,
             val source: NewsSource,
         )

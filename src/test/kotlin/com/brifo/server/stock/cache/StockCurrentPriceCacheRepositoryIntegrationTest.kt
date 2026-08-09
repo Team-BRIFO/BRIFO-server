@@ -1,5 +1,6 @@
 package com.brifo.server.stock.cache
 
+import com.brifo.server.stock.config.StockPriceProperties
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -53,8 +54,11 @@ class StockCurrentPriceCacheRepositoryIntegrationTest {
                 objectMapper =
                     jacksonObjectMapper()
                         .findAndRegisterModules(),
-                cacheTtl = Duration.ofSeconds(60),
-                lastSuccessTtl = Duration.ofMinutes(3),
+                properties =
+                    StockPriceProperties(
+                        cacheTtl = Duration.ofSeconds(60),
+                        lastSuccessTtl = Duration.ofMinutes(3),
+                    ),
             )
 
         redisTemplate.delete(CURRENT_PRICE_KEY)
@@ -139,6 +143,24 @@ class StockCurrentPriceCacheRepositoryIntegrationTest {
 
         assertThat(ttl)
             .isBetween(1L, 180L)
+    }
+
+    @Test
+    fun `가격 변동값이 null인 캐시를 왕복해도 null을 유지한다`() {
+        val price =
+            StockCurrentPriceCache(
+                code = STOCK_CODE,
+                currentPrice = BigDecimal("79800"),
+                priceChange = null,
+                changeRate = BigDecimal("8.1"),
+                fetchedAt = LocalDateTime.of(2026, 7, 29, 10, 0),
+            )
+
+        repository.save(price)
+
+        val savedPrice = repository.findByCode(STOCK_CODE)
+        assertThat(savedPrice).isNotNull()
+        assertThat(savedPrice).isEqualTo(price)
     }
 
     companion object {

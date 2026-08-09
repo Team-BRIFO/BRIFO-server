@@ -12,4 +12,6 @@ interface StockRepository :
     fun findByCode(code: String): Stock?
 
     fun findAllByPublicIdInAndIsActiveTrue(publicIds: Collection<UUID>): List<Stock>
+
+    fun findAllByIsActiveTrueOrderByCode(): List<Stock>
 }

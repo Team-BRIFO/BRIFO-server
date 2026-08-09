@@ -1,5 +1,6 @@
 package com.brifo.server.briefing.service
 
+import com.brifo.server.briefing.dto.response.BriefingStockResponse
 import com.brifo.server.briefing.dto.response.GetBriefingDetailResponse
 import com.brifo.server.briefing.dto.response.GetOfficeBriefingsResponse
 import com.brifo.server.briefing.dto.response.GetStockBriefingsResponse
@@ -9,9 +10,13 @@ import com.brifo.server.briefing.exception.BriefingNotFoundException
 import com.brifo.server.briefing.exception.BriefingProcessingFailedException
 import com.brifo.server.briefing.repository.BriefingRepository
 import com.brifo.server.stock.exception.StockNotFoundException
+import com.brifo.server.stock.repository.StockRepository
 import com.brifo.server.stock.repository.UserStockRepository
+import com.brifo.server.stock.service.StockPriceService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.Clock
 import java.time.LocalDate
 import java.util.UUID
@@ -21,6 +26,8 @@ import java.util.UUID
 class BriefingQueryService(
     private val briefingRepository: BriefingRepository,
     private val userStockRepository: UserStockRepository,
+    private val stockRepository: StockRepository,
+    private val stockPriceService: StockPriceService,
     private val clock: Clock,
 ) {
     /** 오늘 해당 종목에 요청한 에이전트별 브리핑 전체를 조회한다. */
@@ -40,8 +47,17 @@ class BriefingQueryService(
         if (items.isEmpty()) {
             throw BriefingNotFoundException()
         }
-        val stock = briefingRepository.findStockSummary(stockPublicId)
-            ?: error("Latest stock price is missing for stock $stockPublicId")
+        val stockEntity = stockRepository.findByPublicId(stockPublicId) ?: throw StockNotFoundException()
+        val price = stockPriceService.getCurrentPrice(requireNotNull(stockEntity.id), stockEntity.code)
+        val stock =
+            BriefingStockResponse(
+                stockId = stockPublicId,
+                name = stockEntity.name,
+                logoUrl = stockEntity.logoUrl,
+                price = price.currentPrice,
+                changeRate = (price.changeRate ?: BigDecimal.ZERO).setScale(1, RoundingMode.HALF_UP),
+                tradeDate = price.tradeDate ?: LocalDate.now(clock),
+            )
 
         return GetStockBriefingsResponse(stock = stock, items = items)
     }

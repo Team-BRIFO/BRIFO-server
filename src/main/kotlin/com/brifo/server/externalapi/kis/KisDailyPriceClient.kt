@@ -7,12 +7,15 @@ import com.brifo.server.externalapi.idempotency.ExternalApiIdempotencyKeyGenerat
 import com.brifo.server.externalapi.kis.dto.KisDailyPriceResponse
 import com.brifo.server.externalapi.kis.dto.KisDailyPriceResult
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
+import org.springframework.web.client.toEntity
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @Component
+@ConditionalOnProperty(prefix = "app.data-provider", name = ["type"], havingValue = "kis")
 class KisDailyPriceClient(
     @Qualifier("kisDailyPriceRestClient")
     private val restClient: RestClient,
@@ -26,7 +29,7 @@ class KisDailyPriceClient(
         tradeDate: LocalDate,
     ): KisDailyPriceResult {
         val key =
-            ExternalApiIdempotencyKeyGenerator.kisDailyPrice(
+            ExternalApiIdempotencyKeyGenerator.stockPrice(
                 stockCode = stockCode,
                 tradeDate = tradeDate,
             )
@@ -36,7 +39,7 @@ class KisDailyPriceClient(
         val response = externalApiCallService.execute(
             provider = "KIS",
             apiName = "KIS_DAILY_PRICE",
-            policy = ExternalApiCallPolicy.KIS_CLOSING_PRICE,
+            policy = ExternalApiCallPolicy.STOCK_PRICE,
             retryEnabled = true,
             context = ExternalApiCallContext(
                 idempotencyKey = key,
@@ -69,7 +72,7 @@ class KisDailyPriceClient(
                     .header("appsecret", properties.appSecret)
                     .header("tr_id", "FHKST01010400")
                     .retrieve()
-                    .toEntity(KisDailyPriceResponse::class.java)
+                    .toEntity<KisDailyPriceResponse>()
 
                 val body = checkNotNull(result.body) {
                     "KIS daily price response body is empty"

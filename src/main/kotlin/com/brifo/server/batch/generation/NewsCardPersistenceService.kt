@@ -44,6 +44,7 @@ class NewsCardPersistenceService(
                 keywords = generated.keywords,
                 importanceBadge = importanceBadge(news.importance),
                 displayDate = displayDate,
+                imageUrl = news.sourceImageUrl,
             ),
         )
 

@@ -15,6 +15,9 @@ RUN ./gradlew bootJar --no-daemon && \
 
 FROM eclipse-temurin:21-jre-noble
 
+ENV TZ=Asia/Seoul
+ENV JAVA_TOOL_OPTIONS="-Duser.timezone=Asia/Seoul"
+
 RUN groupadd --system app && \
     useradd --system --gid app --home-dir /app app
 

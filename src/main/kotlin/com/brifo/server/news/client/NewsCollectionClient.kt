@@ -10,6 +10,7 @@ interface NewsCollectionClient {
     data class Request(
         val targetDate: LocalDate,
         val publishedUntil: LocalDateTime,
+        val stockCodes: List<String>,
     )
 
     data class Result(
@@ -20,10 +21,10 @@ interface NewsCollectionClient {
         val stockCode: String,
         val source: NewsSource,
         val sourceUrl: String,
+        val sourceImageUrl: String? = null,
         val title: String,
         val summary: String?,
         val dedupKey: String,
         val publishedAt: LocalDateTime,
-        val importantKeywords: Set<String> = emptySet(),
     )
 }

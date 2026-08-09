@@ -7,10 +7,13 @@ import com.brifo.server.externalapi.idempotency.ExternalApiIdempotencyKeyGenerat
 import com.brifo.server.externalapi.kis.dto.KisCurrentPriceResponse
 import com.brifo.server.externalapi.kis.dto.KisCurrentPriceResult
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
+import java.time.LocalDate
 
 @Component
+@ConditionalOnProperty(prefix = "app.data-provider", name = ["type"], havingValue = "kis")
 class KisCurrentPriceClient(
     @Qualifier("kisCurrentPriceRestClient")
     private val restClient: RestClient,
@@ -23,12 +26,12 @@ class KisCurrentPriceClient(
         stockCode: String,
     ): KisCurrentPriceResult {
         val key =
-            ExternalApiIdempotencyKeyGenerator.kisCurrentPrice(stockCode)
+            ExternalApiIdempotencyKeyGenerator.stockPrice(stockCode, LocalDate.now())
 
         val response = externalApiCallService.execute(
             provider = "KIS",
             apiName = "KIS_CURRENT_PRICE",
-            policy = ExternalApiCallPolicy.KIS_CURRENT_PRICE,
+            policy = ExternalApiCallPolicy.STOCK_PRICE,
             retryEnabled = true,
             context = ExternalApiCallContext(
                 idempotencyKey = key,

@@ -1,4 +1,6 @@
 spring:
+  flyway:
+    locations: classpath:db/migration
   jpa:
     properties:
       hibernate:
@@ -33,5 +35,8 @@ logging:
     org.hibernate.orm.jdbc.bind: OFF
 
 external:
-  kis:
+  data-server:
     base-url: disabled
+  ai:
+    base-url: disabled
+    api-key: disabled

@@ -14,7 +14,9 @@ import io.swagger.v3.oas.models.media.ObjectSchema
 import io.swagger.v3.oas.models.media.Schema
 import io.swagger.v3.oas.models.media.StringSchema
 import io.swagger.v3.oas.models.responses.ApiResponse
+import io.swagger.v3.oas.models.security.SecurityRequirement
 import org.springdoc.core.customizers.OpenApiCustomizer
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 
@@ -26,6 +28,7 @@ class ApiOpenApiCustomizer(
         registerErrorResponseSchema(openApi)
         validateDocumentedOperations(openApi)
         applyPublicOperationSecurity(openApi)
+        applySignupOperationSecurity(openApi)
         applyErrorResponses(openApi)
     }
 
@@ -56,6 +59,23 @@ class ApiOpenApiCustomizer(
         documentation.publicOperations.forEach { key ->
             findOperation(openApi, key)?.security = emptyList()
         }
+    }
+
+    private fun applySignupOperationSecurity(openApi: OpenAPI) {
+        signupOnlyOperations.forEach { endpoint ->
+            findOperation(openApi, endpoint)?.security =
+                listOf(SecurityRequirement().addList(SIGNUP_CSRF_SCHEME))
+        }
+
+        signupOrAccessOperations.forEach { endpoint ->
+            findOperation(openApi, endpoint)?.security =
+                listOf(
+                    SecurityRequirement().addList(BEARER_AUTH_SCHEME),
+                    SecurityRequirement().addList(SIGNUP_CSRF_SCHEME),
+                )
+        }
+
+        findOperation(openApi, DEV_SIGNUP_ENDPOINT)?.security = emptyList()
     }
 
     private fun applyErrorResponses(openApi: OpenAPI) {
@@ -123,6 +143,20 @@ class ApiOpenApiCustomizer(
         const val APPLICATION_JSON = "application/json"
         const val ERROR_RESPONSE_SCHEMA_NAME = "ApiErrorResponse"
         const val ERROR_RESPONSE_SCHEMA_REF = "#/components/schemas/$ERROR_RESPONSE_SCHEMA_NAME"
+        const val BEARER_AUTH_SCHEME = "bearerAuth"
+        const val SIGNUP_CSRF_SCHEME = "signupCsrf"
+
+        val DEV_SIGNUP_ENDPOINT = Endpoint(HttpMethod.POST, "/api/dev/signup")
+        val signupOnlyOperations =
+            setOf(
+                Endpoint(HttpMethod.PATCH, "/api/onboarding/profile"),
+                Endpoint(HttpMethod.POST, "/api/onboarding/complete"),
+                Endpoint(HttpMethod.POST, "/api/dev/onboarding/complete"),
+            )
+        val signupOrAccessOperations =
+            setOf(
+                Endpoint(HttpMethod.POST, "/api/users/me/policies"),
+            )
 
         val authenticationErrors =
             listOf(

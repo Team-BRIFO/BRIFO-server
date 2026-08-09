@@ -57,6 +57,7 @@ class NewsCardPersistenceServiceTest {
         `when`(cardRepository.existsByNewsId(1L)).thenReturn(false)
         `when`(newsRepository.findById(1L)).thenReturn(Optional.of(news))
         `when`(news.importance).thenReturn(BigDecimal("0.80"))
+        `when`(news.sourceImageUrl).thenReturn("https://cdn.example.com/news/1.webp")
         `when`(glossaryRepository.findByTerm("계약")).thenReturn(existingTerm)
 
         service.save(item(1L), LocalDate.of(2026, 8, 4))
@@ -65,6 +66,7 @@ class NewsCardPersistenceServiceTest {
         verify(cardRepository).save(captureKotlin(cardCaptor))
         assertEquals(LocalDate.of(2026, 8, 4), cardCaptor.value.displayDate)
         assertEquals(ImportanceBadge.HOT, cardCaptor.value.importanceBadge)
+        assertEquals("https://cdn.example.com/news/1.webp", cardCaptor.value.imageUrl)
         verify(cardTermRepository, times(1)).save(any(NewsCardTerm::class.java))
         verify(news).markProcessed()
     }

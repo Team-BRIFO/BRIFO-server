@@ -34,7 +34,7 @@ class ClosingPriceTaskletTest {
         `when`(stock.id).thenReturn(2L)
         `when`(stock.code).thenReturn("BRF001")
         `when`(priceRepository.findByStockIdAndTradeDateAndIsClosingTrue(2L, targetDate)).thenReturn(null)
-        `when`(client.getClosingPrice(ClosingPriceClient.Request("BRF001", targetDate))).thenReturn(
+        `when`(client.getClosingPrice(ClosingPriceClient.Request(2L, "BRF001", targetDate))).thenReturn(
             ClosingPriceClient.Result(BigDecimal("1000.00"), BigDecimal("0.50")),
         )
 

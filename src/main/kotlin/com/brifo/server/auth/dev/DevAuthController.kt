@@ -18,7 +18,7 @@ import java.util.UUID
 @RestController
 @Profile("dev")
 @ConditionalOnProperty(prefix = "app.dev-auth", name = ["enabled"], havingValue = "true")
-@RequestMapping("/api/dev/")
+@RequestMapping("/api/dev")
 class DevAuthController(
     private val devAuthService: DevAuthService,
     private val signupTokenCookieManager: SignupTokenCookieManager,
@@ -29,8 +29,8 @@ class DevAuthController(
         response: HttpServletResponse,
     ): ApiResponse<DevSignUpResponse> {
         val result = devAuthService.signUp(request)
-        signupTokenCookieManager.set(response, result.signupToken)
-        return ApiResponse.success(SuccessCode.OK, result)
+        val csrfToken = signupTokenCookieManager.set(response, result.signupToken)
+        return ApiResponse.success(SuccessCode.OK, result.copy(csrfToken = csrfToken))
     }
 
     @PostMapping("/onboarding/complete")

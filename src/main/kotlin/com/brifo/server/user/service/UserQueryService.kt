@@ -7,8 +7,12 @@ import com.brifo.server.ap.repository.ApTransactionRepository
 import com.brifo.server.ap.repository.AttendanceRewardRepository
 import com.brifo.server.decision.repository.DecisionRepository
 import com.brifo.server.decision.repository.DecisionResultRepository
+import com.brifo.server.global.exception.BusinessException
+import com.brifo.server.stock.code.StockErrorCode
+import com.brifo.server.stock.dto.response.StockPriceResult
 import com.brifo.server.stock.repository.PendingUserStockRepository
 import com.brifo.server.stock.repository.UserStockRepository
+import com.brifo.server.stock.service.StockPriceService
 import com.brifo.server.term.repository.UserLearnedTermRepository
 import com.brifo.server.user.dto.response.GetMyPageResponse
 import com.brifo.server.user.dto.response.GetUserHomeResponse
@@ -42,6 +46,7 @@ class UserQueryService(
     private val decisionResultRepository: DecisionResultRepository,
     private val userLearnedTermRepository: UserLearnedTermRepository,
     private val userHomeQueryRepository: UserHomeQueryRepository,
+    private val stockPriceService: StockPriceService,
     private val userValidationService: UserValidationService,
     private val clock: Clock,
 ) {
@@ -108,6 +113,30 @@ class UserQueryService(
                     nextWeekStart,
                 )
         val newsCards = userHomeQueryRepository.findTodayNewsCards(userId, today)
+        val newsStockIds = newsCards.mapTo(mutableSetOf()) { it.stockId }
+        val currentPrices =
+            if (newsStockIds.isEmpty()) {
+                emptyMap()
+            } else {
+                userStockRepository
+                    .findAllByUser(user)
+                    .asSequence()
+                    .map { it.stock }
+                    .filter { it.publicId in newsStockIds }
+                    .mapNotNull { stock ->
+                        val price =
+                            try {
+                                stockPriceService.getCurrentPrice(requireNotNull(stock.id), stock.code)
+                            } catch (exception: BusinessException) {
+                                if (exception.errorCode == StockErrorCode.STOCK_PRICE_UNAVAILABLE) {
+                                    null
+                                } else {
+                                    throw exception
+                                }
+                            }
+                        price?.let { requireNotNull(stock.publicId) to it }
+                    }.toMap()
+            }
 
         return GetUserHomeResponse(
             user =
@@ -136,7 +165,7 @@ class UserQueryService(
                             ),
                     ),
                 ),
-            todayNewsCards = mapTodayNewsCards(newsCards),
+            todayNewsCards = mapTodayNewsCards(newsCards, currentPrices),
         )
     }
 
@@ -205,6 +234,7 @@ class UserQueryService(
 
     private fun mapTodayNewsCards(
         newsCards: List<UserHomeNewsCard>,
+        currentPrices: Map<UUID, StockPriceResult>,
     ): GetUserHomeResponse.TodayNewsCards =
         GetUserHomeResponse.TodayNewsCards(
             batchTime = null,
@@ -219,7 +249,8 @@ class UserQueryService(
                                 it.stockId,
                                 it.stockName,
                                 it.logoUrl,
-                                (it.changeRate ?: BigDecimal.ZERO).setScale(1, RoundingMode.HALF_UP),
+                                (currentPrices[it.stockId]?.changeRate ?: it.changeRate ?: BigDecimal.ZERO)
+                                    .setScale(1, RoundingMode.HALF_UP),
                             ),
                     )
                 },

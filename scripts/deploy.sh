@@ -42,6 +42,11 @@ run_container() (
   DEV_AUTH_ENABLED="$(get_required_parameter "DEV_AUTH_ENABLED")" || return 1
   DEV_AUTH_PASSWORD="$(get_required_parameter "DEV_AUTH_PASSWORD")" || return 1
   JWT_SECRET_BASE64="$(get_required_parameter "JWT_SECRET_BASE64")" || return 1
+  BATCH_SCHEDULING_ENABLED="$(get_required_parameter "BATCH_SCHEDULING_ENABLED")" || return 1
+  DATA_PROVIDER="$(get_required_parameter "DATA_PROVIDER")" || return 1
+  DATA_SERVER_BASE_URL="$(get_required_parameter "DATA_SERVER_BASE_URL")" || return 1
+  AI_BASE_URL="$(get_required_parameter "AI_BASE_URL")" || return 1
+  AI_INTERNAL_API_KEY="$(get_required_parameter "AI_INTERNAL_API_KEY")" || return 1
   KAKAO_CLIENT_SECRET="$(get_required_parameter "KAKAO_CLIENT_SECRET")" || return 1
   NAVER_CLIENT_SECRET="$(get_required_parameter "NAVER_CLIENT_SECRET")" || return 1
 
@@ -51,6 +56,11 @@ run_container() (
     DEV_AUTH_ENABLED \
     DEV_AUTH_PASSWORD \
     JWT_SECRET_BASE64 \
+    BATCH_SCHEDULING_ENABLED \
+    DATA_PROVIDER \
+    DATA_SERVER_BASE_URL \
+    AI_BASE_URL \
+    AI_INTERNAL_API_KEY \
     KAKAO_CLIENT_SECRET \
     NAVER_CLIENT_SECRET
 
@@ -71,6 +81,11 @@ run_container() (
     --env DEV_AUTH_ENABLED \
     --env DEV_AUTH_PASSWORD \
     --env JWT_SECRET_BASE64 \
+    --env BATCH_SCHEDULING_ENABLED \
+    --env DATA_PROVIDER \
+    --env DATA_SERVER_BASE_URL \
+    --env AI_BASE_URL \
+    --env AI_INTERNAL_API_KEY \
     --env KAKAO_CLIENT_ID="${KAKAO_CLIENT_ID}" \
     --env KAKAO_CLIENT_SECRET \
     --env KAKAO_REDIRECT_URIS="${KAKAO_REDIRECT_URIS}" \

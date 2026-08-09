@@ -9,12 +9,17 @@ import com.brifo.server.ap.repository.ApTransactionRepository
 import com.brifo.server.ap.repository.AttendanceRewardRepository
 import com.brifo.server.decision.repository.DecisionRepository
 import com.brifo.server.decision.repository.DecisionResultRepository
+import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.news.entity.NewsSource
+import com.brifo.server.stock.code.StockErrorCode
+import com.brifo.server.stock.dto.response.PriceStatus
+import com.brifo.server.stock.dto.response.StockPriceResult
 import com.brifo.server.stock.entity.PendingUserStock
 import com.brifo.server.stock.entity.Stock
 import com.brifo.server.stock.entity.UserStock
 import com.brifo.server.stock.repository.PendingUserStockRepository
 import com.brifo.server.stock.repository.UserStockRepository
+import com.brifo.server.stock.service.StockPriceService
 import com.brifo.server.term.repository.UserLearnedTermRepository
 import com.brifo.server.user.entity.User
 import com.brifo.server.user.exception.UserNotFoundException
@@ -49,6 +54,7 @@ class UserQueryServiceTest {
     private val decisionResultRepository = mock(DecisionResultRepository::class.java)
     private val userLearnedTermRepository = mock(UserLearnedTermRepository::class.java)
     private val userHomeQueryRepository = mock(UserHomeQueryRepository::class.java)
+    private val stockPriceService = mock(StockPriceService::class.java)
     private val validationService = mock(UserValidationService::class.java)
     private val clock = Clock.fixed(Instant.parse("2026-07-21T09:00:00Z"), ZoneId.of("Asia/Seoul"))
     private lateinit var queryService: UserQueryService
@@ -67,6 +73,7 @@ class UserQueryServiceTest {
                 decisionResultRepository,
                 userLearnedTermRepository,
                 userHomeQueryRepository,
+                stockPriceService,
                 validationService,
                 clock,
             )
@@ -123,6 +130,13 @@ class UserQueryServiceTest {
         val userId = UUID.randomUUID()
         val user = completedUser()
         val card = newsCard()
+        val unavailableCard = newsCard()
+        val newsStock = mock(Stock::class.java)
+        val unavailableStock = mock(Stock::class.java)
+        val unrelatedStock = mock(Stock::class.java)
+        val newsUserStock = mock(UserStock::class.java)
+        val unavailableUserStock = mock(UserStock::class.java)
+        val unrelatedUserStock = mock(UserStock::class.java)
         val mondayAttendance = attendanceAt(LocalDateTime.of(2026, 7, 20, 9, 0))
         val sundayAttendance = attendanceAt(LocalDateTime.of(2026, 7, 26, 23, 59, 59))
         val agents =
@@ -132,6 +146,33 @@ class UserQueryServiceTest {
                 agent(AgentType.TANKER),
             )
         `when`(userRepository.findByPublicId(userId)).thenReturn(user)
+        `when`(newsStock.publicId).thenReturn(card.stockId)
+        `when`(newsStock.id).thenReturn(11L)
+        `when`(newsStock.code).thenReturn("005930")
+        `when`(unavailableStock.publicId).thenReturn(unavailableCard.stockId)
+        `when`(unavailableStock.id).thenReturn(13L)
+        `when`(unavailableStock.code).thenReturn("035420")
+        `when`(unrelatedStock.publicId).thenReturn(UUID.randomUUID())
+        `when`(unrelatedStock.id).thenReturn(12L)
+        `when`(unrelatedStock.code).thenReturn("000660")
+        `when`(newsUserStock.stock).thenReturn(newsStock)
+        `when`(unavailableUserStock.stock).thenReturn(unavailableStock)
+        `when`(unrelatedUserStock.stock).thenReturn(unrelatedStock)
+        `when`(userStockRepository.findAllByUser(user)).thenReturn(
+            listOf(newsUserStock, unavailableUserStock, unrelatedUserStock),
+        )
+        `when`(stockPriceService.getCurrentPrice(11L, "005930")).thenReturn(
+            StockPriceResult(
+                stockCode = "005930",
+                currentPrice = BigDecimal("79800"),
+                priceChange = BigDecimal("100"),
+                changeRate = BigDecimal("2.54"),
+                priceStatus = PriceStatus.DELAYED_CURRENT,
+            ),
+        )
+        `when`(stockPriceService.getCurrentPrice(13L, "035420")).thenThrow(
+            BusinessException(StockErrorCode.STOCK_PRICE_UNAVAILABLE),
+        )
         `when`(agentRepository.findAllByUserId(7L)).thenReturn(agents)
         `when`(
             attendanceRewardRepository.existsByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
@@ -155,7 +196,7 @@ class UserQueryServiceTest {
         `when`(userHomeQueryRepository.findTodayNewsCards(
             7L,
             LocalDate.of(2026, 7, 21),
-        )).thenReturn(listOf(card))
+        )).thenReturn(listOf(card, unavailableCard))
 
         val response = queryService.getUserHome(userId)
 
@@ -165,8 +206,10 @@ class UserQueryServiceTest {
         assertEquals(listOf(LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 26)), response.dates)
         assertEquals(2, response.todayDecisions.count)
         assertEquals(null, response.todayNewsCards.batchTime)
-        assertEquals(card.cardId, response.todayNewsCards.items.single().cardId)
-        assertEquals(BigDecimal("1.3"), response.todayNewsCards.items.single().stock.changeRate)
+        val itemsById = response.todayNewsCards.items.associateBy { it.cardId }
+        assertEquals(BigDecimal("2.5"), itemsById.getValue(card.cardId).stock.changeRate)
+        assertEquals(BigDecimal("1.3"), itemsById.getValue(unavailableCard.cardId).stock.changeRate)
+        verify(stockPriceService, never()).getCurrentPrice(12L, "000660")
     }
 
     @Test
@@ -200,6 +243,7 @@ class UserQueryServiceTest {
         assertEquals(emptyList<LocalDate>(), response.dates)
         assertEquals(null, response.todayNewsCards.batchTime)
         assertEquals(emptyList<Any>(), response.todayNewsCards.items)
+        verifyNoInteractions(stockPriceService)
         verify(attendanceRewardRepository).existsByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
             7L,
             LocalDateTime.of(2026, 7, 21, 0, 0),
@@ -266,7 +310,7 @@ class UserQueryServiceTest {
             queryService.getUserProfile(userId)
         }
 
-        verifyNoInteractions(userStockRepository, pendingUserStockRepository, validationService)
+        verifyNoInteractions(userStockRepository, pendingUserStockRepository, stockPriceService, validationService)
     }
 
     private fun completedUser(): User =

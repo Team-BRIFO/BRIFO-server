@@ -417,21 +417,22 @@ class ExternalApiCallServiceUnitTest {
     fun `API별 timeout과 retry 초기값이 정확하다`() {
         val expectedTimeouts =
             mapOf(
-                ExternalApiCallPolicy.KIS_CURRENT_PRICE to 3L,
-                ExternalApiCallPolicy.KIS_CLOSING_PRICE to 5L,
-                ExternalApiCallPolicy.NEWS_DISCLOSURE to 5L,
-                ExternalApiCallPolicy.FAST_API to 15L,
+                ExternalApiCallPolicy.STOCK_PRICE to (5L to 1),
+                ExternalApiCallPolicy.NEWS_COLLECTION to (5L to 1),
+                ExternalApiCallPolicy.DISCLOSURE to (5L to 1),
+                ExternalApiCallPolicy.AI_CARD_NEWS to (15L to 1),
+                ExternalApiCallPolicy.AI_BRIEFING to (30L to 0),
             )
 
-        expectedTimeouts.forEach { (policy, timeoutSeconds) ->
+        assertThat(expectedTimeouts.keys).containsExactlyInAnyOrderElementsOf(ExternalApiCallPolicy.entries)
+        expectedTimeouts.forEach { (policy, expected) ->
             assertThat(policy.timeout.seconds)
-                .isEqualTo(timeoutSeconds)
+                .isEqualTo(expected.first)
 
             assertThat(policy.maxRetries)
-                .isEqualTo(1)
+                .isEqualTo(expected.second)
         }
     }
-
 
     /***********************
     * Test Helping Methods
@@ -446,7 +447,7 @@ class ExternalApiCallServiceUnitTest {
         return service.execute(
             provider = "TEST_PROVIDER",
             apiName = "TEST_API",
-            policy = ExternalApiCallPolicy.KIS_CURRENT_PRICE,
+            policy = ExternalApiCallPolicy.STOCK_PRICE,
             retryEnabled = idempotent,
             refreshToken = refreshToken,
             request = request,

@@ -1,7 +1,6 @@
 package com.brifo.server.batch.collection
 
 import org.junit.jupiter.api.Test
-import java.math.BigDecimal
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -9,18 +8,16 @@ class NewsImportanceCalculatorTest {
     private val calculator = NewsImportanceCalculator()
 
     @Test
-    fun `키워드는 최대 3개까지만 중요도에 반영한다`() {
-        val three = calculator.calculate(3, CollectionRound.CLOSING)
-        val five = calculator.calculate(5, CollectionRound.CLOSING)
+    fun `공시가 있고 마감 회차이면 최대 중요도다`() {
+        val importance = calculator.calculate(CollectionRound.CLOSING, hasDisclosure = true)
 
-        assertEquals(BigDecimal("1.00"), three)
-        assertEquals(three, five)
+        assertEquals("1.00", importance.toPlainString())
     }
 
     @Test
-    fun `같은 키워드 점수라면 늦은 회차의 중요도가 높다`() {
-        val morning = calculator.calculate(1, CollectionRound.MORNING)
-        val closing = calculator.calculate(1, CollectionRound.CLOSING)
+    fun `공시가 없으면 늦은 회차의 중요도가 높다`() {
+        val morning = calculator.calculate(CollectionRound.MORNING, hasDisclosure = false)
+        val closing = calculator.calculate(CollectionRound.CLOSING, hasDisclosure = false)
 
         assertTrue(closing > morning)
     }

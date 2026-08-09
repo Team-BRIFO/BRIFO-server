@@ -3,8 +3,12 @@ spring:
     name: server
   jackson:
     default-property-inclusion: non_null
+    time-zone: Asia/Seoul
   profiles:
     default: dev
+  datasource:
+    hikari:
+      connection-init-sql: SET TIME ZONE 'Asia/Seoul'
   jpa:
     hibernate:
       ddl-auto: validate
@@ -12,8 +16,12 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          time_zone: Asia/Seoul
   flyway:
     enabled: true
+    init-sqls:
+      - SET TIME ZONE 'Asia/Seoul'
     locations: classpath:db/migration
   batch:
     job:
@@ -50,12 +58,18 @@ app:
       signup-token-expiration: 10m
     refresh-token:
       cleanup-cron: ${REFRESH_TOKEN_CLEANUP_CRON:0 0 4 * * *}
+  data-provider:
+    type: ${DATA_PROVIDER:data-server}
   stock-price:
     cache-ttl: 60s
     last-success-ttl: 3m
 
 external:
+  data-server:
+    base-url: ${DATA_SERVER_BASE_URL:disabled}
+    connect-timeout: 3s
+    read-timeout: 5s
   kis:
-    base-url: https://openapi.koreainvestment.com:9443
-    app-key: ${KIS_APP_KEY}
-    app-secret: ${KIS_APP_SECRET}
+    base-url: ${KIS_BASE_URL:disabled}
+    app-key: ${KIS_APP_KEY:disabled}
+    app-secret: ${KIS_APP_SECRET:disabled}

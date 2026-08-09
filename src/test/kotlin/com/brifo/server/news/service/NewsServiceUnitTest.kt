@@ -1,13 +1,13 @@
 package com.brifo.server.news.service
 
-import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.news.entity.News
 import com.brifo.server.news.entity.NewsCard
 import com.brifo.server.news.exception.NewsCardNotFoundException
 import com.brifo.server.news.repository.NewsCardRepository
-import com.brifo.server.news.repository.NewsDailyStockPriceRepository
+import com.brifo.server.stock.code.StockErrorCode
 import com.brifo.server.stock.entity.Stock
+import com.brifo.server.stock.service.StockPriceService
 import com.brifo.server.term.repository.NewsCardTermRepository
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
@@ -24,12 +24,12 @@ import kotlin.test.assertFailsWith
 class NewsServiceUnitTest {
     // DB 대신 사용할 가짜 Repository를 만든다.
     private val newsCardRepository = mock(NewsCardRepository::class.java)
-    private val priceRepository = mock(NewsDailyStockPriceRepository::class.java)
     private val termRepository = mock(NewsCardTermRepository::class.java)
+    private val stockPriceService = mock(StockPriceService::class.java)
     private val clock = Clock.fixed(Instant.parse("2026-07-04T03:00:00Z"), ZoneId.of("Asia/Seoul"))
 
     // 가짜 Repository를 주입해 Service만 테스트한다.
-    private val newsService = NewsService(newsCardRepository, priceRepository, termRepository, clock)
+    private val newsService = NewsService(newsCardRepository, termRepository, stockPriceService, clock)
 
     @Test
     fun `노출할 카드뉴스가 없으면 예외가 발생한다`() {
@@ -43,7 +43,7 @@ class NewsServiceUnitTest {
     }
 
     @Test
-    fun `가격이 없으면 예외가 발생한다`() {
+    fun `현재가를 조회할 수 없으면 예외가 발생한다`() {
         val stockId = UUID.randomUUID()
         val displayDate = LocalDate.of(2026, 7, 4)
         val firstNewsCard = mock(NewsCard::class.java)
@@ -56,34 +56,27 @@ class NewsServiceUnitTest {
                 displayDate,
             ),
         ).thenReturn(
-            listOf(firstNewsCard, secondNewsCard),
+            listOf(firstNewsCard),
         )
 
         `when`(firstNewsCard.news).thenReturn(news)
         `when`(news.stock).thenReturn(stock)
         `when`(stock.id).thenReturn(2L)
+        `when`(stock.code).thenReturn("BRIFO01")
 
         `when`(
-            priceRepository
-                .findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDescFetchedAtDescIdDesc(
-                    2L,
-                    displayDate,
-                ),
-        ).thenReturn(null)
+            stockPriceService.getCurrentPrice(2L, "BRIFO01"),
+        ).thenThrow(BusinessException(StockErrorCode.STOCK_PRICE_UNAVAILABLE))
 
         val exception =
             assertFailsWith<BusinessException> {
                 newsService.getNewsCards(stockId)
             }
 
-        verify(priceRepository)
-            .findTopByStockIdAndTradeDateLessThanEqualOrderByTradeDateDescFetchedAtDescIdDesc(
-                2L,
-                displayDate,
-            )
+        verify(stockPriceService).getCurrentPrice(2L, "BRIFO01")
 
         assertEquals(
-            ErrorCode.INTERNAL_SERVER_ERROR,
+            StockErrorCode.STOCK_PRICE_UNAVAILABLE,
             exception.errorCode,
         )
     }
