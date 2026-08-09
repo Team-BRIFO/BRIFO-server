@@ -122,7 +122,7 @@ class StockPriceService(
                     )
                 }
 
-            val fetchedAt = LocalDateTime.now()
+            val fetchedAt = LocalDateTime.now(clock)
 
             val priceToCache =
                 StockCurrentPriceCache(
@@ -155,7 +155,9 @@ class StockPriceService(
         tradeDate: LocalDate,
     ): DailyStockPrice {
         val dailyPrice =
-            closingPriceClient.getClosingPrice(ClosingPriceClient.Request(stock.code, tradeDate))
+            closingPriceClient.getClosingPrice(
+                ClosingPriceClient.Request(requireNotNull(stock.id), stock.code, tradeDate),
+            )
 
         val entity =
             DailyStockPrice.create(

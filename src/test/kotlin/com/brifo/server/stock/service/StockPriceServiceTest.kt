@@ -32,6 +32,11 @@ class StockPriceServiceTest {
     private lateinit var cacheRepository: StockCurrentPriceCacheRepository
     private lateinit var dailyPriceRepository: DailyStockPriceRepository
     private lateinit var service: StockPriceService
+    private val clock =
+        Clock.fixed(
+            java.time.Instant.parse("2026-07-29T01:15:30Z"),
+            java.time.ZoneId.of("Asia/Seoul"),
+        )
 
     @BeforeEach
     fun setUp() {
@@ -51,7 +56,7 @@ class StockPriceServiceTest {
                     mock(ClosingPriceClient::class.java),
                 currentPriceCacheRepository = cacheRepository,
                 dailyStockPriceRepository = dailyPriceRepository,
-                clock = Clock.systemDefaultZone(),
+                clock = clock,
             )
     }
 
@@ -120,7 +125,7 @@ class StockPriceServiceTest {
         assertThat(result.currentPrice)
             .isEqualByComparingTo("79800")
         assertThat(result.fetchedAt)
-            .isNotNull()
+            .isEqualTo(LocalDateTime.of(2026, 7, 29, 10, 15, 30))
 
         val savedPrice =
             StockCurrentPriceCache(
@@ -221,7 +226,7 @@ class StockPriceServiceTest {
             dailyPriceRepository
                 .findTopByStockIdAndTradeDateBeforeOrderByTradeDateDesc(
                     stockId = 1L,
-                    tradeDate = LocalDate.now(),
+                    tradeDate = LocalDate.of(2026, 7, 29),
                 ),
         ).thenReturn(previousClose)
 
@@ -261,7 +266,7 @@ class StockPriceServiceTest {
             dailyPriceRepository
                 .findTopByStockIdAndTradeDateBeforeOrderByTradeDateDesc(
                     stockId = 1L,
-                    tradeDate = LocalDate.now(),
+                    tradeDate = LocalDate.of(2026, 7, 29),
                 ),
         ).thenReturn(null)
 

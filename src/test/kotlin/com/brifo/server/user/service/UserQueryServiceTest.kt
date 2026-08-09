@@ -10,6 +10,8 @@ import com.brifo.server.ap.repository.AttendanceRewardRepository
 import com.brifo.server.decision.repository.DecisionRepository
 import com.brifo.server.decision.repository.DecisionResultRepository
 import com.brifo.server.news.entity.NewsSource
+import com.brifo.server.stock.dto.response.PriceStatus
+import com.brifo.server.stock.dto.response.StockPriceResult
 import com.brifo.server.stock.entity.PendingUserStock
 import com.brifo.server.stock.entity.Stock
 import com.brifo.server.stock.entity.UserStock
@@ -126,6 +128,10 @@ class UserQueryServiceTest {
         val userId = UUID.randomUUID()
         val user = completedUser()
         val card = newsCard()
+        val newsStock = mock(Stock::class.java)
+        val unrelatedStock = mock(Stock::class.java)
+        val newsUserStock = mock(UserStock::class.java)
+        val unrelatedUserStock = mock(UserStock::class.java)
         val mondayAttendance = attendanceAt(LocalDateTime.of(2026, 7, 20, 9, 0))
         val sundayAttendance = attendanceAt(LocalDateTime.of(2026, 7, 26, 23, 59, 59))
         val agents =
@@ -135,6 +141,24 @@ class UserQueryServiceTest {
                 agent(AgentType.TANKER),
             )
         `when`(userRepository.findByPublicId(userId)).thenReturn(user)
+        `when`(newsStock.publicId).thenReturn(card.stockId)
+        `when`(newsStock.id).thenReturn(11L)
+        `when`(newsStock.code).thenReturn("005930")
+        `when`(unrelatedStock.publicId).thenReturn(UUID.randomUUID())
+        `when`(unrelatedStock.id).thenReturn(12L)
+        `when`(unrelatedStock.code).thenReturn("000660")
+        `when`(newsUserStock.stock).thenReturn(newsStock)
+        `when`(unrelatedUserStock.stock).thenReturn(unrelatedStock)
+        `when`(userStockRepository.findAllByUser(user)).thenReturn(listOf(newsUserStock, unrelatedUserStock))
+        `when`(stockPriceService.getCurrentPrice(11L, "005930")).thenReturn(
+            StockPriceResult(
+                stockCode = "005930",
+                currentPrice = BigDecimal("79800"),
+                priceChange = BigDecimal("100"),
+                changeRate = BigDecimal("2.54"),
+                priceStatus = PriceStatus.DELAYED_CURRENT,
+            ),
+        )
         `when`(agentRepository.findAllByUserId(7L)).thenReturn(agents)
         `when`(
             attendanceRewardRepository.existsByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
@@ -169,7 +193,8 @@ class UserQueryServiceTest {
         assertEquals(2, response.todayDecisions.count)
         assertEquals(null, response.todayNewsCards.batchTime)
         assertEquals(card.cardId, response.todayNewsCards.items.single().cardId)
-        assertEquals(BigDecimal("1.3"), response.todayNewsCards.items.single().stock.changeRate)
+        assertEquals(BigDecimal("2.5"), response.todayNewsCards.items.single().stock.changeRate)
+        verify(stockPriceService, never()).getCurrentPrice(12L, "000660")
     }
 
     @Test
@@ -203,6 +228,7 @@ class UserQueryServiceTest {
         assertEquals(emptyList<LocalDate>(), response.dates)
         assertEquals(null, response.todayNewsCards.batchTime)
         assertEquals(emptyList<Any>(), response.todayNewsCards.items)
+        verifyNoInteractions(stockPriceService)
         verify(attendanceRewardRepository).existsByUserIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
             7L,
             LocalDateTime.of(2026, 7, 21, 0, 0),
@@ -269,7 +295,7 @@ class UserQueryServiceTest {
             queryService.getUserProfile(userId)
         }
 
-        verifyNoInteractions(userStockRepository, pendingUserStockRepository, validationService)
+        verifyNoInteractions(userStockRepository, pendingUserStockRepository, stockPriceService, validationService)
     }
 
     private fun completedUser(): User =

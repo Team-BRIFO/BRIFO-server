@@ -7,6 +7,7 @@ interface ClosingPriceClient {
     fun getClosingPrice(request: Request): Result
 
     data class Request(
+        val stockId: Long,
         val stockCode: String,
         val tradeDate: LocalDate,
     )

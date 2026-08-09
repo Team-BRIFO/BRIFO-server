@@ -9,9 +9,6 @@ import com.brifo.server.news.client.NewsCollectionClient
 import com.brifo.server.stock.client.ClosingPriceClient
 import com.brifo.server.stock.client.CurrentStockPriceClient
 import com.brifo.server.stock.client.DataServerStockPriceClient
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
@@ -21,6 +18,9 @@ import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 @EnabledIfEnvironmentVariable(named = "DATA_SERVER_REAL_API_TEST", matches = "true")
 class DataServerRealApiIntegrationTest {
@@ -50,7 +50,7 @@ class DataServerRealApiIntegrationTest {
     @Test
     fun `데이터 서버의 현재가와 종가를 조회한다`() {
         val current = stockPriceClient.getCurrentPrice(CurrentStockPriceClient.Request(1L, stockCode))
-        val closing = stockPriceClient.getClosingPrice(ClosingPriceClient.Request(stockCode, testDate))
+        val closing = stockPriceClient.getClosingPrice(ClosingPriceClient.Request(1L, stockCode, testDate))
 
         assertEquals(stockCode, current.stockCode)
         assertTrue(current.currentPrice.signum() > 0)
@@ -72,7 +72,7 @@ class DataServerRealApiIntegrationTest {
         news.forEach { item ->
             assertEquals(stockCode, item.stockCode)
             assertTrue(item.sourceUrl.isNotBlank())
-            assertTrue(item.sourceImageUrl == null || item.sourceImageUrl!!.startsWith("http"))
+            item.sourceImageUrl?.let { assertTrue(it.startsWith("http")) }
             assertEquals(testDate, item.publishedAt.toLocalDate())
         }
     }

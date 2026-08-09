@@ -11,6 +11,7 @@ import org.springframework.data.redis.core.ValueOperations
 import java.math.BigDecimal
 import java.time.Duration
 import java.time.LocalDateTime
+import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class StockCurrentPriceCacheRepositoryTest {
@@ -92,5 +93,28 @@ class StockCurrentPriceCacheRepositoryTest {
         val result = repository.findByCode("005930")
 
         assertNull(result)
+    }
+
+    @Test
+    fun `가격 변동값이 null인 캐시를 그대로 조회한다`() {
+        val price =
+            StockCurrentPriceCache(
+                code = "005930",
+                currentPrice = BigDecimal("79800"),
+                priceChange = null,
+                changeRate = BigDecimal("8.1"),
+                fetchedAt = LocalDateTime.of(2026, 7, 28, 10, 15),
+            )
+        val json = """{"code":"005930","priceChange":null}"""
+        `when`(redisTemplate.opsForValue()).thenReturn(valueOperations)
+        `when`(objectMapper.writeValueAsString(price)).thenReturn(json)
+        `when`(valueOperations.get("stock:delayed-price:005930")).thenReturn(json)
+        `when`(objectMapper.readValue(json, StockCurrentPriceCache::class.java)).thenReturn(price)
+
+        repository.save(price)
+        val result = repository.findByCode("005930")
+
+        assertEquals(price, result)
+        assertNull(result?.priceChange)
     }
 }

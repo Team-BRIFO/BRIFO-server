@@ -145,6 +145,22 @@ class StockCurrentPriceCacheRepositoryIntegrationTest {
             .isBetween(1L, 180L)
     }
 
+    @Test
+    fun `가격 변동값이 null인 캐시를 왕복해도 null을 유지한다`() {
+        val price =
+            StockCurrentPriceCache(
+                code = STOCK_CODE,
+                currentPrice = BigDecimal("79800"),
+                priceChange = null,
+                changeRate = BigDecimal("8.1"),
+                fetchedAt = LocalDateTime.of(2026, 7, 29, 10, 0),
+            )
+
+        repository.save(price)
+
+        assertThat(repository.findByCode(STOCK_CODE)?.priceChange).isNull()
+    }
+
     companion object {
         private const val STOCK_CODE =
             "TEST-CACHE"

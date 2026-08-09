@@ -32,7 +32,7 @@ class DataServerStockPriceClient(
     }
 
     override fun getClosingPrice(request: ClosingPriceClient.Request): ClosingPriceClient.Result {
-        val price = getPrice(null, request.stockCode, request.tradeDate)
+        val price = getPrice(request.stockId, request.stockCode, request.tradeDate)
         return ClosingPriceClient.Result(price.price, price.changeRate)
     }
 

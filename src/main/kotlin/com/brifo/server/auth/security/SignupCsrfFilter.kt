@@ -3,6 +3,7 @@ package com.brifo.server.auth.security
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import org.springframework.http.HttpMethod
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.web.access.AccessDeniedHandler
@@ -26,7 +27,10 @@ class SignupCsrfFilter(
     }
 
     private fun requiresProtection(request: HttpServletRequest): Boolean {
-        if (request.method in SAFE_METHODS || request.requestURI == request.contextPath + DEV_SIGNUP_PATH) {
+        if (
+            request.method in SAFE_METHODS ||
+            (request.method == HttpMethod.POST.name() && request.requestURI == request.contextPath + DEV_SIGNUP_PATH)
+        ) {
             return false
         }
 

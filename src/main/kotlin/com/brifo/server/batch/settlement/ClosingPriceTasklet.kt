@@ -26,7 +26,8 @@ class ClosingPriceTasklet(
         stockRepository.findAllById(stockIds).sortedBy { it.id }.forEach { stock ->
             val stockId = requireNotNull(stock.id)
             if (dailyStockPriceRepository.findByStockIdAndTradeDateAndIsClosingTrue(stockId, targetDate) == null) {
-                val closingPrice = client.getClosingPrice(ClosingPriceClient.Request(stock.code, targetDate))
+                val closingPrice =
+                    client.getClosingPrice(ClosingPriceClient.Request(stockId, stock.code, targetDate))
                 dailyStockPriceRepository.save(
                     DailyStockPrice.createClosing(
                         stock = stock,

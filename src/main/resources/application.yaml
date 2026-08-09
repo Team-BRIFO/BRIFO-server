@@ -22,7 +22,7 @@ spring:
     enabled: true
     init-sqls:
       - SET TIME ZONE 'Asia/Seoul'
-    locations: classpath:db/migration,classpath:db/data
+    locations: classpath:db/migration
   batch:
     job:
       enabled: false

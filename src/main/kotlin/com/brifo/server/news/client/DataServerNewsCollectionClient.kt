@@ -18,6 +18,10 @@ class DataServerNewsCollectionClient(
     private val externalApiCallService: ExternalApiCallService,
 ) : NewsCollectionClient {
     override fun collect(request: NewsCollectionClient.Request): NewsCollectionClient.Result {
+        if (request.stockCodes.isEmpty()) {
+            return NewsCollectionClient.Result(emptyList())
+        }
+
         val news = request.stockCodes.asSequence().flatMap { stockCode ->
             val response = externalApiCallService.execute(
                 provider = "DATA_SERVER", apiName = "NEWS_COLLECTION", policy = ExternalApiCallPolicy.NEWS_COLLECTION,

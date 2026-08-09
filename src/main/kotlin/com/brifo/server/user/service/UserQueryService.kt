@@ -111,14 +111,21 @@ class UserQueryService(
                     nextWeekStart,
                 )
         val newsCards = userHomeQueryRepository.findTodayNewsCards(userId, today)
+        val newsStockIds = newsCards.mapTo(mutableSetOf()) { it.stockId }
         val currentPrices =
-            userStockRepository
-                .findAllByUser(user)
-                .associate { userStock ->
-                    val stock = userStock.stock
-                    requireNotNull(stock.publicId) to
-                        stockPriceService.getCurrentPrice(requireNotNull(stock.id), stock.code)
-                }
+            if (newsStockIds.isEmpty()) {
+                emptyMap()
+            } else {
+                userStockRepository
+                    .findAllByUser(user)
+                    .asSequence()
+                    .map { it.stock }
+                    .filter { it.publicId in newsStockIds }
+                    .associate { stock ->
+                        requireNotNull(stock.publicId) to
+                            stockPriceService.getCurrentPrice(requireNotNull(stock.id), stock.code)
+                    }
+            }
 
         return GetUserHomeResponse(
             user =

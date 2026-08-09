@@ -12,11 +12,6 @@ import com.brifo.server.news.client.NewsCollectionClient
 import com.brifo.server.stock.client.ClosingPriceClient
 import com.brifo.server.stock.client.CurrentStockPriceClient
 import com.brifo.server.stock.client.DataServerStockPriceClient
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.springframework.http.HttpHeaders
@@ -34,9 +29,32 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.UUID
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class ExternalHttpClientsUnitTest {
     private val callService = ExternalApiCallService(mock(ExternalApiCallLogService::class.java))
+
+    @Test
+    fun `뉴스 수집 종목이 없으면 데이터 서버를 호출하지 않는다`() {
+        val fixture = restClient()
+        val client = DataServerNewsCollectionClient(fixture.client, callService)
+
+        val result =
+            client.collect(
+                NewsCollectionClient.Request(
+                    LocalDate.of(2026, 8, 9),
+                    LocalDate.of(2026, 8, 9).atTime(11, 30),
+                    emptyList(),
+                ),
+            )
+
+        assertTrue(result.news.isEmpty())
+        fixture.server.verify()
+    }
 
     @Test
     fun `데이터 서버 현재가와 종가 응답을 도메인 결과로 변환한다`() {
@@ -53,7 +71,7 @@ class ExternalHttpClientsUnitTest {
             .andRespond(withSuccess(priceResponse("2026-08-08"), MediaType.APPLICATION_JSON))
 
         val current = client.getCurrentPrice(CurrentStockPriceClient.Request(1L, "BRIFO01"))
-        val closing = client.getClosingPrice(ClosingPriceClient.Request("BRIFO01", LocalDate.of(2026, 8, 8)))
+        val closing = client.getClosingPrice(ClosingPriceClient.Request(1L, "BRIFO01", LocalDate.of(2026, 8, 8)))
 
         assertEquals(BigDecimal("31850.00"), current.currentPrice)
         assertNull(current.priceChange)
@@ -126,7 +144,7 @@ class ExternalHttpClientsUnitTest {
             .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer test-key"))
             .andRespond(withSuccess("""{"isSuccess":false,"code":"BRIEFING502","message":"분석 실패","result":null}""", MediaType.APPLICATION_JSON))
 
-        val exception = assertThrows(IllegalStateException::class.java) {
+        val exception = assertFailsWith<IllegalStateException> {
             client.createBriefings(BriefingAnalysisClient.Request(UUID.randomUUID(), emptyList(), emptyList(), "1-1", emptyList()))
         }
 

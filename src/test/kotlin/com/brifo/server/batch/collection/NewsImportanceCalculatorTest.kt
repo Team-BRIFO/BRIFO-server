@@ -15,7 +15,7 @@ class NewsImportanceCalculatorTest {
     }
 
     @Test
-    fun `같은 키워드 점수라면 늦은 회차의 중요도가 높다`() {
+    fun `공시가 없으면 늦은 회차의 중요도가 높다`() {
         val morning = calculator.calculate(CollectionRound.MORNING, hasDisclosure = false)
         val closing = calculator.calculate(CollectionRound.CLOSING, hasDisclosure = false)
 

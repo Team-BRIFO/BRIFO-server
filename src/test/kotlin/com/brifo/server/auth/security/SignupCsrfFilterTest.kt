@@ -90,4 +90,29 @@ class SignupCsrfFilterTest {
         assertFalse(accessDenied)
     }
 
+    @Test
+    fun `개발용 회원가입 POST 요청은 CSRF 검증 없이 전달한다`() {
+        val request = MockHttpServletRequest("POST", "/api/dev/signup")
+        val response = MockHttpServletResponse()
+        var filterChainCalled = false
+        val filter = SignupCsrfFilter(signupTokenCookieManager) { _, _, _ -> }
+
+        filter.doFilter(request, response) { _, _ -> filterChainCalled = true }
+
+        assertTrue(filterChainCalled)
+    }
+
+    @Test
+    fun `개발용 회원가입 경로의 POST 외 변경 요청은 CSRF 보호를 받는다`() {
+        val request = MockHttpServletRequest("PATCH", "/api/dev/signup")
+        val response = MockHttpServletResponse()
+        var accessDenied = false
+        val filter = SignupCsrfFilter(signupTokenCookieManager) { _, _, _ -> accessDenied = true }
+        `when`(signupTokenCookieManager.matchesCsrfToken(request)).thenReturn(false)
+
+        filter.doFilter(request, response) { _, _ -> }
+
+        assertTrue(accessDenied)
+    }
+
 }
