@@ -158,7 +158,9 @@ class StockCurrentPriceCacheRepositoryIntegrationTest {
 
         repository.save(price)
 
-        assertThat(repository.findByCode(STOCK_CODE)?.priceChange).isNull()
+        val savedPrice = repository.findByCode(STOCK_CODE)
+        assertThat(savedPrice).isNotNull()
+        assertThat(savedPrice).isEqualTo(price)
     }
 
     companion object {

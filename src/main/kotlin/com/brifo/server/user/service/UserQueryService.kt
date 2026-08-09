@@ -7,6 +7,8 @@ import com.brifo.server.ap.repository.ApTransactionRepository
 import com.brifo.server.ap.repository.AttendanceRewardRepository
 import com.brifo.server.decision.repository.DecisionRepository
 import com.brifo.server.decision.repository.DecisionResultRepository
+import com.brifo.server.global.exception.BusinessException
+import com.brifo.server.stock.code.StockErrorCode
 import com.brifo.server.stock.dto.response.StockPriceResult
 import com.brifo.server.stock.repository.PendingUserStockRepository
 import com.brifo.server.stock.repository.UserStockRepository
@@ -121,10 +123,19 @@ class UserQueryService(
                     .asSequence()
                     .map { it.stock }
                     .filter { it.publicId in newsStockIds }
-                    .associate { stock ->
-                        requireNotNull(stock.publicId) to
-                            stockPriceService.getCurrentPrice(requireNotNull(stock.id), stock.code)
-                    }
+                    .mapNotNull { stock ->
+                        val price =
+                            try {
+                                stockPriceService.getCurrentPrice(requireNotNull(stock.id), stock.code)
+                            } catch (exception: BusinessException) {
+                                if (exception.errorCode == StockErrorCode.STOCK_PRICE_UNAVAILABLE) {
+                                    null
+                                } else {
+                                    throw exception
+                                }
+                            }
+                        price?.let { requireNotNull(stock.publicId) to it }
+                    }.toMap()
             }
 
         return GetUserHomeResponse(
