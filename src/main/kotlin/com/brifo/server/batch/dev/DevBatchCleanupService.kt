@@ -110,25 +110,20 @@ class DevBatchCleanupService(
     private fun cleanupNewsCards(newsIds: List<Long>): DevBatchCleanupResult {
         if (newsIds.isEmpty()) return DevBatchCleanupResult()
 
-        var cardIds = queryRepository.findCardIds(newsIds).toSet()
-        if (cardIds.isEmpty()) return DevBatchCleanupResult()
+        val cleanupCardIds = queryRepository.findCardIds(newsIds)
+        if (cleanupCardIds.isEmpty()) return DevBatchCleanupResult()
 
-        var briefingIds: Set<Long>
-        while (true) {
-            briefingIds = queryRepository.findBriefingIds(cardIds.toList()).toSet()
-            val expandedCardIds = cardIds + queryRepository.findCardIdsByBriefingIds(briefingIds.toList())
-            if (expandedCardIds == cardIds) break
-            cardIds = expandedCardIds
-        }
-
-        val cleanupCardIds = cardIds.toList()
-        val cleanupBriefingIds = briefingIds.toList()
+        val linkedBriefingIds = queryRepository.findBriefingIds(cleanupCardIds)
         val cleanupNewsIds =
             jdbc.queryForList(
                 "SELECT news_id FROM news_cards WHERE id IN (:ids)",
                 ids(cleanupCardIds),
                 Long::class.javaObjectType,
             )
+        jdbc.updateByIds("DELETE FROM briefing_news_cards WHERE card_id IN (:ids)", cleanupCardIds)
+        val cleanupBriefingIds =
+            if (linkedBriefingIds.isEmpty()) emptyList()
+            else queryRepository.findBriefingIdsWithoutCards(linkedBriefingIds)
         val decisionIds =
             if (cleanupBriefingIds.isEmpty()) emptyList()
             else queryRepository.findDecisionIds(cleanupBriefingIds)
@@ -140,28 +135,22 @@ class DevBatchCleanupService(
         jdbc.updateByIds("DELETE FROM diary_entries WHERE decision_id IN (:ids)", decisionIds)
         val settlements = deleteSettlementsAndRestoreRewards(decisionIds)
         val decisions = jdbc.updateByIds("DELETE FROM decisions WHERE id IN (:ids)", decisionIds)
-        jdbc.update(
-            """
-            DELETE FROM briefing_news_cards
-            WHERE briefing_id IN (:briefingIds)
-              AND card_id IN (:cardIds)
-            """,
-            MapSqlParameterSource()
-                .addValue("briefingIds", cleanupBriefingIds)
-                .addValue("cardIds", cleanupCardIds),
-        )
         val briefings =
-            jdbc.update(
-                """
-                DELETE FROM briefings briefing
-                WHERE briefing.id IN (:ids)
-                  AND NOT EXISTS (
-                      SELECT 1 FROM briefing_news_cards link
-                      WHERE link.briefing_id = briefing.id
-                  )
-                """,
-                ids(cleanupBriefingIds),
-            )
+            if (cleanupBriefingIds.isEmpty()) {
+                0
+            } else {
+                jdbc.update(
+                    """
+                    DELETE FROM briefings briefing
+                    WHERE briefing.id IN (:ids)
+                      AND NOT EXISTS (
+                          SELECT 1 FROM briefing_news_cards link
+                          WHERE link.briefing_id = briefing.id
+                      )
+                    """,
+                    ids(cleanupBriefingIds),
+                )
+            }
         jdbc.updateByIds("DELETE FROM news_card_terms WHERE card_id IN (:ids)", cleanupCardIds)
         val cards = jdbc.updateByIds("DELETE FROM news_cards WHERE id IN (:ids)", cleanupCardIds)
         jdbc.updateByIds(
