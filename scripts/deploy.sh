@@ -93,6 +93,8 @@ run_container() (
     --env NAVER_CLIENT_SECRET \
     --env NAVER_REDIRECT_URIS="${NAVER_REDIRECT_URIS}" \
     --env CORS_ALLOWED_ORIGINS="${CORS_ALLOWED_ORIGINS}" \
+    --env SHARE_IMAGE_BUCKET="${SHARE_IMAGE_BUCKET}" \
+    --env SHARE_IMAGE_PUBLIC_BASE_URL="${SHARE_IMAGE_PUBLIC_BASE_URL}" \
     "${image}"
 )
 
@@ -148,7 +150,9 @@ cleanup() {
     KAKAO_REDIRECT_URIS \
     NAVER_CLIENT_ID \
     NAVER_REDIRECT_URIS \
-    CORS_ALLOWED_ORIGINS
+    CORS_ALLOWED_ORIGINS \
+    SHARE_IMAGE_BUCKET \
+    SHARE_IMAGE_PUBLIC_BASE_URL
 
   if [[ "${ECR_LOGGED_IN}" == "true" ]]; then
     docker logout "${ECR_REGISTRY}" >/dev/null 2>&1 || true
@@ -163,6 +167,8 @@ KAKAO_REDIRECT_URIS="$(get_required_parameter "KAKAO_REDIRECT_URIS")"
 NAVER_CLIENT_ID="$(get_required_parameter "NAVER_CLIENT_ID")"
 NAVER_REDIRECT_URIS="$(get_required_parameter "NAVER_REDIRECT_URIS")"
 CORS_ALLOWED_ORIGINS="$(get_required_parameter "CORS_ALLOWED_ORIGINS")"
+SHARE_IMAGE_BUCKET="$(get_required_parameter "SHARE_IMAGE_BUCKET")"
+SHARE_IMAGE_PUBLIC_BASE_URL="$(get_required_parameter "SHARE_IMAGE_PUBLIC_BASE_URL")"
 
 aws ecr get-login-password --region "${AWS_REGION}" |
   docker login \
