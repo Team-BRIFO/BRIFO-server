@@ -45,6 +45,44 @@ class DevBatchCleanupService(
     }
 
     @Transactional
+    fun cleanupForSingleGeneration(newsId: Long): DevBatchCleanupResult {
+        val cardIds = queryRepository.findCardIds(listOf(newsId))
+        if (cardIds.isEmpty()) {
+            jdbc.updateByIds(
+                "UPDATE news SET processing_status = 'PENDING' WHERE id IN (:ids)",
+                listOf(newsId),
+            )
+            return DevBatchCleanupResult()
+        }
+
+        val briefingIds = queryRepository.findBriefingIds(cardIds)
+        val decisionIds = if (briefingIds.isEmpty()) emptyList() else queryRepository.findDecisionIds(briefingIds)
+
+        deleteDecisionNotifications(decisionIds)
+        deleteBriefingNotifications(briefingIds)
+        deleteNewsCardNotifications(cardIds)
+
+        jdbc.updateByIds("DELETE FROM diary_entries WHERE decision_id IN (:ids)", decisionIds)
+        val settlements = deleteSettlementsAndRestoreRewards(decisionIds)
+        val decisions = jdbc.updateByIds("DELETE FROM decisions WHERE id IN (:ids)", decisionIds)
+        jdbc.updateByIds("DELETE FROM briefing_news_cards WHERE briefing_id IN (:ids)", briefingIds)
+        val briefings = jdbc.updateByIds("DELETE FROM briefings WHERE id IN (:ids)", briefingIds)
+        jdbc.updateByIds("DELETE FROM news_card_terms WHERE card_id IN (:ids)", cardIds)
+        val cards = jdbc.updateByIds("DELETE FROM news_cards WHERE id IN (:ids)", cardIds)
+        jdbc.updateByIds(
+            "UPDATE news SET processing_status = 'PENDING' WHERE id IN (:ids)",
+            listOf(newsId),
+        )
+
+        return DevBatchCleanupResult(
+            newsCards = cards,
+            briefings = briefings,
+            decisions = decisions,
+            settlements = settlements,
+        )
+    }
+
+    @Transactional
     fun cleanupForSettlement(targetDate: LocalDate): DevBatchCleanupResult {
         val decisionIds = queryRepository.findSettlementDecisionIds(
             targetDate = targetDate,

@@ -29,6 +29,12 @@ class DevBatchController(
     ): ApiResponse<DevBatchRunResponse> =
         ApiResponse.success(SuccessCode.OK, service.rerunNewsCardGeneration(request))
 
+    @PostMapping("/news-card-generation/run-one")
+    fun runSingleNewsCardGeneration(
+        @Valid @RequestBody request: DevSingleNewsCardGenerationRequest,
+    ): ApiResponse<DevSingleNewsCardGenerationResponse> =
+        ApiResponse.success(SuccessCode.OK, service.runSingleNewsCardGeneration(request))
+
     @PostMapping("/decision-settlement/rerun")
     fun rerunDecisionSettlement(
         @Valid @RequestBody request: DevDateBatchRequest,
