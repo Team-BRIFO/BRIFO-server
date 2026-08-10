@@ -82,7 +82,8 @@ class NewsCardGenerationJobAiMockIntegrationTest @Autowired constructor(
 
         val request = aiServer.takeRequest()
         assertEquals("/ai/news/summarize", request.path)
-        assertEquals("Bearer test-ai-key", request.getHeader(HttpHeaders.AUTHORIZATION))
+        assertEquals("test-ai-key", request.getHeader("AI_INTERNAL_API_KEY"))
+        assertEquals(null, request.getHeader(HttpHeaders.AUTHORIZATION))
         val requestBody = request.body.readUtf8()
         assertTrue(requestBody.contains("AI 요청에 전달할 뉴스 요약"))
         assertFalse(requestBody.contains("imageUrl"))

@@ -81,7 +81,7 @@ class BriefingAnalysisOrchestrator(
                 )
             },
             agentTypes = targets.map { it.agentType },
-            levelRange = "${targets.minOf { it.level }}-${targets.maxOf { it.level }}",
+            levelRange = levelRange(targets.maxOf { it.level }),
             recentDecisions = recentDecisions.map { decision ->
                 BriefingAnalysisClient.RecentDecision(
                     stockName = decision.stockName,
@@ -92,4 +92,12 @@ class BriefingAnalysisOrchestrator(
                 )
             },
         )
+
+    private fun levelRange(level: Int): String =
+        when (level) {
+            in 1..3 -> "1-3"
+            in 4..6 -> "4-6"
+            in 7..10 -> "7-10"
+            else -> error("지원하지 않는 에이전트 레벨입니다: $level")
+        }
 }

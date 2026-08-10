@@ -8,5 +8,6 @@ interface NewsCardRepository :
     JpaRepository<NewsCard, Long>,
     NewsCardQueryRepository {
     fun existsByNewsId(newsId: Long): Boolean
+    fun findByNewsId(newsId: Long): NewsCard?
     fun findByPublicId(publicId: UUID): NewsCard?
 }

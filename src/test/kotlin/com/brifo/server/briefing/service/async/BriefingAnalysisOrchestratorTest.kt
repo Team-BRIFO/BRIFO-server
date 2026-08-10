@@ -108,10 +108,36 @@ class BriefingAnalysisOrchestratorTest {
         verifyNoMoreInteractions(transactionService)
     }
 
+    @Test
+    fun `최고 사원 레벨을 AI 요청 구간으로 변환한다`() {
+        listOf(
+            1 to "1-3",
+            5 to "4-6",
+            8 to "7-10",
+        ).forEach { (level, expectedRange) ->
+            val command = command()
+            val context = context(command, level)
+            val response = BriefingAnalysisClient.Result(emptyList())
+            val expectedRequest = clientRequest(context).copy(levelRange = expectedRange)
+            `when`(transactionService.start(command)).thenReturn(context)
+            `when`(analysisClient.createBriefings(expectedRequest)).thenReturn(response)
+            `when`(resultValidator.validate(context, response)).thenReturn(
+                BriefingAnalysisTask.ValidationResult(emptyList(), emptyList()),
+            )
+
+            orchestrator.processAsync(command)
+
+            verify(analysisClient).createBriefings(expectedRequest)
+        }
+    }
+
     private fun command(vararg briefingIds: UUID): BriefingAnalysisTask.Command =
         BriefingAnalysisTask.Command(UUID.randomUUID(), briefingIds.toList().ifEmpty { listOf(UUID.randomUUID()) })
 
-    private fun context(command: BriefingAnalysisTask.Command): BriefingAnalysisTask.Context =
+    private fun context(
+        command: BriefingAnalysisTask.Command,
+        level: Int = 1,
+    ): BriefingAnalysisTask.Context =
         BriefingAnalysisTask.Context(
             userPublicId = command.userPublicId,
             newsCards = listOf(
@@ -122,7 +148,7 @@ class BriefingAnalysisOrchestratorTest {
                     briefingId,
                     AgentType.entries[index],
                     "model",
-                    1,
+                    level,
                 )
             },
             recentDecisions = emptyList(),
@@ -147,7 +173,7 @@ class BriefingAnalysisOrchestratorTest {
                 BriefingAnalysisClient.NewsCard(it.cardPublicId, it.newsPublicId, it.headline, it.points)
             },
             agentTypes = context.targets.map { it.agentType },
-            levelRange = "1-1",
+            levelRange = "1-3",
             recentDecisions = emptyList(),
         )
 }

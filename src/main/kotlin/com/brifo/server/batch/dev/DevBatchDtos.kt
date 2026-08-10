@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import org.springframework.batch.core.BatchStatus
 import java.time.LocalDate
+import java.util.UUID
 
 data class DevNewsCollectionBatchRequest(
     @field:NotBlank
@@ -20,6 +21,19 @@ data class DevDateBatchRequest(
     val password: String,
     @field:NotNull
     val targetDate: LocalDate,
+)
+
+data class DevSingleNewsCardGenerationRequest(
+    @field:NotBlank
+    val password: String,
+    @field:NotNull
+    val newsId: UUID,
+)
+
+data class DevSingleNewsCardGenerationResponse(
+    val newsId: UUID,
+    val newsCardId: UUID,
+    val displayDate: LocalDate,
 )
 
 data class DevBatchRunResponse(
