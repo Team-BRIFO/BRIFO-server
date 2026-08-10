@@ -18,7 +18,11 @@ FROM eclipse-temurin:21-jre-noble
 ENV TZ=Asia/Seoul
 ENV JAVA_TOOL_OPTIONS="-Duser.timezone=Asia/Seoul"
 
-RUN groupadd --system app && \
+RUN apt-get update && \
+    apt-get install --yes --no-install-recommends fontconfig fonts-noto-cjk && \
+    rm -rf /var/lib/apt/lists/* && \
+    fc-match "Noto Sans CJK KR" | grep --quiet "NotoSansCJK" && \
+    groupadd --system app && \
     useradd --system --gid app --home-dir /app app
 
 WORKDIR /app
