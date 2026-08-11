@@ -173,6 +173,10 @@ class DecisionQueryRepositoryJpaTest @Autowired constructor(
             listOf(requireNotNull(beforeCloseScenario.stock.id)),
             decisionRepository.findUnsettledStockIds(date),
         )
+        assertEquals(
+            SettlementDecision(DecisionDirection.UP, requireNotNull(beforeCloseScenario.stock.id)),
+            decisionRepository.findSettlementCandidate(requireNotNull(beforeClose.id)),
+        )
     }
 
     private fun updateCreatedAt(

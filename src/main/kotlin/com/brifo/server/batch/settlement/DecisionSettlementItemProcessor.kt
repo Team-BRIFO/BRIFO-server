@@ -12,14 +12,13 @@ class DecisionSettlementItemProcessor(
     private val calculator: DecisionSettlementCalculator,
 ) : ItemProcessor<Long, DecisionSettlementItem> {
     override fun process(decisionId: Long): DecisionSettlementItem {
-        val decision = decisionRepository.findById(decisionId).orElseThrow {
-            IllegalStateException("결정을 찾을 수 없습니다: $decisionId")
-        }
-        val stock = decision.briefing.newsCards.first().news.stock
+        val decision =
+            decisionRepository.findSettlementCandidate(decisionId)
+                ?: throw IllegalStateException("결정을 찾을 수 없습니다: $decisionId")
         val price = dailyStockPriceRepository.findByStockIdAndTradeDateAndIsClosingTrue(
-            requireNotNull(stock.id),
+            decision.stockId,
             targetDate,
-        ) ?: error("종가를 찾을 수 없습니다. stockId=${stock.id}, targetDate=$targetDate")
+        ) ?: error("종가를 찾을 수 없습니다. stockId=${decision.stockId}, targetDate=$targetDate")
         val actualDirection = calculator.actualDirection(price.changeRate)
         return DecisionSettlementItem(
             decisionId = decisionId,

@@ -250,4 +250,17 @@ class DecisionQueryRepositoryImpl(
                 },
             ).orderBy(briefingNewsCard.newsCard.news.stock.id.asc())
             .fetch()
+
+    override fun findSettlementCandidate(decisionId: Long): SettlementDecision? =
+        queryFactory
+            .select(
+                Projections.constructor(
+                    SettlementDecision::class.java,
+                    decision.direction,
+                    briefingNewsCard.newsCard.news.stock.id,
+                ),
+            ).from(decision)
+            .join(decision.briefing.briefingNewsCards, briefingNewsCard)
+            .where(decision.id.eq(decisionId))
+            .fetchFirst()
 }

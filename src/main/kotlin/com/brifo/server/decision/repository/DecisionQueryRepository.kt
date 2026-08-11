@@ -45,6 +45,8 @@ interface DecisionQueryRepository {
         targetDate: LocalDate,
         ignoreSettlementCutoff: Boolean = false,
     ): List<Long>
+
+    fun findSettlementCandidate(decisionId: Long): SettlementDecision?
 }
 
 data class RecentSettledDecision(
@@ -53,4 +55,9 @@ data class RecentSettledDecision(
     val confidence: Int,
     val isCorrect: Boolean,
     val actualChange: BigDecimal,
+)
+
+data class SettlementDecision(
+    val direction: DecisionDirection,
+    val stockId: Long,
 )
