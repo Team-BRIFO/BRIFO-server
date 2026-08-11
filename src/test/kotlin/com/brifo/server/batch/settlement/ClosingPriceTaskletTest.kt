@@ -29,7 +29,7 @@ class ClosingPriceTaskletTest {
     @Test
     fun `미정산 결정 종목의 종가를 한 번 저장한다`() {
         val stock = mock(Stock::class.java)
-        `when`(decisionRepository.findUnsettledStockIds(targetDate)).thenReturn(listOf(2L))
+        `when`(decisionRepository.findUnsettledStockIds(targetDate, false)).thenReturn(listOf(2L))
         `when`(stockRepository.findAllById(listOf(2L))).thenReturn(listOf(stock))
         `when`(stock.id).thenReturn(2L)
         `when`(stock.code).thenReturn("BRF001")
@@ -49,7 +49,7 @@ class ClosingPriceTaskletTest {
     @Test
     fun `이미 저장된 종가는 다시 조회하지 않는다`() {
         val stock = mock(Stock::class.java)
-        `when`(decisionRepository.findUnsettledStockIds(targetDate)).thenReturn(listOf(2L))
+        `when`(decisionRepository.findUnsettledStockIds(targetDate, false)).thenReturn(listOf(2L))
         `when`(stockRepository.findAllById(listOf(2L))).thenReturn(listOf(stock))
         `when`(stock.id).thenReturn(2L)
         `when`(priceRepository.findByStockIdAndTradeDateAndIsClosingTrue(2L, targetDate))

@@ -4,6 +4,7 @@ import com.brifo.server.agent.entity.Agent
 import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.agent.repository.AgentRepository
 import com.brifo.server.auth.service.JwtTokenProvider
+import com.brifo.server.global.config.DevBehaviorProperties
 import com.brifo.server.policy.repository.PolicyRepository
 import com.brifo.server.policy.repository.UserPolicyRepository
 import com.brifo.server.stock.entity.PendingUserStock
@@ -40,6 +41,7 @@ class UserService(
     private val userValidationService: UserValidationService,
     private val jwtTokenProvider: JwtTokenProvider,
     private val clock: Clock,
+    private val devBehaviorProperties: DevBehaviorProperties = DevBehaviorProperties(),
 ) {
     @Transactional
     fun updateOnboardingProfile(
@@ -77,6 +79,13 @@ class UserService(
         val user = userRepository.findForUpdateByPublicId(userPublicId) ?: throw UserNotFoundException()
         user.updateProfile(nickname, companyName)
         pendingUserStockRepository.deleteAllByUser(user)
+        if (devBehaviorProperties.immediateInterestStockUpdates) {
+            userStockRepository.deleteAllByUser(user)
+            userStockRepository.saveAll(
+                request.stockIds.map { UserStock.create(user, requireNotNull(stocksByPublicId[it])) },
+            )
+            return
+        }
         val effectiveAt = LocalDate.now(clock).plusDays(1).atStartOfDay()
         pendingUserStockRepository.saveAll(
             request.stockIds.map {

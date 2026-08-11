@@ -17,12 +17,13 @@ class ClosingPriceTasklet(
     private val stockRepository: StockRepository,
     private val dailyStockPriceRepository: DailyStockPriceRepository,
     private val client: ClosingPriceClient,
+    private val ignoreSettlementCutoff: Boolean = false,
 ) : Tasklet {
     override fun execute(
         contribution: StepContribution,
         chunkContext: ChunkContext,
     ): RepeatStatus {
-        val stockIds = decisionRepository.findUnsettledStockIds(targetDate)
+        val stockIds = decisionRepository.findUnsettledStockIds(targetDate, ignoreSettlementCutoff)
         stockRepository.findAllById(stockIds).sortedBy { it.id }.forEach { stock ->
             val stockId = requireNotNull(stock.id)
             if (dailyStockPriceRepository.findByStockIdAndTradeDateAndIsClosingTrue(stockId, targetDate) == null) {

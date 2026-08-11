@@ -7,6 +7,7 @@ import com.brifo.server.batch.generation.NewsCardGenerationItemProcessor
 import com.brifo.server.batch.generation.NewsCardGenerationJobConfiguration
 import com.brifo.server.batch.generation.NewsCardPersistenceService
 import com.brifo.server.batch.settlement.DecisionSettlementJobConfiguration
+import com.brifo.server.batch.settlement.DecisionSettlementJobRunner
 import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.news.client.NewsCardGenerationClient
@@ -45,6 +46,7 @@ class DevBatchService(
     private val newsCardGenerationJob: Job,
     @Qualifier(DecisionSettlementJobConfiguration.JOB_NAME)
     private val decisionSettlementJob: Job,
+    private val decisionSettlementJobRunner: DecisionSettlementJobRunner? = null,
 ) {
     @Synchronized
     fun rerunNewsCollection(
@@ -104,8 +106,13 @@ class DevBatchService(
         request: DevDateBatchRequest,
     ): DevBatchRunResponse {
         verifyPassword(request.password)
-        cleanupService.cleanupForSettlement(request.targetDate)
-        val execution = jobOperator.start(decisionSettlementJob, BatchJobParameters.forDevDate(request.targetDate))
+        val parameters = BatchJobParameters.forDevDate(request.targetDate)
+        val execution = decisionSettlementJobRunner?.start(parameters) {
+            cleanupService.cleanupForSettlement(request.targetDate)
+        } ?: run {
+            cleanupService.cleanupForSettlement(request.targetDate)
+            jobOperator.start(decisionSettlementJob, parameters)
+        }
         return execution.toResponse()
     }
 

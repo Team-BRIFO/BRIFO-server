@@ -13,6 +13,7 @@ import com.brifo.server.briefing.exception.BriefingAgentNotInInitialRequestExcep
 import com.brifo.server.briefing.exception.BriefingAlreadyRequestedException
 import com.brifo.server.briefing.exception.BriefingRetryCooldownException
 import com.brifo.server.briefing.repository.BriefingRepository
+import com.brifo.server.global.config.DevBehaviorProperties
 import com.brifo.server.news.entity.NewsCard
 import com.brifo.server.news.exception.NewsCardNotFoundException
 import com.brifo.server.news.repository.NewsCardRepository
@@ -39,6 +40,7 @@ class BriefingRequestTransactionService(
     private val briefingRepository: BriefingRepository,
     private val apTransactionService: ApTransactionService,
     private val notificationCreationService: NotificationCreationService,
+    private val devBehaviorProperties: DevBehaviorProperties = DevBehaviorProperties(),
 ) {
     @Transactional
     fun request(command: BriefingRequestTask.Command): BriefingRequestTask.Result {
@@ -80,7 +82,7 @@ class BriefingRequestTransactionService(
             command.requestedAt.toLocalDate(),
         )
         // 카드뉴스가 존재하는지 검증한다.
-        if (newsCards.size !in MIN_REQUIRED_NEWS_CARD_COUNT..MAX_REQUIRED_NEWS_CARD_COUNT) {
+        if (newsCards.isEmpty()) {
             throw NewsCardNotFoundException()
         }
 
@@ -123,6 +125,8 @@ class BriefingRequestTransactionService(
         if (latestBriefings.any { it.status != BriefingStatus.FAILED }) {
             throw BriefingAlreadyRequestedException()
         }
+
+        if (!devBehaviorProperties.briefingTimeRestrictionsEnabled) return
 
         val retryAfterSeconds = latestBriefings.maxOf { briefing ->
             val retryAt = briefing.updatedAt!!.plusSeconds(RETRY_COOLDOWN_SECONDS)
@@ -217,8 +221,6 @@ class BriefingRequestTransactionService(
         )
 
     private companion object {
-        const val MIN_REQUIRED_NEWS_CARD_COUNT = 1
-        const val MAX_REQUIRED_NEWS_CARD_COUNT = 2
         const val RETRY_COOLDOWN_SECONDS = 30L
     }
 

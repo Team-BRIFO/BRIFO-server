@@ -199,7 +199,10 @@ class DecisionQueryRepositoryImpl(
                 decision.createdAt.lt(to),
             ).fetchOne() ?: 0L
 
-    override fun findUnsettledIds(targetDate: LocalDate): List<Long> =
+    override fun findUnsettledIds(
+        targetDate: LocalDate,
+        ignoreSettlementCutoff: Boolean,
+    ): List<Long> =
         queryFactory
             .select(decision.id)
             .from(decision)
@@ -216,11 +219,18 @@ class DecisionQueryRepositoryImpl(
                     .from(decisionResult)
                     .where(decisionResult.decision.eq(decision))
                     .notExists(),
-                decision.createdAt.lt(DecisionMarketPolicy.settlementCutoff(targetDate)),
+                if (ignoreSettlementCutoff) {
+                    null
+                } else {
+                    decision.createdAt.lt(DecisionMarketPolicy.settlementCutoff(targetDate))
+                },
             ).orderBy(decision.createdAt.asc(), decision.id.asc())
             .fetch()
 
-    override fun findUnsettledStockIds(targetDate: LocalDate): List<Long> =
+    override fun findUnsettledStockIds(
+        targetDate: LocalDate,
+        ignoreSettlementCutoff: Boolean,
+    ): List<Long> =
         queryFactory
             .select(briefingNewsCard.newsCard.news.stock.id)
             .distinct()
@@ -233,7 +243,24 @@ class DecisionQueryRepositoryImpl(
                     .from(decisionResult)
                     .where(decisionResult.decision.eq(decision))
                     .notExists(),
-                decision.createdAt.lt(DecisionMarketPolicy.settlementCutoff(targetDate)),
+                if (ignoreSettlementCutoff) {
+                    null
+                } else {
+                    decision.createdAt.lt(DecisionMarketPolicy.settlementCutoff(targetDate))
+                },
             ).orderBy(briefingNewsCard.newsCard.news.stock.id.asc())
             .fetch()
+
+    override fun findSettlementCandidate(decisionId: Long): SettlementDecision? =
+        queryFactory
+            .select(
+                Projections.constructor(
+                    SettlementDecision::class.java,
+                    decision.direction,
+                    briefingNewsCard.newsCard.news.stock.id,
+                ),
+            ).from(decision)
+            .join(decision.briefing.briefingNewsCards, briefingNewsCard)
+            .where(decision.id.eq(decisionId))
+            .fetchFirst()
 }

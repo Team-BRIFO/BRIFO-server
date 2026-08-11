@@ -23,6 +23,7 @@ class DecisionSettlementScheduler(
     private val decisionRepository: DecisionRepository,
     private val pendingUserStockRepository: PendingUserStockRepository,
     private val clock: Clock,
+    private val jobRunner: DecisionSettlementJobRunner? = null,
 ) {
     @Scheduled(cron = "0 50 15 * * MON-FRI", zone = SEOUL_ZONE)
     fun settle() {
@@ -33,7 +34,10 @@ class DecisionSettlementScheduler(
             log.info("정산 및 관심 종목 적용 대상이 없어 배치를 건너뜁니다. targetDate={}", targetDate)
             return
         }
-        runCatching { jobOperator.start(job, BatchJobParameters.forDate(targetDate)) }
+        runCatching {
+            val parameters = BatchJobParameters.forDate(targetDate)
+            jobRunner?.start(parameters) ?: jobOperator.start(job, parameters)
+        }
             .onFailure { log.error("결정 정산 배치 실행에 실패했습니다. targetDate={}", targetDate, it) }
     }
 

@@ -93,12 +93,14 @@ class DecisionSettlementJobConfiguration {
     @StepScope
     fun closingPriceTasklet(
         @Value("#{jobParameters['${BatchJobParameters.TARGET_DATE}']}") targetDateValue: String,
+        @Value("#{jobParameters['${BatchJobParameters.IGNORE_SETTLEMENT_CUTOFF}'] ?: 'false'}") ignoreCutoffValue: String,
         decisionRepository: DecisionRepository,
         stockRepository: StockRepository,
         dailyStockPriceRepository: DailyStockPriceRepository,
         client: ClosingPriceClient,
     ): Tasklet = ClosingPriceTasklet(
         targetDate = LocalDate.parse(targetDateValue),
+        ignoreSettlementCutoff = ignoreCutoffValue.toBoolean(),
         decisionRepository = decisionRepository,
         stockRepository = stockRepository,
         dailyStockPriceRepository = dailyStockPriceRepository,
@@ -109,8 +111,11 @@ class DecisionSettlementJobConfiguration {
     @StepScope
     fun decisionSettlementReader(
         @Value("#{jobParameters['${BatchJobParameters.TARGET_DATE}']}") targetDateValue: String,
+        @Value("#{jobParameters['${BatchJobParameters.IGNORE_SETTLEMENT_CUTOFF}'] ?: 'false'}") ignoreCutoffValue: String,
         decisionRepository: DecisionRepository,
-    ): ItemReader<Long> = IdListItemReader(decisionRepository.findUnsettledIds(LocalDate.parse(targetDateValue)))
+    ): ItemReader<Long> = IdListItemReader(
+        decisionRepository.findUnsettledIds(LocalDate.parse(targetDateValue), ignoreCutoffValue.toBoolean()),
+    )
 
     @Bean
     @StepScope

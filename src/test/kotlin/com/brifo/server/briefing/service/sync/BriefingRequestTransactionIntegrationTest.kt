@@ -11,7 +11,6 @@ import com.brifo.server.briefing.repository.BriefingRepository
 import com.brifo.server.briefing.service.sync.BriefingRequestTask
 import com.brifo.server.briefing.service.sync.BriefingRequestTransactionService
 import com.brifo.server.briefing.support.BriefingDatabaseFixture
-import com.brifo.server.news.exception.NewsCardNotFoundException
 import jakarta.persistence.EntityManager
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -79,17 +78,23 @@ class BriefingRequestTransactionIntegrationTest @Autowired constructor(
     }
 
     @Test
-    fun `카드뉴스가 세 개이면 브리핑과 급여 거래를 만들지 않는다`() {
-        val date = LocalDate.of(2026, 7, 18)
+    fun `카드뉴스가 세 개여도 모두 포함한 브리핑과 급여 거래를 만든다`() {
+        val date = LocalDate.now(ZoneId.of("Asia/Seoul"))
         val scenario = BriefingDatabaseFixture(entityManager).requestScenario(date, cardCount = 3, agentCount = 1)
-        val briefingCount = briefingRepository.count()
-        val transactionCount = apTransactionRepository.count()
 
-        assertFailsWith<NewsCardNotFoundException> { service.request(command(scenario, date)) }
+        val result = service.request(command(scenario, date))
+        entityManager.flush()
+        entityManager.clear()
 
-        assertEquals(briefingCount, briefingRepository.count())
-        assertEquals(transactionCount, apTransactionRepository.count())
-        assertEquals(100, scenario.user.balanceAp)
+        val briefing = briefingRepository.findDailyBriefings(
+            scenario.user.publicId!!,
+            scenario.stock.publicId!!,
+            date,
+        ).single()
+        assertEquals(1, result.requestedCount)
+        assertEquals(10, result.totalSalaryCost)
+        assertEquals(3, briefing.newsCards.size)
+        assertEquals(90, scenario.user.balanceAp)
     }
 
     @Test

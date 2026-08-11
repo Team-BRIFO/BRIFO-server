@@ -15,8 +15,10 @@ import com.brifo.server.decision.exception.DecisionAlreadyExistsException
 import com.brifo.server.decision.exception.DecisionRequestClosedException
 import com.brifo.server.decision.repository.DecisionRepository
 import com.brifo.server.global.code.ErrorCode
+import com.brifo.server.global.config.DevBehaviorProperties
 import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.news.entity.NewsCard
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -30,6 +32,8 @@ class DecisionRequestService(
     private val decisionRepository: DecisionRepository,
     private val badgeAwardService: BadgeAwardService,
     private val clock: Clock,
+    private val devBehaviorProperties: DevBehaviorProperties = DevBehaviorProperties(),
+    private val eventPublisher: ApplicationEventPublisher? = null,
 ) {
     @Transactional
     fun request(
@@ -58,6 +62,14 @@ class DecisionRequestService(
             ),
         )
         badgeAwardService.awardBadge(userPublicId, BadgeCode.B02)
+        if (devBehaviorProperties.immediateDecisionSettlement) {
+            eventPublisher?.publishEvent(
+                DecisionCreatedEvent(
+                    decisionPublicId = requireNotNull(decision.publicId),
+                    targetDate = newsCard.displayDate,
+                ),
+            )
+        }
 
         return CreateDecisionResponse(
             decisionId = decision.publicId!!,
@@ -77,7 +89,10 @@ class DecisionRequestService(
         if (confidenceLevel !in 1..5) {
             throw BusinessException(ErrorCode.INVALID_REQUEST)
         }
-        if (!DecisionMarketPolicy.isRegistrationOpen(requestedAt)) {
+        if (
+            devBehaviorProperties.decisionRequestCutoffEnabled &&
+            !DecisionMarketPolicy.isRegistrationOpen(requestedAt)
+        ) {
             throw DecisionRequestClosedException()
         }
     }
@@ -106,3 +121,8 @@ class DecisionRequestService(
         return newsCard
     }
 }
+
+data class DecisionCreatedEvent(
+    val decisionPublicId: UUID,
+    val targetDate: java.time.LocalDate,
+)
