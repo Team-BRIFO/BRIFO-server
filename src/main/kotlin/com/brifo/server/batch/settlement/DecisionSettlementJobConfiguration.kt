@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.transaction.PlatformTransactionManager
+import java.time.Clock
 import java.time.LocalDate
 
 @Configuration
@@ -32,11 +33,13 @@ class DecisionSettlementJobConfiguration {
         jobRepository: JobRepository,
         @Qualifier("fetchClosingPriceStep") closingPriceStep: Step,
         @Qualifier("settleDecisionStep") settlementStep: Step,
+        @Qualifier("applyPendingUserStockStep") applyPendingUserStockStep: Step,
         restartListener: BatchRestartListener,
     ): Job =
         JobBuilder(JOB_NAME, jobRepository)
             .start(closingPriceStep)
             .next(settlementStep)
+            .next(applyPendingUserStockStep)
             .listener(restartListener)
             .build()
 
@@ -67,6 +70,24 @@ class DecisionSettlementJobConfiguration {
             .writer(writer)
             .startLimit(properties.maxExecutions)
             .build()
+
+    @Bean
+    fun applyPendingUserStockStep(
+        jobRepository: JobRepository,
+        transactionManager: PlatformTransactionManager,
+        pendingUserStockApplicationTasklet: PendingUserStockApplicationTasklet,
+        properties: BatchProperties,
+    ): Step =
+        StepBuilder("applyPendingUserStockStep", jobRepository)
+            .tasklet(pendingUserStockApplicationTasklet, transactionManager)
+            .startLimit(properties.maxExecutions)
+            .build()
+
+    @Bean
+    fun pendingUserStockApplicationTasklet(
+        service: PendingUserStockApplicationService,
+        clock: Clock,
+    ): PendingUserStockApplicationTasklet = PendingUserStockApplicationTasklet(service, clock)
 
     @Bean
     @StepScope

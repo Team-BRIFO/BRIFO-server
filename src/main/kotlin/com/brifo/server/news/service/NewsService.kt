@@ -25,7 +25,7 @@ class NewsService(
     fun getNewsCards(stockPublicId: UUID): GetNewsCardsResponse {
         val displayDate = LocalDate.now(clock)
         val newsCards = newsCardRepository.findAnalysisCards(stockPublicId, displayDate)
-        if (newsCards.size !in MIN_REQUIRED_NEWS_CARD_COUNT..MAX_REQUIRED_NEWS_CARD_COUNT) {
+        if (newsCards.isEmpty()) {
             throw NewsCardNotFoundException()
         }
         val stock = newsCards.first().news.stock
@@ -74,9 +74,6 @@ class NewsService(
     }
 
     private companion object {
-        const val MIN_REQUIRED_NEWS_CARD_COUNT = 1
-        const val MAX_REQUIRED_NEWS_CARD_COUNT = 2
-        const val REQUIRED_NEWS_CARD_COUNT = 2
         val SEOUL_ZONE: ZoneId = ZoneId.of("Asia/Seoul")
     }
 }

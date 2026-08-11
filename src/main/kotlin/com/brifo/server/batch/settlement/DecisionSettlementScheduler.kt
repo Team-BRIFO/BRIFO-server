@@ -2,6 +2,7 @@ package com.brifo.server.batch.settlement
 
 import com.brifo.server.batch.common.BatchJobParameters
 import com.brifo.server.decision.repository.DecisionRepository
+import com.brifo.server.stock.repository.PendingUserStockRepository
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.launch.JobOperator
@@ -11,6 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.Clock
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 @Component
 @ConditionalOnProperty(prefix = "app.batch", name = ["scheduling-enabled"], havingValue = "true")
@@ -19,13 +21,16 @@ class DecisionSettlementScheduler(
     @Qualifier(DecisionSettlementJobConfiguration.JOB_NAME)
     private val job: Job,
     private val decisionRepository: DecisionRepository,
+    private val pendingUserStockRepository: PendingUserStockRepository,
     private val clock: Clock,
 ) {
     @Scheduled(cron = "0 50 15 * * MON-FRI", zone = SEOUL_ZONE)
     fun settle() {
         val targetDate = LocalDate.now(clock)
-        if (decisionRepository.findUnsettledIds(targetDate).isEmpty()) {
-            log.info("정산 대상 결정이 없어 정산을 건너뜁니다. targetDate={}", targetDate)
+        val hasUnsettledDecisions = decisionRepository.findUnsettledIds(targetDate).isNotEmpty()
+        val hasPendingUserStocks = pendingUserStockRepository.existsByEffectiveAtLessThanEqual(LocalDateTime.now(clock))
+        if (!hasUnsettledDecisions && !hasPendingUserStocks) {
+            log.info("정산 및 관심 종목 적용 대상이 없어 배치를 건너뜁니다. targetDate={}", targetDate)
             return
         }
         runCatching { jobOperator.start(job, BatchJobParameters.forDate(targetDate)) }
