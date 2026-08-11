@@ -5,17 +5,24 @@ import com.brifo.server.news.entity.ImportanceBadge
 import com.brifo.server.news.entity.News
 import com.brifo.server.news.entity.NewsCard
 import com.brifo.server.news.entity.NewsSource
+import com.brifo.server.stock.dto.response.PriceStatus
+import com.brifo.server.stock.dto.response.StockPriceResult
 import com.brifo.server.stock.entity.DailyStockPrice
 import com.brifo.server.stock.entity.Stock
+import com.brifo.server.stock.service.StockPriceService
 import com.brifo.server.term.entity.GlossaryTerm
 import com.brifo.server.term.entity.NewsCardTerm
 import jakarta.persistence.EntityManager
 import org.junit.jupiter.api.Test
+import org.mockito.ArgumentMatchers.anyLong
+import org.mockito.ArgumentMatchers.anyString
+import org.mockito.Mockito.`when`
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
@@ -37,6 +44,9 @@ class NewsControllerIntegrationTest @Autowired constructor(
     private val entityManager: EntityManager,
     private val clock: Clock,
 ) {
+    @MockitoBean
+    private lateinit var stockPriceService: StockPriceService
+
     @Test
     fun `종목의 오늘 카드뉴스 두 개를 조회한다`() {
         val stockId = saveNewsCardData()
@@ -83,8 +93,28 @@ class NewsControllerIntegrationTest @Autowired constructor(
             .andExpect(jsonPath("$.code").value("CARD_404"))
     }
 
-    private fun saveNewsCardData(): UUID {
+    @Test
+    fun `오늘 카드뉴스가 세 개 이상이면 두 개만 조회한다`() {
+        val stockId = saveNewsCardData(includeExtraCard = true)
+
+        mockMvc
+            .perform(get("/api/stocks/{stockId}/news-cards", stockId))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.result.newsCards.length()").value(2))
+    }
+
+    private fun saveNewsCardData(includeExtraCard: Boolean = false): UUID {
         val displayDate = LocalDate.now(clock)
+        `when`(stockPriceService.getCurrentPrice(anyLong(), anyString())).thenReturn(
+            StockPriceResult(
+                stockCode = "005930",
+                currentPrice = BigDecimal("79200"),
+                priceChange = null,
+                changeRate = BigDecimal("2.14"),
+                priceStatus = PriceStatus.PREVIOUS_CLOSE,
+                tradeDate = displayDate.minusDays(1),
+            ),
+        )
         val stock = Stock.create(
             code = "005930",
             name = "삼성전자",
@@ -140,6 +170,31 @@ class NewsControllerIntegrationTest @Autowired constructor(
                 displayDate = displayDate,
             ),
         )
+
+        if (includeExtraCard) {
+            val thirdNews =
+                News.create(
+                    stock = stock,
+                    source = NewsSource.KRX,
+                    sourceUrl = "https://example.com/news/3",
+                    title = "삼성전자 추가 뉴스",
+                    summary = null,
+                    importance = BigDecimal("0.70"),
+                    dedupKey = "news-card-test-3",
+                    publishedAt = displayDate.atTime(12, 0),
+                )
+            entityManager.persist(thirdNews)
+            entityManager.persist(
+                NewsCard.create(
+                    news = thirdNews,
+                    headline = "삼성전자 추가 뉴스",
+                    points = listOf("추가 뉴스 포인트"),
+                    keywords = listOf("추가"),
+                    importanceBadge = ImportanceBadge.MID,
+                    displayDate = displayDate,
+                ),
+            )
+        }
 
         val prices =
             listOf(

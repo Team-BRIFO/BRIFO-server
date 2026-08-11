@@ -19,4 +19,7 @@ interface UserRepository : JpaRepository<User, Long> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     fun findForUpdateByPublicId(publicId: UUID): User?
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    fun findForUpdateById(id: Long): User?
 }
