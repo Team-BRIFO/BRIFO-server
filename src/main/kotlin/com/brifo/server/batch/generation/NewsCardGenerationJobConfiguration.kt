@@ -100,11 +100,11 @@ class NewsCardGenerationJobConfiguration {
     fun newsCardGenerationWriter(
         @Value("#{jobParameters['${BatchJobParameters.TARGET_DATE}']}") targetDateValue: String,
         businessDateCalculator: BusinessDateCalculator,
-        devBehaviorProperties: DevBehaviorProperties,
+        devBehaviorProperties: DevBehaviorProperties?,
         persistenceService: NewsCardPersistenceService,
     ): ItemWriter<GeneratedNewsCardItem> {
         val targetDate = LocalDate.parse(targetDateValue)
-        val displayDate = if (devBehaviorProperties.useTargetDateAsDisplayDate) {
+        val displayDate = if (devBehaviorProperties?.useTargetDateAsDisplayDate == true) {
             targetDate
         } else {
             businessDateCalculator.nextBusinessDay(targetDate)
@@ -117,14 +117,14 @@ class NewsCardGenerationJobConfiguration {
     fun newsCardNotificationTasklet(
         @Value("#{jobParameters['${BatchJobParameters.TARGET_DATE}']}") targetDateValue: String,
         businessDateCalculator: BusinessDateCalculator,
-        devBehaviorProperties: DevBehaviorProperties,
+        devBehaviorProperties: DevBehaviorProperties?,
         newsCardRepository: NewsCardRepository,
         userStockRepository: UserStockRepository,
         notificationRepository: NotificationRepository,
         notificationCreationService: NotificationCreationService,
     ): Tasklet {
         val targetDate = LocalDate.parse(targetDateValue)
-        val displayDate = if (devBehaviorProperties.useTargetDateAsDisplayDate) {
+        val displayDate = if (devBehaviorProperties?.useTargetDateAsDisplayDate == true) {
             targetDate
         } else {
             businessDateCalculator.nextBusinessDay(targetDate)
