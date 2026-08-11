@@ -56,8 +56,3 @@ data class RecentSettledDecision(
     val isCorrect: Boolean,
     val actualChange: BigDecimal,
 )
-
-data class SettlementDecision(
-    val direction: DecisionDirection,
-    val stockId: Long,
-)
