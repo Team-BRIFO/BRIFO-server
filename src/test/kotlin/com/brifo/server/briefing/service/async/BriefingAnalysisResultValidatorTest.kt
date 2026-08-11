@@ -35,14 +35,26 @@ class BriefingAnalysisResultValidatorTest {
     }
 
     @Test
-    fun `사원 타입이나 모델이 다르면 해당 브리핑만 실패로 분류한다`() {
+    fun `사원 타입이 다르면 해당 브리핑만 실패로 분류한다`() {
         val target = target()
-        val mismatched = briefingResult(target).copy(agentType = AgentType.PRO, modelName = "other-model")
+        val mismatched = briefingResult(target).copy(agentType = AgentType.PRO)
 
         val result = validator.validate(context(target), response(mismatched))
 
         assertTrue(result.completions.isEmpty())
         assertEquals(listOf(target.briefingPublicId), result.failedBriefingPublicIds)
+    }
+
+    @Test
+    fun `AI 응답 모델명이 달라도 완료 결과로 분류한다`() {
+        val target = target()
+        val result = validator.validate(
+            context(target),
+            response(briefingResult(target).copy(modelName = "anthropic/claude-haiku-4.5")),
+        )
+
+        assertEquals(listOf(target.briefingPublicId), result.completions.map { it.briefingPublicId })
+        assertTrue(result.failedBriefingPublicIds.isEmpty())
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.brifo.server.batch.dev
 
+import com.brifo.server.briefing.entity.QBriefing.Companion.briefing
 import com.brifo.server.briefing.entity.QBriefingNewsCard.Companion.briefingNewsCard
 import com.brifo.server.decision.entity.QDecision.Companion.decision
 import com.brifo.server.news.entity.QNews.Companion.news
@@ -96,6 +97,16 @@ class DevBatchCleanupQueryRepository(
                 briefingNewsCard.newsCard.displayDate.eq(targetDate),
                 decision.createdAt.lt(cutoff),
             ).fetch()
+
+    fun findBriefingIdsWithoutCards(briefingIds: List<Long>): List<Long> =
+        queryFactory
+            .select(briefing.id)
+            .from(briefing)
+            .leftJoin(briefing.briefingNewsCards, briefingNewsCard)
+            .where(briefing.id.`in`(briefingIds))
+            .groupBy(briefing.id)
+            .having(briefingNewsCard.id.count().eq(0L))
+            .fetch()
 
     fun findCardIdsByBriefingIds(briefingIds: List<Long>): List<Long> =
         queryFactory

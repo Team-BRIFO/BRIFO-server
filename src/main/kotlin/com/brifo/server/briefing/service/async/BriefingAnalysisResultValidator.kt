@@ -56,7 +56,6 @@ class BriefingAnalysisResultValidator {
         target: BriefingAnalysisTask.Context.Target,
     ): Boolean =
         result.agentType == target.agentType &&
-            result.modelName == target.modelName &&
             result.confidenceRate in 0..100 &&
             result.headline.isNotBlank() &&
             result.summary.isNotBlank() &&

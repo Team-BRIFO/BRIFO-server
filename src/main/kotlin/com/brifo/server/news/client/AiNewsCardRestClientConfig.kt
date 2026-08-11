@@ -4,7 +4,6 @@ import com.brifo.server.externalapi.ExternalApiCallPolicy
 import com.brifo.server.externalapi.ai.AiProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.http.HttpHeaders
 import org.springframework.http.client.SimpleClientHttpRequestFactory
 import org.springframework.web.client.RestClient
 
@@ -26,8 +25,12 @@ class AiNewsCardRestClientConfig {
         return RestClient
             .builder()
             .baseUrl(properties.baseUrl)
-            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer ${properties.apiKey}")
+            .defaultHeader(AI_INTERNAL_API_KEY_HEADER, properties.apiKey)
             .requestFactory(requestFactory)
             .build()
+    }
+
+    private companion object {
+        const val AI_INTERNAL_API_KEY_HEADER = "AI_INTERNAL_API_KEY"
     }
 }
