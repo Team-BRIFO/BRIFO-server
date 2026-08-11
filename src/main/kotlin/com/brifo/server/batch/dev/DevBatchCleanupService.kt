@@ -2,7 +2,7 @@ package com.brifo.server.batch.dev
 
 import com.brifo.server.batch.collection.CollectionRound
 import com.brifo.server.batch.common.BusinessDateCalculator
-import com.brifo.server.decision.DecisionMarketPolicy
+import com.brifo.server.global.config.DevBehaviorProperties
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Profile
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
@@ -18,6 +18,7 @@ class DevBatchCleanupService(
     private val jdbc: NamedParameterJdbcTemplate,
     private val queryRepository: DevBatchCleanupQueryRepository,
     private val businessDateCalculator: BusinessDateCalculator,
+    private val devBehaviorProperties: DevBehaviorProperties = DevBehaviorProperties(),
 ) {
     @Transactional
     fun cleanupForCollection(
@@ -35,7 +36,11 @@ class DevBatchCleanupService(
 
     @Transactional
     fun cleanupForGeneration(targetDate: LocalDate): DevBatchCleanupResult {
-        val displayDate = businessDateCalculator.nextBusinessDay(targetDate)
+        val displayDate = if (devBehaviorProperties.useTargetDateAsDisplayDate) {
+            targetDate
+        } else {
+            businessDateCalculator.nextBusinessDay(targetDate)
+        }
         val newsIds = queryRepository.findGenerationNewsIds(
             targetDate = targetDate,
             displayDate = displayDate,
@@ -86,7 +91,6 @@ class DevBatchCleanupService(
     fun cleanupForSettlement(targetDate: LocalDate): DevBatchCleanupResult {
         val decisionIds = queryRepository.findSettlementDecisionIds(
             targetDate = targetDate,
-            cutoff = DecisionMarketPolicy.settlementCutoff(targetDate),
         )
         val stockIds = if (decisionIds.isEmpty()) emptyList() else queryRepository.findStockIdsByDecisionIds(decisionIds)
 

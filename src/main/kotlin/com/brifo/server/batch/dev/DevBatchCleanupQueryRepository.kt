@@ -86,7 +86,6 @@ class DevBatchCleanupQueryRepository(
 
     fun findSettlementDecisionIds(
         targetDate: LocalDate,
-        cutoff: LocalDateTime,
     ): List<Long> =
         queryFactory
             .select(decision.id)
@@ -95,7 +94,6 @@ class DevBatchCleanupQueryRepository(
             .join(decision.briefing.briefingNewsCards, briefingNewsCard)
             .where(
                 briefingNewsCard.newsCard.displayDate.eq(targetDate),
-                decision.createdAt.lt(cutoff),
             ).fetch()
 
     fun findBriefingIdsWithoutCards(briefingIds: List<Long>): List<Long> =
