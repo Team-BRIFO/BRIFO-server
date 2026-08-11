@@ -55,7 +55,8 @@ class NewsCardGenerationJobConfiguration {
         properties: BatchProperties,
     ): Step =
         StepBuilder("generateNewsCardStep", jobRepository)
-            .chunk<Long, GeneratedNewsCardItem>(1, transactionManager)
+            .chunk<Long, GeneratedNewsCardItem>(1)
+            .transactionManager(transactionManager)
             .reader(reader)
             .processor(processor)
             .writer(writer)
