@@ -4,18 +4,20 @@ import com.brifo.server.diary.exception.DiaryNotFoundException
 import com.brifo.server.diary.repository.DiaryEntryRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
 import java.time.LocalDateTime
 import java.util.UUID
 
 @Service
 class DiaryShareImageTransactionService(
     private val diaryEntryRepository: DiaryEntryRepository,
+    private val clock: Clock,
 ) {
     @Transactional
-    fun attachIfAbsent(
+    fun createIfAbsent(
         userPublicId: UUID,
         diaryPublicId: UUID,
-        generatedUrl: String,
+        generateUrl: () -> String,
     ): AttachedShareImage {
         val diary =
             diaryEntryRepository.findOwnedByPublicIdForUpdate(userPublicId, diaryPublicId)
@@ -25,7 +27,8 @@ class DiaryShareImageTransactionService(
             return AttachedShareImage(existingUrl, reused = true)
         }
 
-        diary.attachShareImage(generatedUrl, LocalDateTime.now())
+        val generatedUrl = generateUrl()
+        diary.attachShareImage(generatedUrl, LocalDateTime.now(clock))
         return AttachedShareImage(generatedUrl, reused = false)
     }
 }

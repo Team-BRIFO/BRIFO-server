@@ -40,13 +40,14 @@ class DiaryShareImageService(
                 isCorrect = row.isCorrect,
                 decisionConfidenceLevel = row.confidenceLevel.toInt(),
             )
-        val generatedUrl =
-            try {
-                storage.store(diaryPublicId, renderer.render(model))
-            } catch (_: Exception) {
-                throw DiaryShareImageGenerationFailedException()
+        val attached =
+            transactionService.createIfAbsent(userPublicId, diaryPublicId) {
+                try {
+                    storage.store(diaryPublicId, renderer.render(model))
+                } catch (_: Exception) {
+                    throw DiaryShareImageGenerationFailedException()
+                }
             }
-        val attached = transactionService.attachIfAbsent(userPublicId, diaryPublicId, generatedUrl)
 
         return CreateDiaryShareImageResponse(diaryPublicId, attached.url, attached.reused)
     }

@@ -5,7 +5,7 @@
 
 set -Eeuo pipefail
 
-AWS_REGION="ap-northeast-2"
+AWS_REGION="${AWS_REGION:-ap-northeast-2}"
 ECR_REPOSITORY="brifo-ecr"
 PARAMETER_PREFIX="/brifo/dev"
 
@@ -74,6 +74,7 @@ run_container() (
     --publish "${HOST_PORT}:${CONTAINER_PORT}" \
     --volume "${DB_CA_CERT_HOST_PATH}:${DB_CA_CERT_CONTAINER_PATH}:ro" \
     --env SPRING_PROFILES_ACTIVE=dev \
+    --env AWS_REGION="${AWS_REGION}" \
     --env REDIS_HOST=brifo-valkey \
     --env DB_URL \
     --env DB_USERNAME="${DB_USERNAME}" \

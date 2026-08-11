@@ -11,8 +11,8 @@ import com.brifo.server.diary.share.DiaryShareImageRenderer
 import com.brifo.server.diary.share.ShareImageFile
 import com.brifo.server.diary.share.ShareImageStorage
 import org.junit.jupiter.api.Test
+import org.mockito.Answers
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import java.math.BigDecimal
@@ -26,7 +26,16 @@ class DiaryShareImageServiceTest {
     private val repository = mock(DiaryEntryRepository::class.java)
     private val renderer = mock(DiaryShareImageRenderer::class.java)
     private val storage = mock(ShareImageStorage::class.java)
-    private val transactionService = mock(DiaryShareImageTransactionService::class.java)
+    private var transactionResult: AttachedShareImage? = null
+    private val transactionService =
+        mock(DiaryShareImageTransactionService::class.java) { invocation ->
+            if (invocation.method.name == "createIfAbsent") {
+                transactionResult
+                    ?: AttachedShareImage(invocation.getArgument<() -> String>(2).invoke(), reused = false)
+            } else {
+                Answers.RETURNS_DEFAULTS.answer(invocation)
+            }
+        }
     private val service = DiaryShareImageService(repository, renderer, storage, transactionService)
     private val userId = UUID.randomUUID()
     private val diaryId = UUID.randomUUID()
@@ -50,31 +59,24 @@ class DiaryShareImageServiceTest {
         `when`(repository.findDiaryDetail(userId, diaryId)).thenReturn(row())
         `when`(renderer.render(model())).thenReturn(file)
         `when`(storage.store(diaryId, file)).thenReturn(generatedUrl)
-        `when`(transactionService.attachIfAbsent(userId, diaryId, generatedUrl))
-            .thenReturn(AttachedShareImage(generatedUrl, reused = false))
 
         val result = service.create(userId, diaryId)
 
         assertEquals(generatedUrl, result.shareImageUrl)
         assertFalse(result.reused)
-        verify(transactionService).attachIfAbsent(userId, diaryId, generatedUrl)
     }
 
     @Test
     fun `동시 요청에서 먼저 저장된 이미지가 있으면 그 URL을 재사용한다`() {
-        val file = ShareImageFile(byteArrayOf(1), "image/png", "png")
-        val generatedUrl = "https://cdn.brifo.app/generated.png"
         val existingUrl = "https://cdn.brifo.app/existing.png"
         `when`(repository.findDiaryDetail(userId, diaryId)).thenReturn(row())
-        `when`(renderer.render(model())).thenReturn(file)
-        `when`(storage.store(diaryId, file)).thenReturn(generatedUrl)
-        `when`(transactionService.attachIfAbsent(userId, diaryId, generatedUrl))
-            .thenReturn(AttachedShareImage(existingUrl, reused = true))
+        transactionResult = AttachedShareImage(existingUrl, reused = true)
 
         val result = service.create(userId, diaryId)
 
         assertEquals(existingUrl, result.shareImageUrl)
         assertTrue(result.reused)
+        verifyNoInteractions(renderer, storage)
     }
 
     @Test
@@ -93,7 +95,7 @@ class DiaryShareImageServiceTest {
         assertFailsWith<DiaryShareImageGenerationFailedException> {
             service.create(userId, diaryId)
         }
-        verifyNoInteractions(storage, transactionService)
+        verifyNoInteractions(storage)
     }
 
     @Test
@@ -106,7 +108,6 @@ class DiaryShareImageServiceTest {
         assertFailsWith<DiaryShareImageGenerationFailedException> {
             service.create(userId, diaryId)
         }
-        verifyNoInteractions(transactionService)
     }
 
     private fun row(shareImageUrl: String? = null) =
