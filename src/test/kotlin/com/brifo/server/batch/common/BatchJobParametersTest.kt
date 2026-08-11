@@ -26,6 +26,7 @@ class BatchJobParametersTest {
         val second = BatchJobParameters.forDevDate(targetDate)
 
         assertEquals("2026-08-03", first.getString(BatchJobParameters.TARGET_DATE))
+        assertEquals("true", first.getString(BatchJobParameters.IGNORE_SETTLEMENT_CUTOFF))
         assertNotEquals(first.getString(BatchJobParameters.DEV_RUN_ID), second.getString(BatchJobParameters.DEV_RUN_ID))
     }
 }

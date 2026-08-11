@@ -8,10 +8,12 @@ object BatchJobParameters {
     const val TARGET_DATE = "targetDate"
     const val COLLECTION_ROUND = "collectionRound"
     const val DEV_RUN_ID = "devRunId"
+    const val IGNORE_SETTLEMENT_CUTOFF = "ignoreSettlementCutoff"
 
     fun forDate(targetDate: LocalDate): JobParameters =
         JobParametersBuilder()
             .addString(TARGET_DATE, targetDate.toString(), true)
+            .addString(IGNORE_SETTLEMENT_CUTOFF, false.toString(), false)
             .toJobParameters()
 
     fun forCollection(
@@ -26,6 +28,7 @@ object BatchJobParameters {
     fun forDevDate(targetDate: LocalDate): JobParameters =
         JobParametersBuilder()
             .addString(TARGET_DATE, targetDate.toString(), true)
+            .addString(IGNORE_SETTLEMENT_CUTOFF, true.toString(), false)
             .addString(DEV_RUN_ID, java.util.UUID.randomUUID().toString(), true)
             .toJobParameters()
 

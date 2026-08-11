@@ -36,9 +36,15 @@ interface DecisionQueryRepository {
         to: LocalDateTime,
     ): Long
 
-    fun findUnsettledIds(targetDate: LocalDate): List<Long>
+    fun findUnsettledIds(
+        targetDate: LocalDate,
+        ignoreSettlementCutoff: Boolean = false,
+    ): List<Long>
 
-    fun findUnsettledStockIds(targetDate: LocalDate): List<Long>
+    fun findUnsettledStockIds(
+        targetDate: LocalDate,
+        ignoreSettlementCutoff: Boolean = false,
+    ): List<Long>
 }
 
 data class RecentSettledDecision(
