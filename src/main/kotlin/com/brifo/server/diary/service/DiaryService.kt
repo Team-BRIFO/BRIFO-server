@@ -10,6 +10,7 @@ import com.brifo.server.diary.dto.response.GetDiaryDetailResponse
 import com.brifo.server.diary.dto.response.GetDiaryStatsResponse
 import com.brifo.server.diary.exception.DiaryNotFoundException
 import com.brifo.server.diary.repository.DiaryEntryRepository
+import com.brifo.server.diary.share.ShareImageStorage
 import com.brifo.server.global.common.CursorPage
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -23,6 +24,7 @@ class DiaryService(
     private val diaryEntryRepository: DiaryEntryRepository,
     private val agentRepository: AgentRepository,
     private val statsCalculator: DiaryStatsCalculator,
+    private val shareImageStorage: ShareImageStorage,
 ) {
     @Transactional(readOnly = true)
     fun getDiaries(
@@ -69,7 +71,7 @@ class DiaryService(
 
         return GetDiaryDetailResponse(
             diaryId = row.diaryId,
-            shareImageUrl = row.shareImageUrl,
+            shareImageUrl = row.shareImageUrl?.let(shareImageStorage::createDownloadUrl),
             stock = GetDiaryDetailResponse.DiaryDetailStock(
                 stockId = row.stockId,
                 name = row.stockName,

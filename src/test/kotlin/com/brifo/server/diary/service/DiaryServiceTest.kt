@@ -11,6 +11,7 @@ import com.brifo.server.diary.repository.DiaryCalendarRow
 import com.brifo.server.diary.repository.DiaryEntryRepository
 import com.brifo.server.diary.repository.DiaryDetailRow
 import com.brifo.server.diary.repository.DiaryListRow
+import com.brifo.server.diary.share.ShareImageStorage
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
@@ -26,10 +27,12 @@ import kotlin.test.assertTrue
 
 class DiaryServiceTest {
     private val repository = mock(DiaryEntryRepository::class.java)
+    private val shareImageStorage = mock(ShareImageStorage::class.java)
     private val service = DiaryService(
         repository,
         mock(AgentRepository::class.java),
         mock(DiaryStatsCalculator::class.java),
+        shareImageStorage,
     )
     private val userId = UUID.randomUUID()
 
@@ -73,10 +76,12 @@ class DiaryServiceTest {
     @Test
     fun `상세 등락률은 소수점 한 자리로 반올림한다`() {
         val diaryId = UUID.randomUUID()
+        val imageKey = "$diaryId.png"
+        val imageUrl = "https://s3.example.com/$imageKey?signature=test"
         `when`(repository.findDiaryDetail(userId, diaryId)).thenReturn(
             DiaryDetailRow(
                 diaryId = diaryId,
-                shareImageUrl = null,
+                shareImageUrl = imageKey,
                 stockId = UUID.randomUUID(),
                 stockName = "삼성전자",
                 changeRate = BigDecimal("2.55"),
@@ -90,10 +95,12 @@ class DiaryServiceTest {
                 confidenceLevel = 4,
             ),
         )
+        `when`(shareImageStorage.createDownloadUrl(imageKey)).thenReturn(imageUrl)
 
         val detail = service.getDiaryDetail(userId, diaryId)
 
         assertEquals(BigDecimal("2.6"), detail.stock.changeRate)
+        assertEquals(imageUrl, detail.shareImageUrl)
     }
 
     @Test

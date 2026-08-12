@@ -7,6 +7,7 @@ import com.brifo.server.diary.repository.DiaryEntryRepository
 import com.brifo.server.diary.share.DiaryShareImageModel
 import com.brifo.server.diary.share.DiaryShareImageRenderer
 import com.brifo.server.diary.share.ShareImageStorage
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.UUID
 
@@ -24,8 +25,12 @@ class DiaryShareImageService(
         val row =
             diaryEntryRepository.findDiaryDetail(userPublicId, diaryPublicId)
                 ?: throw DiaryNotFoundException()
-        row.shareImageUrl?.let { existingUrl ->
-            return CreateDiaryShareImageResponse(diaryPublicId, existingUrl, reused = true)
+        row.shareImageUrl?.let { existingKey ->
+            return CreateDiaryShareImageResponse(
+                diaryPublicId,
+                createDownloadUrl(diaryPublicId, existingKey),
+                reused = true,
+            )
         }
 
         val model =
@@ -43,12 +48,33 @@ class DiaryShareImageService(
         val attached =
             transactionService.createIfAbsent(userPublicId, diaryPublicId) {
                 try {
-                    storage.store(diaryPublicId, renderer.render(model))
-                } catch (_: Exception) {
+                    val file = renderer.render(model)
+                    storage.store(diaryPublicId, file)
+                } catch (exception: Exception) {
+                    logger.error("Failed to generate diary share image: diaryId={}", diaryPublicId, exception)
                     throw DiaryShareImageGenerationFailedException()
                 }
             }
 
-        return CreateDiaryShareImageResponse(diaryPublicId, attached.url, attached.reused)
+        return CreateDiaryShareImageResponse(
+            diaryPublicId,
+            createDownloadUrl(diaryPublicId, attached.url),
+            attached.reused,
+        )
+    }
+
+    private fun createDownloadUrl(
+        diaryPublicId: UUID,
+        key: String,
+    ): String =
+        try {
+            storage.createDownloadUrl(key)
+        } catch (exception: Exception) {
+            logger.error("Failed to presign diary share image: diaryId={}", diaryPublicId, exception)
+            throw DiaryShareImageGenerationFailedException()
+        }
+
+    companion object {
+        private val logger = LoggerFactory.getLogger(DiaryShareImageService::class.java)
     }
 }
