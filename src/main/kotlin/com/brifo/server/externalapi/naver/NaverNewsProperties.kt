@@ -10,5 +10,5 @@ data class NaverNewsProperties(
     val clientSecret: String = "disabled",
     val connectTimeout: Duration = Duration.ofSeconds(3),
     val readTimeout: Duration = Duration.ofSeconds(5),
-    val displayCount: Int = 20,
+    val displayCount: Int = 100,
 )
