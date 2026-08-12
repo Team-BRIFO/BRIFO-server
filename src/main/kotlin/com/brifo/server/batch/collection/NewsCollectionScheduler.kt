@@ -19,17 +19,11 @@ class NewsCollectionScheduler(
     private val job: Job,
     private val clock: Clock,
 ) {
-    @Scheduled(cron = "0 0 7 * * *", zone = SEOUL_ZONE)
-    fun collectMorning() = launch(CollectionRound.MORNING)
-
-    @Scheduled(cron = "0 30 11 * * *", zone = SEOUL_ZONE)
-    fun collectMidday() = launch(CollectionRound.MIDDAY)
-
-    @Scheduled(cron = "0 40 15 * * *", zone = SEOUL_ZONE)
-    fun collectClosing() = launch(CollectionRound.CLOSING)
+    @Scheduled(cron = "0 0 0 * * *", zone = SEOUL_ZONE)
+    fun collect() = launch(CollectionRound.CLOSING)
 
     private fun launch(round: CollectionRound) {
-        val targetDate = LocalDate.now(clock)
+        val targetDate = LocalDate.now(clock).minusDays(1)
         runCatching {
             jobOperator.start(job, BatchJobParameters.forCollection(targetDate, round.name))
         }.onFailure { exception ->

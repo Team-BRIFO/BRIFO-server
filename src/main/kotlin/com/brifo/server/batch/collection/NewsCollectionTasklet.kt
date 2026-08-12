@@ -24,7 +24,7 @@ class NewsCollectionTasklet(
         chunkContext: ChunkContext,
     ): RepeatStatus {
         val cutoff = collectionRound.cutoffAt(targetDate)
-        val stocks = stockRepository.findAllByIsActiveTrueOrderByCode().map {
+        val stocks = stockRepository.findAllInterestedActiveOrderByCode().map {
             NewsCollectionClient.StockRef(it.code, it.name)
         }
         client.collect(NewsCollectionClient.Request(targetDate, cutoff, stocks)).news
