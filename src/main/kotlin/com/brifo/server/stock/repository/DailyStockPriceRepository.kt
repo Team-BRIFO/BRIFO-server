@@ -16,4 +16,9 @@ interface DailyStockPriceRepository : JpaRepository<DailyStockPrice, Long> {
         stockId: Long,
         tradeDate: LocalDate,
     ): DailyStockPrice?
+
+    fun findByStockIdAndTradeDateAndIsClosingFalse(
+        stockId: Long,
+        tradeDate: LocalDate,
+    ): DailyStockPrice?
 }
