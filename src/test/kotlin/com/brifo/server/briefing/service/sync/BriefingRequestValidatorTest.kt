@@ -7,6 +7,8 @@ import com.brifo.server.briefing.service.sync.BriefingRequestValidator
 import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.exception.BusinessException
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.time.LocalDateTime
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -46,10 +48,11 @@ class BriefingRequestValidatorTest {
         assertEquals(BriefingErrorCode.BRIEFING_REQUEST_CLOSED, exception.errorCode)
     }
 
-    @Test
-    fun `주말에는 브리핑을 요청할 수 없다`() {
+    @ParameterizedTest
+    @ValueSource(strings = ["2026-07-18T10:00:00", "2026-07-19T10:00:00"])
+    fun `주말에는 브리핑을 요청할 수 없다`(requestedAt: LocalDateTime) {
         val exception = assertFailsWith<BriefingRequestClosedException> {
-            validator.validate(command(requestedAt = LocalDateTime.of(2026, 7, 18, 10, 0)))
+            validator.validate(command(requestedAt = requestedAt))
         }
 
         assertEquals(BriefingErrorCode.BRIEFING_REQUEST_CLOSED, exception.errorCode)

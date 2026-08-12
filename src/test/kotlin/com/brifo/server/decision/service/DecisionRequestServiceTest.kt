@@ -17,6 +17,8 @@ import com.brifo.server.news.entity.News
 import com.brifo.server.news.entity.NewsCard
 import com.brifo.server.stock.entity.Stock
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.times
@@ -51,9 +53,10 @@ class DecisionRequestServiceTest {
         verifyNoInteractions(briefingRepository, decisionRepository)
     }
 
-    @Test
-    fun `주말에는 DB를 조회하지 않고 결정 등록을 거절한다`() {
-        val service = serviceAt("2026-07-18T01:00:00Z")
+    @ParameterizedTest
+    @ValueSource(strings = ["2026-07-18T01:00:00Z", "2026-07-19T01:00:00Z"])
+    fun `주말에는 DB를 조회하지 않고 결정 등록을 거절한다`(instant: String) {
+        val service = serviceAt(instant)
 
         assertFailsWith<DecisionRequestClosedException> {
             service.request(

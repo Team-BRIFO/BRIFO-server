@@ -71,7 +71,9 @@ class DiaryService(
 
         return GetDiaryDetailResponse(
             diaryId = row.diaryId,
-            shareImageUrl = row.shareImageUrl?.let(shareImageStorage::createDownloadUrl),
+            shareImageUrl = row.shareImageUrl
+                ?.takeIf { it.isShareImageObjectKey(diaryPublicId) }
+                ?.let(shareImageStorage::createDownloadUrl),
             stock = GetDiaryDetailResponse.DiaryDetailStock(
                 stockId = row.stockId,
                 name = row.stockName,

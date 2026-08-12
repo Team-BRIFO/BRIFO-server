@@ -32,4 +32,19 @@ class DiaryShareImageTransactionServiceTest {
         assertFalse(result.reused)
         verify(diary).attachShareImage(imageKey, LocalDateTime.ofInstant(clock.instant(), clock.zone))
     }
+
+    @Test
+    fun `기존 공개 URL은 새 객체 key로 교체한다`() {
+        val userId = UUID.randomUUID()
+        val diaryId = UUID.randomUUID()
+        val diary = mock(DiaryEntry::class.java)
+        val imageKey = "$diaryId.png"
+        `when`(repository.findOwnedByPublicIdForUpdate(userId, diaryId)).thenReturn(diary)
+        `when`(diary.shareImageUrl).thenReturn("https://s3.example.com/$imageKey")
+
+        val result = service.createIfAbsent(userId, diaryId) { imageKey }
+
+        assertFalse(result.reused)
+        verify(diary).attachShareImage(imageKey, LocalDateTime.ofInstant(clock.instant(), clock.zone))
+    }
 }

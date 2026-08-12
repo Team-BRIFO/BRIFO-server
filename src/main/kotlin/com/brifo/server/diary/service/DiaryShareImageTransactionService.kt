@@ -23,7 +23,7 @@ class DiaryShareImageTransactionService(
             diaryEntryRepository.findOwnedByPublicIdForUpdate(userPublicId, diaryPublicId)
                 ?: throw DiaryNotFoundException()
         val existingUrl = diary.shareImageUrl
-        if (existingUrl != null) {
+        if (existingUrl?.isShareImageObjectKey(diaryPublicId) == true) {
             return AttachedShareImage(existingUrl, reused = true)
         }
 

@@ -38,7 +38,9 @@ class NewsCardGenerationScheduler(
             log.warn("마감 수집 완료 후 카드뉴스 생성을 재시도합니다. targetDate={}", targetDate)
             return
         }
-        generate(targetDate)
+        if (!generate(targetDate)) {
+            deferredTargetDates.add(targetDate)
+        }
     }
 
     @Scheduled(fixedDelayString = "\${app.batch.generation-retry-delay-ms:60000}")

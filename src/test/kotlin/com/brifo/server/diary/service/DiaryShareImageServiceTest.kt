@@ -56,6 +56,23 @@ class DiaryShareImageServiceTest {
     }
 
     @Test
+    fun `기존 공개 URL은 객체 key로 사용하지 않고 이미지를 재생성한다`() {
+        val publicUrl = "https://s3.example.com/$diaryId.png"
+        val generatedKey = "$diaryId.png"
+        val generatedUrl = "https://s3.example.com/$generatedKey?signature=new"
+        val file = ShareImageFile(byteArrayOf(1), "image/png", "png")
+        `when`(repository.findDiaryDetail(userId, diaryId)).thenReturn(row(publicUrl))
+        `when`(renderer.render(model())).thenReturn(file)
+        `when`(storage.store(diaryId, file)).thenReturn(generatedKey)
+        `when`(storage.createDownloadUrl(generatedKey)).thenReturn(generatedUrl)
+
+        val result = service.create(userId, diaryId)
+
+        assertEquals(generatedUrl, result.shareImageUrl)
+        assertFalse(result.reused)
+    }
+
+    @Test
     fun `공유 이미지를 생성하고 객체 key로 presigned URL을 발급한다`() {
         val file = ShareImageFile(byteArrayOf(1, 2, 3), "image/png", "png")
         val generatedKey = "$diaryId.png"

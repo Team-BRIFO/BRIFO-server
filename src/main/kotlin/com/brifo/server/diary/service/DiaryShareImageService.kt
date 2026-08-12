@@ -25,7 +25,7 @@ class DiaryShareImageService(
         val row =
             diaryEntryRepository.findDiaryDetail(userPublicId, diaryPublicId)
                 ?: throw DiaryNotFoundException()
-        row.shareImageUrl?.let { existingKey ->
+        row.shareImageUrl?.takeIf { it.isShareImageObjectKey(diaryPublicId) }?.let { existingKey ->
             return CreateDiaryShareImageResponse(
                 diaryPublicId,
                 createDownloadUrl(diaryPublicId, existingKey),
@@ -78,3 +78,6 @@ class DiaryShareImageService(
         private val logger = LoggerFactory.getLogger(DiaryShareImageService::class.java)
     }
 }
+
+internal fun String.isShareImageObjectKey(diaryPublicId: UUID): Boolean =
+    startsWith("$diaryPublicId.") && substringAfterLast('.').matches(Regex("[A-Za-z0-9]+"))
