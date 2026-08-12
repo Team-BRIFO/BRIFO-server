@@ -1,20 +1,10 @@
 package com.brifo.server.batch.dev
 
-import com.brifo.server.batch.collection.CollectionRound
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import org.springframework.batch.core.BatchStatus
 import java.time.LocalDate
 import java.util.UUID
-
-data class DevNewsCollectionBatchRequest(
-    @field:NotBlank
-    val password: String,
-    @field:NotNull
-    val targetDate: LocalDate,
-    @field:NotNull
-    val collectionRound: CollectionRound,
-)
 
 data class DevDateBatchRequest(
     @field:NotBlank

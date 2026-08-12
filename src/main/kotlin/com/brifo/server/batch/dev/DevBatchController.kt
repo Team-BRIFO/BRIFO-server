@@ -19,7 +19,7 @@ class DevBatchController(
 ) {
     @PostMapping("/news-collection/rerun")
     fun rerunNewsCollection(
-        @Valid @RequestBody request: DevNewsCollectionBatchRequest,
+        @Valid @RequestBody request: DevDateBatchRequest,
     ): ApiResponse<DevBatchRunResponse> =
         ApiResponse.success(SuccessCode.OK, service.rerunNewsCollection(request))
 

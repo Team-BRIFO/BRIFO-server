@@ -49,18 +49,14 @@ class NewsCollectionJobConfiguration {
     @StepScope
     fun newsCollectionTasklet(
         @Value("#{jobParameters['${BatchJobParameters.TARGET_DATE}']}") targetDate: String,
-        @Value("#{jobParameters['${BatchJobParameters.COLLECTION_ROUND}']}") collectionRound: String,
         client: NewsCollectionClient,
-        disclosureKeywordDetector: DisclosureKeywordDetector,
         stockRepository: StockRepository,
         newsRepository: NewsRepository,
         importanceCalculator: NewsImportanceCalculator,
     ): Tasklet =
         NewsCollectionTasklet(
             targetDate = LocalDate.parse(targetDate),
-            collectionRound = CollectionRound.valueOf(collectionRound),
             client = client,
-            disclosureKeywordDetector = disclosureKeywordDetector,
             stockRepository = stockRepository,
             newsRepository = newsRepository,
             importanceCalculator = importanceCalculator,

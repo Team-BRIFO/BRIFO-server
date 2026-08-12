@@ -3,8 +3,6 @@ package com.brifo.server.news.repository
 import com.brifo.server.news.entity.News
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
-import org.springframework.data.repository.query.Param
-import java.time.LocalDateTime
 import java.util.UUID
 
 interface NewsRepository : JpaRepository<News, Long> {
@@ -22,12 +20,10 @@ interface NewsRepository : JpaRepository<News, Long> {
                        n.stock_id,
                        ROW_NUMBER() OVER (
                            PARTITION BY n.stock_id
-                           ORDER BY n.importance DESC NULLS LAST, n.published_at DESC, n.id ASC
+                           ORDER BY n.published_at DESC, n.id DESC
                        ) AS rank
                 FROM news n
-                WHERE n.published_at >= :from
-                  AND n.published_at < :to
-                  AND EXISTS (
+                WHERE EXISTS (
                       SELECT 1 FROM user_stocks us WHERE us.stock_id = n.stock_id
                   )
                   AND NOT EXISTS (
@@ -39,8 +35,5 @@ interface NewsRepository : JpaRepository<News, Long> {
             """,
         nativeQuery = true,
     )
-    fun findGenerationCandidateIds(
-        @Param("from") from: LocalDateTime,
-        @Param("to") to: LocalDateTime,
-    ): List<Long>
+    fun findGenerationCandidateIds(): List<Long>
 }

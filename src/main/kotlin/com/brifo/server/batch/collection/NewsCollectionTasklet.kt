@@ -12,9 +12,7 @@ import java.time.LocalDate
 
 class NewsCollectionTasklet(
     private val targetDate: LocalDate,
-    private val collectionRound: CollectionRound,
     private val client: NewsCollectionClient,
-    private val disclosureKeywordDetector: DisclosureKeywordDetector,
     private val stockRepository: StockRepository,
     private val newsRepository: NewsRepository,
     private val importanceCalculator: NewsImportanceCalculator,
@@ -23,23 +21,17 @@ class NewsCollectionTasklet(
         contribution: StepContribution,
         chunkContext: ChunkContext,
     ): RepeatStatus {
-        val cutoff = collectionRound.cutoffAt(targetDate)
         val stocks = stockRepository.findAllInterestedActiveOrderByCode().map {
             NewsCollectionClient.StockRef(it.code, it.name)
         }
-        client.collect(NewsCollectionClient.Request(targetDate, cutoff, stocks)).news
+        client.collect(NewsCollectionClient.Request(targetDate, stocks)).news
             .asSequence()
-            .filter { it.publishedAt.toLocalDate() == targetDate }
-            .filter { !it.publishedAt.isAfter(cutoff) }
             .filterNot { newsRepository.existsByDedupKey(it.dedupKey) }
             .forEach { collected ->
                 val stock = checkNotNull(stockRepository.findByCode(collected.stockCode)) {
                     "알 수 없는 종목 코드입니다: ${collected.stockCode}"
                 }
-                val importance = importanceCalculator.calculate(
-                    round = CollectionRound.fromPublishedAt(collected.publishedAt),
-                    hasDisclosure = disclosureKeywordDetector.matches(collected.title, collected.summary),
-                )
+                val importance = importanceCalculator.calculate(CollectionRound.fromPublishedAt(collected.publishedAt))
                 newsRepository.save(
                     News.create(
                         stock = stock,
