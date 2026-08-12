@@ -44,7 +44,11 @@ run_container() (
   JWT_SECRET_BASE64="$(get_required_parameter "JWT_SECRET_BASE64")" || return 1
   BATCH_SCHEDULING_ENABLED="$(get_required_parameter "BATCH_SCHEDULING_ENABLED")" || return 1
   DATA_PROVIDER="$(get_required_parameter "DATA_PROVIDER")" || return 1
-  DATA_SERVER_BASE_URL="$(get_required_parameter "DATA_SERVER_BASE_URL")" || return 1
+  NAVER_NEWS_CLIENT_ID="$(get_required_parameter "NAVER_NEWS_CLIENT_ID")" || return 1
+  NAVER_NEWS_CLIENT_SECRET="$(get_required_parameter "NAVER_NEWS_CLIENT_SECRET")" || return 1
+  KIS_BASE_URL="$(get_required_parameter "KIS_BASE_URL")" || return 1
+  KIS_APP_KEY="$(get_required_parameter "KIS_APP_KEY")" || return 1
+  KIS_APP_SECRET="$(get_required_parameter "KIS_APP_SECRET")" || return 1
   AI_BASE_URL="$(get_required_parameter "AI_BASE_URL")" || return 1
   AI_INTERNAL_API_KEY="$(get_required_parameter "AI_INTERNAL_API_KEY")" || return 1
   KAKAO_CLIENT_SECRET="$(get_required_parameter "KAKAO_CLIENT_SECRET")" || return 1
@@ -58,7 +62,11 @@ run_container() (
     JWT_SECRET_BASE64 \
     BATCH_SCHEDULING_ENABLED \
     DATA_PROVIDER \
-    DATA_SERVER_BASE_URL \
+    NAVER_NEWS_CLIENT_ID \
+    NAVER_NEWS_CLIENT_SECRET \
+    KIS_BASE_URL \
+    KIS_APP_KEY \
+    KIS_APP_SECRET \
     AI_BASE_URL \
     AI_INTERNAL_API_KEY \
     KAKAO_CLIENT_SECRET \
@@ -84,7 +92,11 @@ run_container() (
     --env JWT_SECRET_BASE64 \
     --env BATCH_SCHEDULING_ENABLED \
     --env DATA_PROVIDER \
-    --env DATA_SERVER_BASE_URL \
+    --env NAVER_NEWS_CLIENT_ID \
+    --env NAVER_NEWS_CLIENT_SECRET \
+    --env KIS_BASE_URL \
+    --env KIS_APP_KEY \
+    --env KIS_APP_SECRET \
     --env AI_BASE_URL \
     --env AI_INTERNAL_API_KEY \
     --env KAKAO_CLIENT_ID="${KAKAO_CLIENT_ID}" \
