@@ -13,5 +13,3 @@ data class DataServerResponse<T>(
 data class DataServerStock(val name: String, val sector: String, val code: String)
 data class DataServerPriceResult(val stock: DataServerStock, val stockPrice: DataServerStockPrice)
 data class DataServerStockPrice(val price: BigDecimal, val changeRate: BigDecimal, val tradeDate: LocalDate)
-data class DataServerDisclosureResult(val stock: DataServerStock, val disclosure: DataServerDisclosure)
-data class DataServerDisclosure(val hasDisclosure: Boolean)

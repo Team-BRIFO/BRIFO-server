@@ -2,8 +2,6 @@ package com.brifo.server.externalapi.dataserver
 
 import com.brifo.server.externalapi.ExternalApiCallService
 import com.brifo.server.externalapi.log.service.ExternalApiCallLogService
-import com.brifo.server.news.client.DataServerDisclosureClient
-import com.brifo.server.news.client.DisclosureClient
 import com.brifo.server.stock.client.ClosingPriceClient
 import com.brifo.server.stock.client.CurrentStockPriceClient
 import com.brifo.server.stock.client.DataServerStockPriceClient
@@ -23,7 +21,6 @@ import kotlin.test.assertTrue
 @EnabledIfEnvironmentVariable(named = "DATA_SERVER_REAL_API_TEST", matches = "true")
 class DataServerRealApiIntegrationTest {
     private lateinit var stockPriceClient: DataServerStockPriceClient
-    private lateinit var disclosureClient: DataServerDisclosureClient
 
     private val stockCode = requiredEnvironment("DATA_SERVER_TEST_STOCK_CODE")
     private val testDate = LocalDate.parse(requiredEnvironment("DATA_SERVER_TEST_DATE"))
@@ -40,7 +37,6 @@ class DataServerRealApiIntegrationTest {
         )
 
         stockPriceClient = DataServerStockPriceClient(restClient, callService, clock)
-        disclosureClient = DataServerDisclosureClient(restClient, callService)
     }
 
     @Test
@@ -52,16 +48,6 @@ class DataServerRealApiIntegrationTest {
         assertTrue(current.currentPrice.signum() > 0)
         assertNotNull(current.changeRate)
         assertTrue(closing.price.signum() > 0)
-    }
-
-    @Test
-    fun `데이터 서버의 공시 여부를 조회한다`() {
-        disclosureClient.exists(
-            DisclosureClient.Request(
-                stockCode = stockCode,
-                date = testDate,
-            ),
-        )
     }
 
     private fun requiredEnvironment(name: String): String =

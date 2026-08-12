@@ -4,8 +4,6 @@ import com.brifo.server.briefing.client.AiBriefingAnalysisClient
 import com.brifo.server.briefing.client.BriefingAnalysisClient
 import com.brifo.server.externalapi.log.service.ExternalApiCallLogService
 import com.brifo.server.news.client.AiNewsCardGenerationClient
-import com.brifo.server.news.client.DataServerDisclosureClient
-import com.brifo.server.news.client.DisclosureClient
 import com.brifo.server.news.client.NewsCardGenerationClient
 import com.brifo.server.stock.client.ClosingPriceClient
 import com.brifo.server.stock.client.CurrentStockPriceClient
@@ -29,7 +27,6 @@ import java.time.ZoneId
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -57,19 +54,6 @@ class ExternalHttpClientsUnitTest {
         assertNull(current.priceChange)
         assertEquals(BigDecimal("17.96"), current.changeRate)
         assertEquals(BigDecimal("31850.00"), closing.price)
-        fixture.server.verify()
-    }
-
-    @Test
-    fun `공시 없음은 정상적인 false 결과로 반환한다`() {
-        val fixture = restClient()
-        val client = DataServerDisclosureClient(fixture.client, callService)
-        fixture.server.expect(requestTo("http://data-server/api/stocks/BRIFO01/disclosures/exists?date=2026-08-09"))
-            .andRespond(withSuccess(disclosureResponse(), MediaType.APPLICATION_JSON))
-
-        val exists = client.exists(DisclosureClient.Request(stockCode = "BRIFO01", date = LocalDate.of(2026, 8, 9)))
-
-        assertFalse(exists)
         fixture.server.verify()
     }
 
@@ -121,9 +105,6 @@ class ExternalHttpClientsUnitTest {
 
     private fun priceResponse(date: String) =
         """{"success":true,"code":"COMMON_200","message":"성공","result":{"stock":{"name":"브리포테크","sector":"브리포","code":"BRIFO01"},"stockPrice":{"price":31850.00,"changeRate":17.96,"tradeDate":"$date"}}}"""
-
-    private fun disclosureResponse() =
-        """{"success":true,"code":"COMMON_200","message":"성공","result":{"stock":{"name":"브리포테크","sector":"브리포","code":"BRIFO01"},"disclosure":{"hasDisclosure":false}}}"""
 
     private fun cardResponse() =
         """{"isSuccess":true,"code":"COMMON200","message":"성공","result":{"newsId":"0198d73d-5df0-7000-8000-000000000001","cardNews":[{"headline":"헤드라인","points":["포인트"],"keywords":["키워드"],"terms":[]}]}}"""
