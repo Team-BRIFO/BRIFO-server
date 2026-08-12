@@ -63,6 +63,16 @@ app:
   stock-price:
     cache-ttl: 60s
     last-success-ttl: 3m
+  share-image:
+    bucket: ${SHARE_IMAGE_BUCKET:disabled}
+    public-base-url: ${SHARE_IMAGE_PUBLIC_BASE_URL:}
+    key-prefix: ${SHARE_IMAGE_KEY_PREFIX:diary-share-images}
+    region: ${AWS_REGION:ap-northeast-2}
+    endpoint: ${SHARE_IMAGE_STORAGE_ENDPOINT:}
+    path-style-access: ${SHARE_IMAGE_PATH_STYLE_ACCESS:false}
+    font-family: ${SHARE_IMAGE_FONT_FAMILY:Noto Sans CJK KR}
+    width: ${SHARE_IMAGE_WIDTH:1200}
+    height: ${SHARE_IMAGE_HEIGHT:630}
 
 external:
   data-server:

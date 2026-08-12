@@ -1,0 +1,156 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: BRIFO development diary share image storage and CDN
+
+Parameters:
+  DeploymentInstanceRoleName:
+    Type: String
+    Description: Name of the existing EC2 instance role used by the deployment host
+  ShareImageBucketName:
+    Type: String
+    Default: ""
+    Description: Optional globally unique S3 bucket name
+  ParameterPrefix:
+    Type: String
+    Default: /brifo/dev
+    AllowedPattern: ^/[A-Za-z0-9_.\-/]+$
+
+Conditions:
+  HasExplicitBucketName: !Not [!Equals [!Ref ShareImageBucketName, ""]]
+
+Resources:
+  ShareImageBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !If [HasExplicitBucketName, !Ref ShareImageBucketName, !Ref AWS::NoValue]
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: RemoveOldObjectVersions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 30
+
+  ShareImageOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub ${AWS::StackName}-s3-oac
+        Description: Access control for BRIFO diary share images
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  ShareImageResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub ${AWS::StackName}-cors
+        Comment: Allow clients to download diary share images
+        CorsConfig:
+          AccessControlAllowCredentials: false
+          AccessControlAllowHeaders:
+            Items: ["*"]
+          AccessControlAllowMethods:
+            Items: [GET, HEAD]
+          AccessControlAllowOrigins:
+            Items: ["*"]
+          AccessControlExposeHeaders:
+            Items: [ETag]
+          AccessControlMaxAgeSec: 3600
+          OriginOverride: true
+
+  ShareImageDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: BRIFO development diary share images
+        Enabled: true
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        PriceClass: PriceClass_100
+        Origins:
+          - Id: share-image-s3-origin
+            DomainName: !GetAtt ShareImageBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt ShareImageOriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: share-image-s3-origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          ResponseHeadersPolicyId: !Ref ShareImageResponseHeadersPolicy
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+
+  ShareImageBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ShareImageBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontReadOnly
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub ${ShareImageBucket.Arn}/diary-share-images/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${ShareImageDistribution}
+
+  ShareImageUploadPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub ${AWS::StackName}-upload
+      Roles:
+        - !Ref DeploymentInstanceRoleName
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: UploadDiaryShareImages
+            Effect: Allow
+            Action: s3:PutObject
+            Resource: !Sub ${ShareImageBucket.Arn}/diary-share-images/*
+
+  ShareImageBucketParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub ${ParameterPrefix}/SHARE_IMAGE_BUCKET
+      Type: String
+      Value: !Ref ShareImageBucket
+      Description: S3 bucket for BRIFO diary share images
+
+  ShareImagePublicBaseUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub ${ParameterPrefix}/SHARE_IMAGE_PUBLIC_BASE_URL
+      Type: String
+      Value: !Sub https://${ShareImageDistribution.DomainName}
+      Description: CloudFront base URL for BRIFO diary share images
+
+Outputs:
+  BucketName:
+    Value: !Ref ShareImageBucket
+  DistributionId:
+    Value: !Ref ShareImageDistribution
+  PublicBaseUrl:
+    Value: !Sub https://${ShareImageDistribution.DomainName}

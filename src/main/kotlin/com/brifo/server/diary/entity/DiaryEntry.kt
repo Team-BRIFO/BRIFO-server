@@ -47,13 +47,19 @@ class DiaryEntry private constructor(
     var shareImageCreatedAt: LocalDateTime? = null
         protected set
 
+    fun attachShareImage(
+        url: String,
+        createdAt: LocalDateTime,
+    ) {
+        require(url.isNotBlank()) { "share image URL must not be blank" }
+        shareImageUrl = url
+        shareImageCreatedAt = createdAt
+    }
+
     companion object {
-        fun create(
-            decision: Decision,
-        ): DiaryEntry {
-            return DiaryEntry(
+        fun create(decision: Decision): DiaryEntry =
+            DiaryEntry(
                 decision = decision,
             )
-        }
     }
 }

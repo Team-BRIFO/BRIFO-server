@@ -1,5 +1,6 @@
 package com.brifo.server.diary.controller
 
+import com.brifo.server.diary.code.DiarySuccessCode
 import com.brifo.server.diary.dto.request.GetDiariesRequest
 import com.brifo.server.diary.dto.request.GetDiaryCalendarRequest
 import com.brifo.server.diary.dto.response.CreateDiaryShareImageResponse
@@ -8,8 +9,9 @@ import com.brifo.server.diary.dto.response.GetDiaryCalendarResponse
 import com.brifo.server.diary.dto.response.GetDiaryDetailResponse
 import com.brifo.server.diary.dto.response.GetDiaryStatsResponse
 import com.brifo.server.diary.service.DiaryService
-import com.brifo.server.global.common.ApiResponse
+import com.brifo.server.diary.service.DiaryShareImageService
 import com.brifo.server.global.code.SuccessCode
+import com.brifo.server.global.common.ApiResponse
 import jakarta.validation.Valid
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
@@ -24,6 +26,7 @@ import java.util.UUID
 @RequestMapping("/api/diaries")
 class DiaryController(
     private val diaryService: DiaryService,
+    private val diaryShareImageService: DiaryShareImageService,
 ) {
     @GetMapping
     fun getDiaries(
@@ -68,5 +71,9 @@ class DiaryController(
     fun createDiaryShareImage(
         @PathVariable diaryId: UUID,
         @AuthenticationPrincipal userPublicId: UUID,
-    ): ApiResponse<CreateDiaryShareImageResponse> = TODO("결정일기 공유 이미지 생성 서비스 구현 필요")
+    ): ApiResponse<CreateDiaryShareImageResponse> =
+        ApiResponse.success(
+            DiarySuccessCode.SHARE_IMAGE_CREATED,
+            diaryShareImageService.create(userPublicId, diaryId),
+        )
 }
