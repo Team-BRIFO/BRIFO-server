@@ -33,7 +33,7 @@ class NewsCollectionTaskletTest {
         val existing = news("existing", LocalDateTime.of(2026, 8, 3, 7, 0))
         val candidate = news("candidate", LocalDateTime.of(2026, 8, 3, 11, 0), title = "candidate 공시 발표")
         val tooLate = news("late", LocalDateTime.of(2026, 8, 3, 12, 0))
-        `when`(stockRepository.findAllByIsActiveTrueOrderByCode()).thenReturn(listOf(stock))
+        `when`(stockRepository.findAllInterestedActiveOrderByCode()).thenReturn(listOf(stock))
         `when`(
             client.collect(
                 NewsCollectionClient.Request(
@@ -61,7 +61,7 @@ class NewsCollectionTaskletTest {
 
     @Test
     fun `조회 결과가 없으면 정상 종료하고 저장하지 않는다`() {
-        `when`(stockRepository.findAllByIsActiveTrueOrderByCode()).thenReturn(emptyList())
+        `when`(stockRepository.findAllInterestedActiveOrderByCode()).thenReturn(emptyList())
         `when`(client.collect(NewsCollectionClient.Request(targetDate, targetDate.atTime(7, 0), emptyList())))
             .thenReturn(NewsCollectionClient.Result(emptyList()))
 

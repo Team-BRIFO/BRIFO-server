@@ -27,6 +27,9 @@ interface NewsRepository : JpaRepository<News, Long> {
                 FROM news n
                 WHERE n.published_at >= :from
                   AND n.published_at < :to
+                  AND EXISTS (
+                      SELECT 1 FROM user_stocks us WHERE us.stock_id = n.stock_id
+                  )
                   AND NOT EXISTS (
                       SELECT 1 FROM news_cards nc WHERE nc.news_id = n.id
                   )

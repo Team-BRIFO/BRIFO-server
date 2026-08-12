@@ -29,7 +29,7 @@ class NewsCardGenerationScheduler(
 ) {
     private val deferredTargetDates: MutableSet<LocalDate> = ConcurrentHashMap.newKeySet()
 
-    @Scheduled(cron = "0 0 0 * * *", zone = SEOUL_ZONE)
+    @Scheduled(cron = "0 10 0 * * *", zone = SEOUL_ZONE)
     fun generate() {
         val displayDate = LocalDate.now(clock)
         val targetDate = displayDate.minusDays(1)
