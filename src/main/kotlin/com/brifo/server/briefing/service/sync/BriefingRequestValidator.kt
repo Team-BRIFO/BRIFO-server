@@ -5,6 +5,7 @@ import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.config.DevBehaviorProperties
 import com.brifo.server.global.exception.BusinessException
 import org.springframework.stereotype.Component
+import java.time.DayOfWeek
 import java.time.LocalTime
 
 /** 트랜잭션 진입 전에 DB 상태와 무관한 브리핑 요청 규칙을 검증한다. */
@@ -32,8 +33,14 @@ class BriefingRequestValidator(
 
     /** 요청 시각이 당일 브리핑 요청 마감 시각 전인지 검증한다. */
     private fun validateRequestTime(command: BriefingRequestTask.Command) {
-        if (!devBehaviorProperties.briefingTimeRestrictionsEnabled) return
-        if (!command.requestedAt.toLocalTime().isBefore(REQUEST_CUTOFF)) {
+        val requestedAt = command.requestedAt
+        if (requestedAt.dayOfWeek in CLOSED_DAYS) {
+            throw BriefingRequestClosedException()
+        }
+        if (
+            devBehaviorProperties.briefingTimeRestrictionsEnabled &&
+            !requestedAt.toLocalTime().isBefore(REQUEST_CUTOFF)
+        ) {
             throw BriefingRequestClosedException()
         }
     }
@@ -41,5 +48,6 @@ class BriefingRequestValidator(
     private companion object {
         const val MAX_AGENT_COUNT = 3
         val REQUEST_CUTOFF: LocalTime = LocalTime.of(15, 20)
+        val CLOSED_DAYS = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
     }
 }

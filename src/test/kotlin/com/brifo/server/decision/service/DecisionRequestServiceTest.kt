@@ -52,6 +52,22 @@ class DecisionRequestServiceTest {
     }
 
     @Test
+    fun `주말에는 DB를 조회하지 않고 결정 등록을 거절한다`() {
+        val service = serviceAt("2026-07-18T01:00:00Z")
+
+        assertFailsWith<DecisionRequestClosedException> {
+            service.request(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                DecisionDirection.UP,
+                3,
+            )
+        }
+
+        verifyNoInteractions(briefingRepository, decisionRepository)
+    }
+
+    @Test
     fun `확신도가 범위를 벗어나면 DB를 조회하지 않고 요청을 거절한다`() {
         assertFailsWith<BusinessException> {
             serviceAt("2026-07-21T05:00:00Z").request(

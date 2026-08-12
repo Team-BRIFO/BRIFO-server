@@ -25,7 +25,7 @@ class DecisionSettlementScheduler(
     private val clock: Clock,
     private val jobRunner: DecisionSettlementJobRunner? = null,
 ) {
-    @Scheduled(cron = "0 50 15 * * *", zone = SEOUL_ZONE)
+    @Scheduled(cron = "0 50 15 * * MON-FRI", zone = SEOUL_ZONE)
     fun settle() {
         val targetDate = LocalDate.now(clock)
         val hasUnsettledDecisions = decisionRepository.findUnsettledIds(targetDate).isNotEmpty()
