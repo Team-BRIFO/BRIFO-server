@@ -40,3 +40,6 @@ external:
   ai:
     base-url: disabled
     api-key: disabled
+  naver:
+    client-id: disabled
+    client-secret: disabled

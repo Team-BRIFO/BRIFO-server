@@ -56,6 +56,9 @@ external:
   ai:
     base-url: ${AI_BASE_URL:disabled}
     api-key: ${AI_INTERNAL_API_KEY:disabled}
+  naver:
+    client-id: ${NAVER_NEWS_CLIENT_ID:disabled}
+    client-secret: ${NAVER_NEWS_CLIENT_SECRET:disabled}
 
 server:
   forward-headers-strategy: framework

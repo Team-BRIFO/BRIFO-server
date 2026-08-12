@@ -26,8 +26,10 @@ class NewsCollectionTasklet(
     ): RepeatStatus {
         val cutoff = collectionRound.cutoffAt(targetDate)
         val disclosureByStockCode = mutableMapOf<String, Boolean>()
-        val stockCodes = stockRepository.findAllByIsActiveTrueOrderByCode().map { it.code }
-        client.collect(NewsCollectionClient.Request(targetDate, cutoff, stockCodes)).news
+        val stocks = stockRepository.findAllByIsActiveTrueOrderByCode().map {
+            NewsCollectionClient.StockRef(it.code, it.name)
+        }
+        client.collect(NewsCollectionClient.Request(targetDate, cutoff, stocks)).news
             .asSequence()
             .filter { it.publishedAt.toLocalDate() == targetDate }
             .filter { !it.publishedAt.isAfter(cutoff) }

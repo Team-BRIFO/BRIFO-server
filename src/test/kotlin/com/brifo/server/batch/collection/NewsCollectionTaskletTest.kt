@@ -35,7 +35,15 @@ class NewsCollectionTaskletTest {
         val candidate = news("candidate", LocalDateTime.of(2026, 8, 3, 11, 0))
         val tooLate = news("late", LocalDateTime.of(2026, 8, 3, 12, 0))
         `when`(stockRepository.findAllByIsActiveTrueOrderByCode()).thenReturn(listOf(stock))
-        `when`(client.collect(NewsCollectionClient.Request(targetDate, targetDate.atTime(11, 30), listOf("BRF001"))))
+        `when`(
+            client.collect(
+                NewsCollectionClient.Request(
+                    targetDate,
+                    targetDate.atTime(11, 30),
+                    listOf(NewsCollectionClient.StockRef("BRF001", "브리포주식")),
+                ),
+            ),
+        )
             .thenReturn(NewsCollectionClient.Result(listOf(existing, candidate, tooLate)))
         `when`(newsRepository.existsByDedupKey("existing")).thenReturn(true)
         `when`(newsRepository.existsByDedupKey("candidate")).thenReturn(false)

@@ -5,10 +5,8 @@ import com.brifo.server.briefing.client.BriefingAnalysisClient
 import com.brifo.server.externalapi.log.service.ExternalApiCallLogService
 import com.brifo.server.news.client.AiNewsCardGenerationClient
 import com.brifo.server.news.client.DataServerDisclosureClient
-import com.brifo.server.news.client.DataServerNewsCollectionClient
 import com.brifo.server.news.client.DisclosureClient
 import com.brifo.server.news.client.NewsCardGenerationClient
-import com.brifo.server.news.client.NewsCollectionClient
 import com.brifo.server.stock.client.ClosingPriceClient
 import com.brifo.server.stock.client.CurrentStockPriceClient
 import com.brifo.server.stock.client.DataServerStockPriceClient
@@ -39,24 +37,6 @@ class ExternalHttpClientsUnitTest {
     private val callService = ExternalApiCallService(mock(ExternalApiCallLogService::class.java))
 
     @Test
-    fun `뉴스 수집 종목이 없으면 데이터 서버를 호출하지 않는다`() {
-        val fixture = restClient()
-        val client = DataServerNewsCollectionClient(fixture.client, callService)
-
-        val result =
-            client.collect(
-                NewsCollectionClient.Request(
-                    LocalDate.of(2026, 8, 9),
-                    LocalDate.of(2026, 8, 9).atTime(11, 30),
-                    emptyList(),
-                ),
-            )
-
-        assertTrue(result.news.isEmpty())
-        fixture.server.verify()
-    }
-
-    @Test
     fun `데이터 서버 현재가와 종가 응답을 도메인 결과로 변환한다`() {
         val fixture = restClient()
         val client = DataServerStockPriceClient(
@@ -77,27 +57,6 @@ class ExternalHttpClientsUnitTest {
         assertNull(current.priceChange)
         assertEquals(BigDecimal("17.96"), current.changeRate)
         assertEquals(BigDecimal("31850.00"), closing.price)
-        fixture.server.verify()
-    }
-
-    @Test
-    fun `데이터 서버 뉴스의 URL과 이미지를 매핑한다`() {
-        val fixture = restClient()
-        val client = DataServerNewsCollectionClient(fixture.client, callService)
-        fixture.server.expect(requestTo("http://data-server/api/stocks/BRIFO01/news?date=2026-08-09"))
-            .andRespond(withSuccess(newsResponse(), MediaType.APPLICATION_JSON))
-
-        val result = client.collect(
-            NewsCollectionClient.Request(
-                LocalDate.of(2026, 8, 9),
-                LocalDate.of(2026, 8, 9).atTime(11, 30),
-                listOf("BRIFO01"),
-            ),
-        ).news.single()
-
-        assertEquals("https://data.example/news/1", result.sourceUrl)
-        assertEquals("https://cdn.example/news/1.webp", result.sourceImageUrl)
-        assertEquals("data-server:0198d73d-5df0-7000-8000-000000000001", result.dedupKey)
         fixture.server.verify()
     }
 
@@ -162,9 +121,6 @@ class ExternalHttpClientsUnitTest {
 
     private fun priceResponse(date: String) =
         """{"success":true,"code":"COMMON_200","message":"성공","result":{"stock":{"name":"브리포테크","sector":"브리포","code":"BRIFO01"},"stockPrice":{"price":31850.00,"changeRate":17.96,"tradeDate":"$date"}}}"""
-
-    private fun newsResponse() =
-        """{"success":true,"code":"COMMON_200","message":"성공","result":{"stock":{"name":"브리포테크","sector":"브리포","code":"BRIFO01"},"news":[{"newsId":"0198d73d-5df0-7000-8000-000000000001","title":"뉴스","content":"본문","sourceUrl":"https://data.example/news/1","imageUrl":"https://cdn.example/news/1.webp","publishedAt":"2026-08-09T09:00:00"}]}}"""
 
     private fun disclosureResponse() =
         """{"success":true,"code":"COMMON_200","message":"성공","result":{"stock":{"name":"브리포테크","sector":"브리포","code":"BRIFO01"},"disclosure":{"hasDisclosure":false}}}"""
