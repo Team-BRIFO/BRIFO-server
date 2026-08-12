@@ -26,7 +26,8 @@ class NewsCardQueryRepositoryImpl(
             .where(
                 stock.publicId.eq(stockPublicId),
                 newsCard.displayDate.eq(displayDate),
-            ).orderBy(newsCard.id.asc())
+            ).orderBy(newsCard.id.desc())
+            .limit(NEWS_CARD_LIMIT)
             .fetch()
 
     override fun findDistinctStockIdsByDisplayDate(displayDate: LocalDate): List<Long> =
@@ -37,4 +38,8 @@ class NewsCardQueryRepositoryImpl(
             .where(newsCard.displayDate.eq(displayDate))
             .orderBy(newsCard.news.stock.id.asc())
             .fetch()
+
+    private companion object {
+        const val NEWS_CARD_LIMIT = 2L
+    }
 }
