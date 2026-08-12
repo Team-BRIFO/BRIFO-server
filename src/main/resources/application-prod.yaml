@@ -54,3 +54,6 @@ external:
   ai:
     base-url: ${AI_BASE_URL}
     api-key: ${AI_INTERNAL_API_KEY}
+  naver:
+    client-id: ${NAVER_NEWS_CLIENT_ID}
+    client-secret: ${NAVER_NEWS_CLIENT_SECRET}

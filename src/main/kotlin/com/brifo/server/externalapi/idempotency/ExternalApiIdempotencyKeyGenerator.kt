@@ -14,8 +14,6 @@ object ExternalApiIdempotencyKeyGenerator {
 
     fun newsCollection(stockCode: String, targetDate: LocalDate) = "news-collection:$stockCode:$targetDate"
 
-    fun disclosure(stockCode: String, date: LocalDate) = "disclosure:$stockCode:$date"
-
     // 뉴스 한 건의 카드뉴스 생성 작업을 구분한다.
     fun cardNews(newsId: UUID) = "card-news:$newsId"
 

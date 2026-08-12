@@ -16,10 +16,6 @@ enum class ExternalApiCallPolicy(
         timeout = Duration.ofSeconds(5),
         maxRetries = 1,
     ),
-    DISCLOSURE(
-        timeout = Duration.ofSeconds(5),
-        maxRetries = 1,
-    ),
     // FastAPI 서버 정책
     AI_CARD_NEWS(
         timeout = Duration.ofSeconds(15),

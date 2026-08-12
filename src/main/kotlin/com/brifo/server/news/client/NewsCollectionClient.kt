@@ -10,7 +10,12 @@ interface NewsCollectionClient {
     data class Request(
         val targetDate: LocalDate,
         val publishedUntil: LocalDateTime,
-        val stockCodes: List<String>,
+        val stocks: List<StockRef>,
+    )
+
+    data class StockRef(
+        val code: String,
+        val name: String,
     )
 
     data class Result(

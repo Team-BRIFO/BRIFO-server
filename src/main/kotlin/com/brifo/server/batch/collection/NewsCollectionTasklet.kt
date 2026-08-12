@@ -1,6 +1,5 @@
 package com.brifo.server.batch.collection
 
-import com.brifo.server.news.client.DisclosureClient
 import com.brifo.server.news.client.NewsCollectionClient
 import com.brifo.server.news.entity.News
 import com.brifo.server.news.repository.NewsRepository
@@ -15,7 +14,7 @@ class NewsCollectionTasklet(
     private val targetDate: LocalDate,
     private val collectionRound: CollectionRound,
     private val client: NewsCollectionClient,
-    private val disclosureClient: DisclosureClient,
+    private val disclosureKeywordDetector: DisclosureKeywordDetector,
     private val stockRepository: StockRepository,
     private val newsRepository: NewsRepository,
     private val importanceCalculator: NewsImportanceCalculator,
@@ -25,9 +24,10 @@ class NewsCollectionTasklet(
         chunkContext: ChunkContext,
     ): RepeatStatus {
         val cutoff = collectionRound.cutoffAt(targetDate)
-        val disclosureByStockCode = mutableMapOf<String, Boolean>()
-        val stockCodes = stockRepository.findAllByIsActiveTrueOrderByCode().map { it.code }
-        client.collect(NewsCollectionClient.Request(targetDate, cutoff, stockCodes)).news
+        val stocks = stockRepository.findAllByIsActiveTrueOrderByCode().map {
+            NewsCollectionClient.StockRef(it.code, it.name)
+        }
+        client.collect(NewsCollectionClient.Request(targetDate, cutoff, stocks)).news
             .asSequence()
             .filter { it.publishedAt.toLocalDate() == targetDate }
             .filter { !it.publishedAt.isAfter(cutoff) }
@@ -38,16 +38,7 @@ class NewsCollectionTasklet(
                 }
                 val importance = importanceCalculator.calculate(
                     round = CollectionRound.fromPublishedAt(collected.publishedAt),
-                    hasDisclosure =
-                        disclosureByStockCode.getOrPut(stock.code) {
-                            disclosureClient.exists(
-                                DisclosureClient.Request(
-                                    stockId = stock.id,
-                                    stockCode = stock.code,
-                                    date = targetDate,
-                                ),
-                            )
-                        },
+                    hasDisclosure = disclosureKeywordDetector.matches(collected.title, collected.summary),
                 )
                 newsRepository.save(
                     News.create(
