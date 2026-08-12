@@ -3,7 +3,6 @@ package com.brifo.server.batch.generation
 import com.brifo.server.batch.collection.CollectionRound
 import com.brifo.server.batch.collection.NewsCollectionJobConfiguration
 import com.brifo.server.batch.common.BatchJobParameters
-import com.brifo.server.batch.common.BusinessDateCalculator
 import com.brifo.server.news.repository.NewsRepository
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.BatchStatus
@@ -26,15 +25,14 @@ class NewsCardGenerationScheduler(
     @Qualifier(NewsCardGenerationJobConfiguration.JOB_NAME)
     private val job: Job,
     private val newsRepository: NewsRepository,
-    private val businessDateCalculator: BusinessDateCalculator,
     private val clock: Clock,
 ) {
     private val deferredTargetDates: MutableSet<LocalDate> = ConcurrentHashMap.newKeySet()
 
-    @Scheduled(cron = "0 0 0 * * MON-FRI", zone = SEOUL_ZONE)
+    @Scheduled(cron = "0 0 0 * * *", zone = SEOUL_ZONE)
     fun generate() {
         val displayDate = LocalDate.now(clock)
-        val targetDate = businessDateCalculator.previousBusinessDay(displayDate)
+        val targetDate = displayDate.minusDays(1)
         if (!closingCollectionCompleted(targetDate)) {
             deferredTargetDates.add(targetDate)
             log.warn("마감 수집 완료 후 카드뉴스 생성을 재시도합니다. targetDate={}", targetDate)

@@ -1,7 +1,6 @@
 package com.brifo.server.batch.dev
 
 import com.brifo.server.batch.collection.CollectionRound
-import com.brifo.server.batch.common.BusinessDateCalculator
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
@@ -21,8 +20,7 @@ import kotlin.test.assertTrue
 class DevBatchCleanupServiceTest {
     private val jdbc = mock(NamedParameterJdbcTemplate::class.java)
     private val queryRepository = mock(DevBatchCleanupQueryRepository::class.java)
-    private val businessDateCalculator = mock(BusinessDateCalculator::class.java)
-    private val service = DevBatchCleanupService(jdbc, queryRepository, businessDateCalculator)
+    private val service = DevBatchCleanupService(jdbc, queryRepository)
 
     @Test
     fun `수집 정리는 파생 데이터를 FK 역순으로 삭제한다`() {

@@ -19,13 +19,13 @@ class NewsCollectionScheduler(
     private val job: Job,
     private val clock: Clock,
 ) {
-    @Scheduled(cron = "0 0 7 * * MON-FRI", zone = SEOUL_ZONE)
+    @Scheduled(cron = "0 0 7 * * *", zone = SEOUL_ZONE)
     fun collectMorning() = launch(CollectionRound.MORNING)
 
-    @Scheduled(cron = "0 30 11 * * MON-FRI", zone = SEOUL_ZONE)
+    @Scheduled(cron = "0 30 11 * * *", zone = SEOUL_ZONE)
     fun collectMidday() = launch(CollectionRound.MIDDAY)
 
-    @Scheduled(cron = "0 40 15 * * MON-FRI", zone = SEOUL_ZONE)
+    @Scheduled(cron = "0 40 15 * * *", zone = SEOUL_ZONE)
     fun collectClosing() = launch(CollectionRound.CLOSING)
 
     private fun launch(round: CollectionRound) {
