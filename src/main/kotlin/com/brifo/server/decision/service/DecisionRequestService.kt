@@ -89,10 +89,10 @@ class DecisionRequestService(
         if (confidenceLevel !in 1..5) {
             throw BusinessException(ErrorCode.INVALID_REQUEST)
         }
-        if (
-            devBehaviorProperties.decisionRequestCutoffEnabled &&
-            !DecisionMarketPolicy.isRegistrationOpen(requestedAt)
-        ) {
+        if (!DecisionMarketPolicy.isBusinessDay(requestedAt)) {
+            throw DecisionRequestClosedException()
+        }
+        if (devBehaviorProperties.decisionRequestCutoffEnabled && !DecisionMarketPolicy.isRegistrationOpen(requestedAt)) {
             throw DecisionRequestClosedException()
         }
     }

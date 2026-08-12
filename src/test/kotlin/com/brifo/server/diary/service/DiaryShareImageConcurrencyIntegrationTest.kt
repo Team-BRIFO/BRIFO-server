@@ -55,15 +55,17 @@ class DiaryShareImageConcurrencyIntegrationTest {
     fun `동일 일기의 동시 요청은 이미지를 한 번만 업로드한다`() {
         val fixture = transactionTemplate.execute { createDiaryFixture() }!!
         val file = ShareImageFile(byteArrayOf(1, 2, 3), "image/png", "png")
-        val imageUrl = "https://cdn.brifo.app/diary-share-images/${fixture.diaryPublicId}.png"
+        val imageKey = "${fixture.diaryPublicId}.png"
+        val imageUrl = "https://s3.example.com/$imageKey?signature=test"
         val uploadStarted = CountDownLatch(1)
         val releaseUpload = CountDownLatch(1)
         `when`(renderer.render(anyKotlin())).thenReturn(file)
         `when`(storage.store(fixture.diaryPublicId, file)).thenAnswer {
             uploadStarted.countDown()
             check(releaseUpload.await(5, TimeUnit.SECONDS)) { "concurrent request did not start" }
-            imageUrl
+            imageKey
         }
+        `when`(storage.createDownloadUrl(imageKey)).thenReturn(imageUrl)
 
         val ready = CountDownLatch(2)
         val start = CountDownLatch(1)
@@ -93,7 +95,7 @@ class DiaryShareImageConcurrencyIntegrationTest {
             transactionTemplate.execute {
                 repository.findOwnedByPublicIdForUpdate(fixture.userPublicId, fixture.diaryPublicId)
             }!!
-        assertEquals(imageUrl, diary.shareImageUrl)
+        assertEquals(imageKey, diary.shareImageUrl)
         assertNotNull(diary.shareImageCreatedAt)
     }
 

@@ -11,8 +11,10 @@ import com.brifo.server.diary.repository.DiaryCalendarRow
 import com.brifo.server.diary.repository.DiaryEntryRepository
 import com.brifo.server.diary.repository.DiaryDetailRow
 import com.brifo.server.diary.repository.DiaryListRow
+import com.brifo.server.diary.share.ShareImageStorage
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -26,10 +28,12 @@ import kotlin.test.assertTrue
 
 class DiaryServiceTest {
     private val repository = mock(DiaryEntryRepository::class.java)
+    private val shareImageStorage = mock(ShareImageStorage::class.java)
     private val service = DiaryService(
         repository,
         mock(AgentRepository::class.java),
         mock(DiaryStatsCalculator::class.java),
+        shareImageStorage,
     )
     private val userId = UUID.randomUUID()
 
@@ -73,10 +77,12 @@ class DiaryServiceTest {
     @Test
     fun `상세 등락률은 소수점 한 자리로 반올림한다`() {
         val diaryId = UUID.randomUUID()
+        val imageKey = "$diaryId.png"
+        val imageUrl = "https://s3.example.com/$imageKey?signature=test"
         `when`(repository.findDiaryDetail(userId, diaryId)).thenReturn(
             DiaryDetailRow(
                 diaryId = diaryId,
-                shareImageUrl = null,
+                shareImageUrl = imageKey,
                 stockId = UUID.randomUUID(),
                 stockName = "삼성전자",
                 changeRate = BigDecimal("2.55"),
@@ -90,10 +96,25 @@ class DiaryServiceTest {
                 confidenceLevel = 4,
             ),
         )
+        `when`(shareImageStorage.createDownloadUrl(imageKey)).thenReturn(imageUrl)
 
         val detail = service.getDiaryDetail(userId, diaryId)
 
         assertEquals(BigDecimal("2.6"), detail.stock.changeRate)
+        assertEquals(imageUrl, detail.shareImageUrl)
+    }
+
+    @Test
+    fun `상세 조회에서 기존 공개 URL은 presign하지 않는다`() {
+        val diaryId = UUID.randomUUID()
+        `when`(repository.findDiaryDetail(userId, diaryId)).thenReturn(
+            detailRow(diaryId, "https://s3.example.com/$diaryId.png"),
+        )
+
+        val detail = service.getDiaryDetail(userId, diaryId)
+
+        assertNull(detail.shareImageUrl)
+        verifyNoInteractions(shareImageStorage)
     }
 
     @Test
@@ -140,4 +161,23 @@ class DiaryServiceTest {
         direction: DecisionDirection,
         isCorrect: Boolean,
     ) = DiaryCalendarRow(LocalDateTime.of(2026, 7, day, 10, 0), direction, isCorrect)
+
+    private fun detailRow(
+        diaryId: UUID,
+        shareImageUrl: String?,
+    ) = DiaryDetailRow(
+        diaryId = diaryId,
+        shareImageUrl = shareImageUrl,
+        stockId = UUID.randomUUID(),
+        stockName = "삼성전자",
+        changeRate = BigDecimal("2.55"),
+        agentId = UUID.randomUUID(),
+        agentType = AgentType.ROOKIE,
+        agentNickname = "루키",
+        briefingId = UUID.randomUUID(),
+        briefingDirection = BriefingDirection.UP,
+        briefingConfidenceRate = 72,
+        isCorrect = true,
+        confidenceLevel = 4,
+    )
 }

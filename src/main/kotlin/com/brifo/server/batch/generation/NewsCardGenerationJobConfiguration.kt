@@ -3,9 +3,7 @@ package com.brifo.server.batch.generation
 import com.brifo.server.batch.common.BatchJobParameters
 import com.brifo.server.batch.common.BatchProperties
 import com.brifo.server.batch.common.BatchRestartListener
-import com.brifo.server.batch.common.BusinessDateCalculator
 import com.brifo.server.batch.common.IdListItemReader
-import com.brifo.server.global.config.DevBehaviorProperties
 import com.brifo.server.news.client.NewsCardGenerationClient
 import com.brifo.server.news.repository.NewsCardRepository
 import com.brifo.server.news.repository.NewsRepository
@@ -100,16 +98,9 @@ class NewsCardGenerationJobConfiguration {
     @StepScope
     fun newsCardGenerationWriter(
         @Value("#{jobParameters['${BatchJobParameters.TARGET_DATE}']}") targetDateValue: String,
-        businessDateCalculator: BusinessDateCalculator,
-        devBehaviorProperties: DevBehaviorProperties?,
         persistenceService: NewsCardPersistenceService,
     ): ItemWriter<GeneratedNewsCardItem> {
-        val targetDate = LocalDate.parse(targetDateValue)
-        val displayDate = if (devBehaviorProperties?.useTargetDateAsDisplayDate == true) {
-            targetDate
-        } else {
-            businessDateCalculator.nextBusinessDay(targetDate)
-        }
+        val displayDate = LocalDate.parse(targetDateValue).plusDays(1)
         return ItemWriter { chunk -> chunk.forEach { persistenceService.save(it, displayDate) } }
     }
 
@@ -117,27 +108,17 @@ class NewsCardGenerationJobConfiguration {
     @StepScope
     fun newsCardNotificationTasklet(
         @Value("#{jobParameters['${BatchJobParameters.TARGET_DATE}']}") targetDateValue: String,
-        businessDateCalculator: BusinessDateCalculator,
-        devBehaviorProperties: DevBehaviorProperties?,
         newsCardRepository: NewsCardRepository,
         userStockRepository: UserStockRepository,
         notificationRepository: NotificationRepository,
         notificationCreationService: NotificationCreationService,
-    ): Tasklet {
-        val targetDate = LocalDate.parse(targetDateValue)
-        val displayDate = if (devBehaviorProperties?.useTargetDateAsDisplayDate == true) {
-            targetDate
-        } else {
-            businessDateCalculator.nextBusinessDay(targetDate)
-        }
-        return NewsCardNotificationTasklet(
-            displayDate = displayDate,
-            newsCardRepository = newsCardRepository,
-            userStockRepository = userStockRepository,
-            notificationRepository = notificationRepository,
-            notificationCreationService = notificationCreationService,
-        )
-    }
+    ): Tasklet = NewsCardNotificationTasklet(
+        displayDate = LocalDate.parse(targetDateValue).plusDays(1),
+        newsCardRepository = newsCardRepository,
+        userStockRepository = userStockRepository,
+        notificationRepository = notificationRepository,
+        notificationCreationService = notificationCreationService,
+    )
 
     companion object {
         const val JOB_NAME = "newsCardGenerationJob"
