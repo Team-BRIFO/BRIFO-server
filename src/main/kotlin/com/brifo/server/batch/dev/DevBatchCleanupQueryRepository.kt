@@ -21,14 +21,14 @@ class DevBatchCleanupQueryRepository(
 ) {
     fun findNewsIdsPublishedBetween(
         fromInclusive: LocalDateTime,
-        toInclusive: LocalDateTime,
+        toExclusive: LocalDateTime,
     ): List<Long> =
         queryFactory
             .select(news.id)
             .from(news)
             .where(
                 news.publishedAt.goe(fromInclusive),
-                news.publishedAt.loe(toInclusive),
+                news.publishedAt.lt(toExclusive),
             ).fetch()
 
     fun findGenerationNewsIds(

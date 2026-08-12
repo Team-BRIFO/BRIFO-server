@@ -52,7 +52,7 @@ class NewsCardGenerationScheduler(
     }
 
     private fun generate(targetDate: LocalDate): Boolean {
-        if (newsRepository.findGenerationCandidateIds(targetDate.atStartOfDay(), targetDate.plusDays(1).atStartOfDay()).isEmpty()) {
+        if (newsRepository.findGenerationCandidateIds().isEmpty()) {
             log.info("생성 대상 뉴스가 없어 카드뉴스 생성을 건너뜁니다. targetDate={}", targetDate)
             return true
         }

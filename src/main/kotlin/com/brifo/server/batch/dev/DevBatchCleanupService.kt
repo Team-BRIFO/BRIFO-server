@@ -1,6 +1,5 @@
 package com.brifo.server.batch.dev
 
-import com.brifo.server.batch.collection.CollectionRound
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Profile
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
@@ -17,13 +16,10 @@ class DevBatchCleanupService(
     private val queryRepository: DevBatchCleanupQueryRepository,
 ) {
     @Transactional
-    fun cleanupForCollection(
-        targetDate: LocalDate,
-        round: CollectionRound,
-    ): DevBatchCleanupResult {
+    fun cleanupForCollection(targetDate: LocalDate): DevBatchCleanupResult {
         val newsIds = queryRepository.findNewsIdsPublishedBetween(
             fromInclusive = targetDate.atStartOfDay(),
-            toInclusive = round.cutoffAt(targetDate),
+            toExclusive = targetDate.plusDays(1).atStartOfDay(),
         )
         val cleanup = cleanupNewsCards(newsIds)
         val deletedNews = jdbc.updateByIds("DELETE FROM news WHERE id IN (:ids)", newsIds)

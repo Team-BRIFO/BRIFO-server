@@ -50,13 +50,13 @@ class DevBatchService(
 ) {
     @Synchronized
     fun rerunNewsCollection(
-        request: DevNewsCollectionBatchRequest,
+        request: DevDateBatchRequest,
     ): DevBatchRunResponse {
         verifyPassword(request.password)
-        cleanupService.cleanupForCollection(request.targetDate, request.collectionRound)
+        cleanupService.cleanupForCollection(request.targetDate)
         val execution = jobOperator.start(
             newsCollectionJob,
-            BatchJobParameters.forDevCollection(request.targetDate, request.collectionRound.name),
+            BatchJobParameters.forDevCollection(request.targetDate),
         )
         return execution.toResponse()
     }

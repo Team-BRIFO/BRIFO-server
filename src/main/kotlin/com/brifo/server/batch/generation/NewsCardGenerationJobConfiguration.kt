@@ -76,14 +76,8 @@ class NewsCardGenerationJobConfiguration {
     @Bean
     @StepScope
     fun newsCardGenerationReader(
-        @Value("#{jobParameters['${BatchJobParameters.TARGET_DATE}']}") targetDateValue: String,
         newsRepository: NewsRepository,
-    ): ItemReader<Long> {
-        val targetDate = LocalDate.parse(targetDateValue)
-        return IdListItemReader(
-            newsRepository.findGenerationCandidateIds(targetDate.atStartOfDay(), targetDate.plusDays(1).atStartOfDay()),
-        )
-    }
+    ): ItemReader<Long> = IdListItemReader(newsRepository.findGenerationCandidateIds())
 
     @Bean
     @StepScope
