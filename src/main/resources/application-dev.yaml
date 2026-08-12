@@ -16,7 +16,6 @@ app:
     briefing-time-restrictions-enabled: false
     decision-request-cutoff-enabled: false
     immediate-decision-settlement: true
-    use-target-date-as-display-date: true
   auth:
     signup-cookie:
       secure: false
