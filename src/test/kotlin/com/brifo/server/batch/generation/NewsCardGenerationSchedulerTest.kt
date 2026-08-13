@@ -1,5 +1,6 @@
 package com.brifo.server.batch.generation
 
+import com.brifo.server.batch.common.BatchProperties
 import com.brifo.server.news.repository.NewsRepository
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.any
@@ -16,7 +17,6 @@ import org.springframework.batch.core.launch.JobOperator
 import org.springframework.batch.core.repository.JobRepository
 import java.time.Clock
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 
 class NewsCardGenerationSchedulerTest {
@@ -30,19 +30,20 @@ class NewsCardGenerationSchedulerTest {
         val collectionExecution = mock(JobExecution::class.java)
         val generationExecution = mock(JobExecution::class.java)
         val clock = Clock.fixed(Instant.parse("2026-07-20T00:00:00Z"), ZoneId.of("Asia/Seoul"))
-        val targetDate = LocalDate.of(2026, 7, 19)
+        val batchProperties = BatchProperties()
         val scheduler = NewsCardGenerationScheduler(
             jobOperator,
             jobRepository,
             job,
             newsRepository,
             clock,
+            batchProperties,
         )
         `when`(jobRepository.getJobInstance(any(String::class.java), any(JobParameters::class.java))).thenReturn(instance)
         `when`(jobRepository.getLastJobExecution(instance)).thenReturn(collectionExecution)
         `when`(collectionExecution.status).thenReturn(BatchStatus.COMPLETED)
         `when`(
-            newsRepository.findGenerationCandidateIds(targetDate.atStartOfDay(), targetDate.plusDays(1).atStartOfDay()),
+            newsRepository.findGenerationCandidateIds(batchProperties.defaultWatchlistCodes),
         ).thenReturn(listOf(1L))
         `when`(jobOperator.start(any(Job::class.java), any(JobParameters::class.java)))
             .thenThrow(IllegalStateException("temporary failure"))

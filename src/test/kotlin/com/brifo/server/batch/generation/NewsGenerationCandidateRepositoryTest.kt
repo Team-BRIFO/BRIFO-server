@@ -66,13 +66,25 @@ class NewsGenerationCandidateRepositoryTest {
         entityManager.flush()
         entityManager.clear()
 
-        val candidates = newsRepository.findGenerationCandidateIds(
-            LocalDate.of(2026, 8, 3).atStartOfDay(),
-            LocalDate.of(2026, 8, 4).atStartOfDay(),
-        )
+        val candidates = newsRepository.findGenerationCandidateIds(listOf("NONE"))
 
         assertEquals(listOf(requireNotNull(second.id), requireNotNull(third.id)), candidates)
         assertFalse(requireNotNull(unassociated.id) in candidates)
+    }
+
+    @Test
+    fun `관심종목이 없어도 기본 워치리스트 종목은 생성 대상에 포함한다`() {
+        val watchlistStock = stockRepository.save(Stock.create("BRF003", "기본워치리스트", "금융"))
+        val otherStock = stockRepository.save(Stock.create("BRF004", "그외주식", "금융"))
+        val candidate = saveNews(watchlistStock, "watchlist", "0.90", LocalDateTime.of(2026, 8, 3, 11, 0))
+        val excluded = saveNews(otherStock, "other", "0.90", LocalDateTime.of(2026, 8, 3, 11, 0))
+        entityManager.flush()
+        entityManager.clear()
+
+        val candidates = newsRepository.findGenerationCandidateIds(listOf("BRF003"))
+
+        assertEquals(listOf(requireNotNull(candidate.id)), candidates)
+        assertFalse(requireNotNull(excluded.id) in candidates)
     }
 
     private fun saveNews(

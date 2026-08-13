@@ -77,7 +77,8 @@ class NewsCardGenerationJobConfiguration {
     @StepScope
     fun newsCardGenerationReader(
         newsRepository: NewsRepository,
-    ): ItemReader<Long> = IdListItemReader(newsRepository.findGenerationCandidateIds())
+        properties: BatchProperties,
+    ): ItemReader<Long> = IdListItemReader(newsRepository.findGenerationCandidateIds(properties.defaultWatchlistCodes))
 
     @Bean
     @StepScope
