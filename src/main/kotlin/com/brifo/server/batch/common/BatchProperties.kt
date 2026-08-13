@@ -20,6 +20,11 @@ data class BatchProperties(
         require(!restartDelay.isNegative && !restartDelay.isZero) { "restartDelay는 양수여야 합니다." }
         require(maxExecutions >= 1) { "maxExecutions는 1 이상이어야 합니다." }
         require(defaultWatchlistCodes.isNotEmpty()) { "defaultWatchlistCodes는 최소 1개여야 합니다." }
+        // 빈 문자열은 IN 조건에서 어떤 종목도 잡지 못해, 설정 실수만으로 수집·생성이 다시 멈춘다.
+        // 조용히 0건이 되느니 기동 시점에 실패시킨다.
+        require(defaultWatchlistCodes.none { it.isBlank() }) {
+            "defaultWatchlistCodes에는 빈 종목 코드를 넣을 수 없습니다."
+        }
     }
 
     private companion object {
