@@ -49,6 +49,19 @@ class JwtTokenProvider(
             expiration = properties.signupTokenExpiration,
         )
 
+    fun issueMasterToken(userPublicId: UUID): String {
+        val issuedAt = Instant.now(clock)
+        return Jwts
+            .builder()
+            .id(UUID.randomUUID().toString())
+            .issuer(properties.issuer)
+            .subject(userPublicId.toString())
+            .issuedAt(Date.from(issuedAt))
+            .claim(TOKEN_TYPE_CLAIM, TokenType.MASTER.name)
+            .signWith(signingKey)
+            .compact()
+    }
+
     fun parseSignupToken(token: String): SignupTokenClaims {
         val claims =
             parseClaims(
@@ -87,6 +100,7 @@ class JwtTokenProvider(
             when (claims.get(TOKEN_TYPE_CLAIM, String::class.java)) {
                 TokenType.ACCESS.name -> AuthenticationTokenType.ACCESS
                 TokenType.SIGNUP.name -> AuthenticationTokenType.SIGNUP
+                TokenType.MASTER.name -> AuthenticationTokenType.MASTER
                 else -> throw InvalidJwtTokenException()
             }
         val userPublicId =
@@ -206,12 +220,14 @@ class JwtTokenProvider(
     enum class AuthenticationTokenType {
         ACCESS,
         SIGNUP,
+        MASTER,
     }
 
     private enum class TokenType {
         ACCESS,
         REFRESH,
         SIGNUP,
+        MASTER,
     }
 
     companion object {

@@ -9,6 +9,7 @@ import com.brifo.server.diary.share.DiaryShareImageRenderer
 import com.brifo.server.diary.share.ShareImageStorage
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.math.RoundingMode
 import java.util.UUID
 
 @Service
@@ -30,6 +31,8 @@ class DiaryShareImageService(
                 diaryPublicId,
                 createDownloadUrl(diaryPublicId, existingKey),
                 reused = true,
+                changeRate = row.changeRate.setScale(1, RoundingMode.HALF_UP),
+                tradeDate = row.tradeDate,
             )
         }
 
@@ -60,6 +63,8 @@ class DiaryShareImageService(
             diaryPublicId,
             createDownloadUrl(diaryPublicId, attached.url),
             attached.reused,
+            row.changeRate.setScale(1, RoundingMode.HALF_UP),
+            row.tradeDate,
         )
     }
 

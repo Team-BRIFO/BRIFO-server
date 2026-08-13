@@ -51,6 +51,7 @@ data class DiaryDetailRow(
     val stockId: UUID,
     val stockName: String,
     val changeRate: BigDecimal,
+    val tradeDate: LocalDate,
     val agentId: UUID,
     val agentType: AgentType,
     val agentNickname: String,

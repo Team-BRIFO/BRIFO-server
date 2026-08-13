@@ -93,17 +93,26 @@ class SecurityConfig(
                     .requestMatchers(
                         HttpMethod.PATCH,
                         "/api/onboarding/profile",
-                    ).hasAuthority(JwtAuthenticationFilter.SIGNUP_AUTHORITY)
+                    ).hasAnyAuthority(
+                        JwtAuthenticationFilter.SIGNUP_AUTHORITY,
+                        JwtAuthenticationFilter.MASTER_AUTHORITY,
+                    )
                 it
                     .requestMatchers(
                         HttpMethod.GET,
                         "/api/auth/signup/csrf",
-                    ).hasAuthority(JwtAuthenticationFilter.SIGNUP_AUTHORITY)
+                    ).hasAnyAuthority(
+                        JwtAuthenticationFilter.SIGNUP_AUTHORITY,
+                        JwtAuthenticationFilter.MASTER_AUTHORITY,
+                    )
                 it
                     .requestMatchers(
                         HttpMethod.POST,
                         "/api/onboarding/complete",
-                    ).hasAuthority(JwtAuthenticationFilter.SIGNUP_AUTHORITY)
+                    ).hasAnyAuthority(
+                        JwtAuthenticationFilter.SIGNUP_AUTHORITY,
+                        JwtAuthenticationFilter.MASTER_AUTHORITY,
+                    )
                 it
                     .requestMatchers(
                         HttpMethod.GET,
@@ -113,6 +122,7 @@ class SecurityConfig(
                     ).hasAnyAuthority(
                         JwtAuthenticationFilter.ACCESS_AUTHORITY,
                         JwtAuthenticationFilter.SIGNUP_AUTHORITY,
+                        JwtAuthenticationFilter.MASTER_AUTHORITY,
                     )
                 it
                     .requestMatchers(
@@ -121,8 +131,12 @@ class SecurityConfig(
                     ).hasAnyAuthority(
                         JwtAuthenticationFilter.ACCESS_AUTHORITY,
                         JwtAuthenticationFilter.SIGNUP_AUTHORITY,
+                        JwtAuthenticationFilter.MASTER_AUTHORITY,
                     )
-                it.anyRequest().hasAuthority(JwtAuthenticationFilter.ACCESS_AUTHORITY)
+                it.anyRequest().hasAnyAuthority(
+                    JwtAuthenticationFilter.ACCESS_AUTHORITY,
+                    JwtAuthenticationFilter.MASTER_AUTHORITY,
+                )
             }.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .addFilterAfter(signupCsrfFilter, JwtAuthenticationFilter::class.java)
             .build()
