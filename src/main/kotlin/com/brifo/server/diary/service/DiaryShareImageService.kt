@@ -33,6 +33,7 @@ class DiaryShareImageService(
                 reused = true,
                 changeRate = row.changeRate.setScale(1, RoundingMode.HALF_UP),
                 tradeDate = row.tradeDate,
+                apDelta = row.apDelta,
             )
         }
 
@@ -65,6 +66,7 @@ class DiaryShareImageService(
             attached.reused,
             row.changeRate.setScale(1, RoundingMode.HALF_UP),
             row.tradeDate,
+            row.apDelta,
         )
     }
 

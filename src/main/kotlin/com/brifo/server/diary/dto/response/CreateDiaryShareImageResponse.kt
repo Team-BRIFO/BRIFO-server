@@ -10,4 +10,5 @@ data class CreateDiaryShareImageResponse(
     val reused: Boolean,
     val changeRate: BigDecimal,
     val tradeDate: LocalDate,
+    val apDelta: Int = 0,
 )
