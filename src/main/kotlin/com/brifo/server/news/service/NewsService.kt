@@ -1,8 +1,9 @@
 package com.brifo.server.news.service
 
 import com.brifo.server.news.dto.response.GetNewsCardsResponse
-import com.brifo.server.news.exception.NewsCardNotFoundException
 import com.brifo.server.news.repository.NewsCardRepository
+import com.brifo.server.stock.exception.StockNotFoundException
+import com.brifo.server.stock.repository.StockRepository
 import com.brifo.server.stock.service.StockPriceService
 import com.brifo.server.term.repository.NewsCardTermRepository
 import org.springframework.stereotype.Service
@@ -18,6 +19,7 @@ import java.util.UUID
 class NewsService(
     private val newsCardRepository: NewsCardRepository,
     private val newsCardTermRepository: NewsCardTermRepository,
+    private val stockRepository: StockRepository,
     private val stockPriceService: StockPriceService,
     private val clock: Clock,
 ) {
@@ -25,10 +27,11 @@ class NewsService(
     fun getNewsCards(stockPublicId: UUID): GetNewsCardsResponse {
         val displayDate = LocalDate.now(clock)
         val newsCards = newsCardRepository.findAnalysisCards(stockPublicId, displayDate)
-        if (newsCards.isEmpty()) {
-            throw NewsCardNotFoundException()
-        }
-        val stock = newsCards.first().news.stock
+        // 오늘 카드가 아직 생성되지 않은 것은 정상 상태이므로 404가 아니라 빈 목록으로 응답한다.
+        // 종목 정보는 카드가 없어도 내려줘야 프론트가 헤더와 빈 상태를 함께 그릴 수 있다.
+        val stock = newsCards.firstOrNull()?.news?.stock
+            ?: stockRepository.findByPublicId(stockPublicId)
+            ?: throw StockNotFoundException()
 
         val price = stockPriceService.getCurrentPrice(requireNotNull(stock.id), stock.code)
 

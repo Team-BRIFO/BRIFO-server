@@ -16,12 +16,13 @@ class NewsCollectionTasklet(
     private val stockRepository: StockRepository,
     private val newsRepository: NewsRepository,
     private val importanceCalculator: NewsImportanceCalculator,
+    private val defaultWatchlistCodes: List<String>,
 ) : Tasklet {
     override fun execute(
         contribution: StepContribution,
         chunkContext: ChunkContext,
     ): RepeatStatus {
-        val stocks = stockRepository.findAllInterestedActiveOrderByCode().map {
+        val stocks = stockRepository.findAllCollectionTargets(defaultWatchlistCodes).map {
             NewsCollectionClient.StockRef(it.code, it.name)
         }
         client.collect(NewsCollectionClient.Request(targetDate, stocks)).news

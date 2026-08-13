@@ -3,6 +3,7 @@ package com.brifo.server.batch.generation
 import com.brifo.server.batch.collection.CollectionRound
 import com.brifo.server.batch.collection.NewsCollectionJobConfiguration
 import com.brifo.server.batch.common.BatchJobParameters
+import com.brifo.server.batch.common.BatchProperties
 import com.brifo.server.news.repository.NewsRepository
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.BatchStatus
@@ -26,6 +27,7 @@ class NewsCardGenerationScheduler(
     private val job: Job,
     private val newsRepository: NewsRepository,
     private val clock: Clock,
+    private val batchProperties: BatchProperties,
 ) {
     private val deferredTargetDates: MutableSet<LocalDate> = ConcurrentHashMap.newKeySet()
 
@@ -52,7 +54,7 @@ class NewsCardGenerationScheduler(
     }
 
     private fun generate(targetDate: LocalDate): Boolean {
-        if (newsRepository.findGenerationCandidateIds().isEmpty()) {
+        if (newsRepository.findGenerationCandidateIds(batchProperties.defaultWatchlistCodes).isEmpty()) {
             log.info("생성 대상 뉴스가 없어 카드뉴스 생성을 건너뜁니다. targetDate={}", targetDate)
             return true
         }

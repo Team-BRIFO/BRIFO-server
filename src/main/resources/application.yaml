@@ -49,6 +49,8 @@ app:
     scheduling-enabled: ${BATCH_SCHEDULING_ENABLED:false}
     restart-delay: 10m
     max-executions: 3
+    # 관심종목으로 담은 유저가 없어도 항상 뉴스를 수집·생성할 종목. 기본값은 BatchProperties 참고.
+    default-watchlist-codes: ${BATCH_DEFAULT_WATCHLIST_CODES:005930,000660,373220,207940,005380,000270,068270,005490,035420,035720}
   auth:
     jwt:
       secret-base64: ${JWT_SECRET_BASE64}

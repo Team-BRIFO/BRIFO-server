@@ -53,6 +53,7 @@ class NewsCollectionJobConfiguration {
         stockRepository: StockRepository,
         newsRepository: NewsRepository,
         importanceCalculator: NewsImportanceCalculator,
+        properties: BatchProperties,
     ): Tasklet =
         NewsCollectionTasklet(
             targetDate = LocalDate.parse(targetDate),
@@ -60,6 +61,7 @@ class NewsCollectionJobConfiguration {
             stockRepository = stockRepository,
             newsRepository = newsRepository,
             importanceCalculator = importanceCalculator,
+            defaultWatchlistCodes = properties.defaultWatchlistCodes,
         )
 
     companion object {
