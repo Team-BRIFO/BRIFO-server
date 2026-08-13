@@ -1,5 +1,6 @@
 package com.brifo.server.auth.dev
 
+import com.brifo.server.auth.dto.response.OAuthLoginResponse
 import com.brifo.server.auth.service.OAuthLoginService
 import com.brifo.server.policy.entity.Policy
 import com.brifo.server.policy.repository.PolicyRepository
@@ -10,33 +11,96 @@ import com.brifo.server.user.dto.response.CompleteOnboardingResponse
 import com.brifo.server.user.entity.User
 import com.brifo.server.user.repository.UserRepository
 import com.brifo.server.user.service.UserService
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.Answers
+import org.mockito.Mock
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
+import org.mockito.junit.jupiter.MockitoExtension
 import java.util.UUID
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
+@ExtendWith(MockitoExtension::class)
 class DevAuthServiceTest {
-    private val properties = DevAuthProperties(enabled = true, password = "dev-password")
-    private val oauthLoginService = mock(OAuthLoginService::class.java)
-    private val policyRepository = mock(PolicyRepository::class.java)
-    private val policyService = mock(PolicyService::class.java)
-    private val stockRepository = mock(StockRepository::class.java)
-    private val userRepository = mock(UserRepository::class.java)
-    private val userService = mock(UserService::class.java)
+    private lateinit var oauthLoginService: OAuthLoginService
 
-    private val devAuthService =
-        DevAuthService(
-            properties,
-            oauthLoginService,
-            policyRepository,
-            policyService,
-            stockRepository,
-            userRepository,
-            userService,
-        )
+    @Mock
+    private lateinit var policyRepository: PolicyRepository
+
+    @Mock
+    private lateinit var policyService: PolicyService
+
+    @Mock
+    private lateinit var stockRepository: StockRepository
+
+    @Mock
+    private lateinit var userRepository: UserRepository
+
+    @Mock
+    private lateinit var userService: UserService
+
+    private lateinit var initialApBalanceUpdater: DevInitialApBalanceUpdater
+    private lateinit var service: DevAuthService
+    private var updatedSocialId: String? = null
+    private var updatedBalanceAp: Int? = null
+
+    @BeforeEach
+    fun setUp() {
+        updatedSocialId = null
+        updatedBalanceAp = null
+        oauthLoginService =
+            mock(OAuthLoginService::class.java) { invocation ->
+                if (invocation.method.name == "login") {
+                    OAuthLoginResponse.SignupRequired(signupToken = "signup-token")
+                } else {
+                    Answers.RETURNS_DEFAULTS.answer(invocation)
+                }
+            }
+        initialApBalanceUpdater =
+            mock(DevInitialApBalanceUpdater::class.java) { invocation ->
+                if (invocation.method.name == "update") {
+                    updatedSocialId = invocation.arguments[0] as String
+                    updatedBalanceAp = invocation.arguments[1] as Int
+                    null
+                } else {
+                    Answers.RETURNS_DEFAULTS.answer(invocation)
+                }
+            }
+        service =
+            DevAuthService(
+                properties = DevAuthProperties(enabled = true, password = "password"),
+                oauthLoginService = oauthLoginService,
+                policyRepository = policyRepository,
+                policyService = policyService,
+                stockRepository = stockRepository,
+                userRepository = userRepository,
+                userService = userService,
+                initialApBalanceUpdater = initialApBalanceUpdater,
+            )
+    }
+
+    @Test
+    fun `초기 AP를 지정하면 사용자 잔액과 최초 지급 거래를 함께 조정한다`() {
+        val response = service.signUp(DevSignUpRequest("password", initialBalanceAp = 15))
+
+        assertEquals("signup-token", response.signupToken)
+        assertEquals(15, updatedBalanceAp)
+        assertTrue(checkNotNull(updatedSocialId).startsWith("dev:"))
+    }
+
+    @Test
+    fun `초기 AP를 생략하면 기존 최초 지급 잔액을 유지한다`() {
+        val response = service.signUp(DevSignUpRequest("password"))
+
+        assertEquals("signup-token", response.signupToken)
+        verifyNoInteractions(initialApBalanceUpdater)
+    }
 
     @Test
     fun `dev 온보딩은 비활성화된 데모 종목이 아닌 실제 활성 종목 코드를 조회한다`() {
@@ -45,7 +109,6 @@ class DevAuthServiceTest {
         `when`(user.socialId).thenReturn("dev:$userPublicId")
         `when`(userRepository.findByPublicId(userPublicId)).thenReturn(user)
 
-        // R__stocks.sql / V94 마이그레이션 이후 실제로 존재하는 활성 종목 코드
         val activeCodes = listOf("005930", "000660", "035420")
         activeCodes.forEach { code ->
             val stock = mock(Stock::class.java)
@@ -61,11 +124,10 @@ class DevAuthServiceTest {
         val response = mock(CompleteOnboardingResponse::class.java)
         `when`(userService.completeOnboarding(userPublicId)).thenReturn(response)
 
-        val result = devAuthService.completeOnboarding(userPublicId)
+        val result = service.completeOnboarding(userPublicId)
 
         assertEquals(response, result)
         activeCodes.forEach { code -> verify(stockRepository).findByCode(code) }
-        // V94 마이그레이션으로 비활성화된 데모 종목은 더 이상 조회하지 않는다.
         listOf("BRIFO01", "BRIFO02", "BRIFO03").forEach { code ->
             verify(stockRepository, never()).findByCode(code)
         }
