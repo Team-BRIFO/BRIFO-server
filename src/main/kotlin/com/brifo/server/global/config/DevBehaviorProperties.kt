@@ -11,7 +11,6 @@ data class DevBehaviorProperties(
     val briefingTimeRestrictionsEnabled: Boolean = true,
     val decisionRequestCutoffEnabled: Boolean = true,
     val immediateDecisionSettlement: Boolean = false,
-    val useTargetDateAsDisplayDate: Boolean = false,
 )
 
 @Configuration

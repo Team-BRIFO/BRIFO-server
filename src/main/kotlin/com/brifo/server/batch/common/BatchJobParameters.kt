@@ -32,13 +32,9 @@ object BatchJobParameters {
             .addString(DEV_RUN_ID, java.util.UUID.randomUUID().toString(), true)
             .toJobParameters()
 
-    fun forDevCollection(
-        targetDate: LocalDate,
-        collectionRound: String,
-    ): JobParameters =
+    fun forDevCollection(targetDate: LocalDate): JobParameters =
         JobParametersBuilder()
             .addString(TARGET_DATE, targetDate.toString(), true)
-            .addString(COLLECTION_ROUND, collectionRound, true)
             .addString(DEV_RUN_ID, java.util.UUID.randomUUID().toString(), true)
             .toJobParameters()
 }

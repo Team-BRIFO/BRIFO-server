@@ -3,7 +3,7 @@ package com.brifo.server.batch.generation
 import com.brifo.server.batch.collection.CollectionRound
 import com.brifo.server.batch.collection.NewsCollectionJobConfiguration
 import com.brifo.server.batch.common.BatchJobParameters
-import com.brifo.server.batch.common.BusinessDateCalculator
+import com.brifo.server.batch.common.BatchProperties
 import com.brifo.server.news.repository.NewsRepository
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.BatchStatus
@@ -26,21 +26,23 @@ class NewsCardGenerationScheduler(
     @Qualifier(NewsCardGenerationJobConfiguration.JOB_NAME)
     private val job: Job,
     private val newsRepository: NewsRepository,
-    private val businessDateCalculator: BusinessDateCalculator,
     private val clock: Clock,
+    private val batchProperties: BatchProperties,
 ) {
     private val deferredTargetDates: MutableSet<LocalDate> = ConcurrentHashMap.newKeySet()
 
-    @Scheduled(cron = "0 0 0 * * MON-FRI", zone = SEOUL_ZONE)
+    @Scheduled(cron = "0 10 0 * * *", zone = SEOUL_ZONE)
     fun generate() {
         val displayDate = LocalDate.now(clock)
-        val targetDate = businessDateCalculator.previousBusinessDay(displayDate)
+        val targetDate = displayDate.minusDays(1)
         if (!closingCollectionCompleted(targetDate)) {
             deferredTargetDates.add(targetDate)
             log.warn("마감 수집 완료 후 카드뉴스 생성을 재시도합니다. targetDate={}", targetDate)
             return
         }
-        generate(targetDate)
+        if (!generate(targetDate)) {
+            deferredTargetDates.add(targetDate)
+        }
     }
 
     @Scheduled(fixedDelayString = "\${app.batch.generation-retry-delay-ms:60000}")
@@ -52,7 +54,7 @@ class NewsCardGenerationScheduler(
     }
 
     private fun generate(targetDate: LocalDate): Boolean {
-        if (newsRepository.findGenerationCandidateIds(targetDate.atStartOfDay(), targetDate.plusDays(1).atStartOfDay()).isEmpty()) {
+        if (newsRepository.findGenerationCandidateIds(batchProperties.defaultWatchlistCodes).isEmpty()) {
             log.info("생성 대상 뉴스가 없어 카드뉴스 생성을 건너뜁니다. targetDate={}", targetDate)
             return true
         }

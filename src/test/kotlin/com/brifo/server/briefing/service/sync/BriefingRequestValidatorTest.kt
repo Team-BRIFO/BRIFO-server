@@ -7,6 +7,8 @@ import com.brifo.server.briefing.service.sync.BriefingRequestValidator
 import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.exception.BusinessException
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.time.LocalDateTime
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -40,7 +42,17 @@ class BriefingRequestValidatorTest {
     @Test
     fun `오후 세 시 이십 분부터 요청이 마감된다`() {
         val exception = assertFailsWith<BriefingRequestClosedException> {
-            validator.validate(command(requestedAt = LocalDateTime.of(2026, 7, 18, 15, 20)))
+            validator.validate(command(requestedAt = LocalDateTime.of(2026, 7, 21, 15, 20)))
+        }
+
+        assertEquals(BriefingErrorCode.BRIEFING_REQUEST_CLOSED, exception.errorCode)
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["2026-07-18T10:00:00", "2026-07-19T10:00:00"])
+    fun `주말에는 브리핑을 요청할 수 없다`(requestedAt: LocalDateTime) {
+        val exception = assertFailsWith<BriefingRequestClosedException> {
+            validator.validate(command(requestedAt = requestedAt))
         }
 
         assertEquals(BriefingErrorCode.BRIEFING_REQUEST_CLOSED, exception.errorCode)
@@ -56,7 +68,7 @@ class BriefingRequestValidatorTest {
 
     private fun command(
         agentPublicIds: List<UUID> = listOf(UUID.randomUUID()),
-        requestedAt: LocalDateTime = LocalDateTime.of(2026, 7, 18, 15, 19, 59),
+        requestedAt: LocalDateTime = LocalDateTime.of(2026, 7, 21, 15, 19, 59),
     ): BriefingRequestTask.Command =
         BriefingRequestTask.Command(
             userPublicId = UUID.randomUUID(),

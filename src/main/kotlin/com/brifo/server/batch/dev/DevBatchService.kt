@@ -6,6 +6,7 @@ import com.brifo.server.batch.common.BatchJobParameters
 import com.brifo.server.batch.generation.NewsCardGenerationItemProcessor
 import com.brifo.server.batch.generation.NewsCardGenerationJobConfiguration
 import com.brifo.server.batch.generation.NewsCardPersistenceService
+import com.brifo.server.batch.price.DailyClosingPriceJobConfiguration
 import com.brifo.server.batch.settlement.DecisionSettlementJobConfiguration
 import com.brifo.server.batch.settlement.DecisionSettlementJobRunner
 import com.brifo.server.global.code.ErrorCode
@@ -46,17 +47,19 @@ class DevBatchService(
     private val newsCardGenerationJob: Job,
     @Qualifier(DecisionSettlementJobConfiguration.JOB_NAME)
     private val decisionSettlementJob: Job,
+    @Qualifier(DailyClosingPriceJobConfiguration.JOB_NAME)
+    private val dailyClosingPriceJob: Job,
     private val decisionSettlementJobRunner: DecisionSettlementJobRunner? = null,
 ) {
     @Synchronized
     fun rerunNewsCollection(
-        request: DevNewsCollectionBatchRequest,
+        request: DevDateBatchRequest,
     ): DevBatchRunResponse {
         verifyPassword(request.password)
-        cleanupService.cleanupForCollection(request.targetDate, request.collectionRound)
+        cleanupService.cleanupForCollection(request.targetDate)
         val execution = jobOperator.start(
             newsCollectionJob,
-            BatchJobParameters.forDevCollection(request.targetDate, request.collectionRound.name),
+            BatchJobParameters.forDevCollection(request.targetDate),
         )
         return execution.toResponse()
     }
@@ -113,6 +116,19 @@ class DevBatchService(
             cleanupService.cleanupForSettlement(request.targetDate)
             jobOperator.start(decisionSettlementJob, parameters)
         }
+        return execution.toResponse()
+    }
+
+    @Synchronized
+    fun rerunDailyClosingPrice(
+        request: DevDateBatchRequest,
+    ): DevBatchRunResponse {
+        verifyPassword(request.password)
+        cleanupService.cleanupForDailyClosingPrice(request.targetDate)
+        val execution = jobOperator.start(
+            dailyClosingPriceJob,
+            BatchJobParameters.forDevDate(request.targetDate),
+        )
         return execution.toResponse()
     }
 

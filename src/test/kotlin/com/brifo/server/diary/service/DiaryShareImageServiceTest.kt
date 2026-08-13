@@ -12,6 +12,7 @@ import com.brifo.server.diary.share.ShareImageFile
 import com.brifo.server.diary.share.ShareImageStorage
 import org.junit.jupiter.api.Test
 import org.mockito.Answers
+import org.mockito.Mockito.doThrow
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
@@ -42,23 +43,44 @@ class DiaryShareImageServiceTest {
 
     @Test
     fun `기존 공유 이미지가 있으면 생성과 저장 없이 재사용한다`() {
-        val existingUrl = "https://cdn.brifo.app/existing.png"
-        `when`(repository.findDiaryDetail(userId, diaryId)).thenReturn(row(existingUrl))
+        val existingKey = "$diaryId.png"
+        val existingUrl = "https://s3.example.com/$existingKey?signature=existing"
+        `when`(repository.findDiaryDetail(userId, diaryId)).thenReturn(row(existingKey))
+        `when`(storage.createDownloadUrl(existingKey)).thenReturn(existingUrl)
 
         val result = service.create(userId, diaryId)
 
         assertEquals(existingUrl, result.shareImageUrl)
         assertTrue(result.reused)
-        verifyNoInteractions(renderer, storage, transactionService)
+        verifyNoInteractions(renderer, transactionService)
     }
 
     @Test
-    fun `공유 이미지를 생성하고 저장한 URL을 일기에 연결한다`() {
+    fun `기존 공개 URL은 객체 key로 사용하지 않고 이미지를 재생성한다`() {
+        val publicUrl = "https://s3.example.com/$diaryId.png"
+        val generatedKey = "$diaryId.png"
+        val generatedUrl = "https://s3.example.com/$generatedKey?signature=new"
+        val file = ShareImageFile(byteArrayOf(1), "image/png", "png")
+        `when`(repository.findDiaryDetail(userId, diaryId)).thenReturn(row(publicUrl))
+        `when`(renderer.render(model())).thenReturn(file)
+        `when`(storage.store(diaryId, file)).thenReturn(generatedKey)
+        `when`(storage.createDownloadUrl(generatedKey)).thenReturn(generatedUrl)
+
+        val result = service.create(userId, diaryId)
+
+        assertEquals(generatedUrl, result.shareImageUrl)
+        assertFalse(result.reused)
+    }
+
+    @Test
+    fun `공유 이미지를 생성하고 객체 key로 presigned URL을 발급한다`() {
         val file = ShareImageFile(byteArrayOf(1, 2, 3), "image/png", "png")
-        val generatedUrl = "https://cdn.brifo.app/$diaryId.png"
+        val generatedKey = "$diaryId.png"
+        val generatedUrl = "https://s3.example.com/$generatedKey?signature=new"
         `when`(repository.findDiaryDetail(userId, diaryId)).thenReturn(row())
         `when`(renderer.render(model())).thenReturn(file)
-        `when`(storage.store(diaryId, file)).thenReturn(generatedUrl)
+        `when`(storage.store(diaryId, file)).thenReturn(generatedKey)
+        `when`(storage.createDownloadUrl(generatedKey)).thenReturn(generatedUrl)
 
         val result = service.create(userId, diaryId)
 
@@ -68,15 +90,17 @@ class DiaryShareImageServiceTest {
 
     @Test
     fun `동시 요청에서 먼저 저장된 이미지가 있으면 그 URL을 재사용한다`() {
-        val existingUrl = "https://cdn.brifo.app/existing.png"
+        val existingKey = "$diaryId.png"
+        val existingUrl = "https://s3.example.com/$existingKey?signature=existing"
         `when`(repository.findDiaryDetail(userId, diaryId)).thenReturn(row())
-        transactionResult = AttachedShareImage(existingUrl, reused = true)
+        transactionResult = AttachedShareImage(existingKey, reused = true)
+        `when`(storage.createDownloadUrl(existingKey)).thenReturn(existingUrl)
 
         val result = service.create(userId, diaryId)
 
         assertEquals(existingUrl, result.shareImageUrl)
         assertTrue(result.reused)
-        verifyNoInteractions(renderer, storage)
+        verifyNoInteractions(renderer)
     }
 
     @Test
@@ -103,7 +127,7 @@ class DiaryShareImageServiceTest {
         val file = ShareImageFile(byteArrayOf(1, 2, 3), "image/png", "png")
         `when`(repository.findDiaryDetail(userId, diaryId)).thenReturn(row())
         `when`(renderer.render(model())).thenReturn(file)
-        `when`(storage.store(diaryId, file)).thenThrow(IllegalStateException("storage failed"))
+        doThrow(IllegalStateException("storage failed")).`when`(storage).store(diaryId, file)
 
         assertFailsWith<DiaryShareImageGenerationFailedException> {
             service.create(userId, diaryId)

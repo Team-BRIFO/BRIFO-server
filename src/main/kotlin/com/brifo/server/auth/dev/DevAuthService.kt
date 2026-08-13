@@ -103,6 +103,6 @@ class DevAuthService(
     companion object {
         private const val DEV_PROFILE_VALUE = "test"
         private const val DEV_SOCIAL_ID_PREFIX = "dev:"
-        private val DEV_STOCK_CODES = listOf("BRIFO01", "BRIFO02", "BRIFO03")
+        private val DEV_STOCK_CODES = listOf("005930", "000660", "035420")
     }
 }

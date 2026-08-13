@@ -49,6 +49,8 @@ app:
     scheduling-enabled: ${BATCH_SCHEDULING_ENABLED:false}
     restart-delay: 10m
     max-executions: 3
+    # 관심종목으로 담은 유저가 없어도 항상 뉴스를 수집·생성할 종목. 기본값은 BatchProperties 참고.
+    default-watchlist-codes: ${BATCH_DEFAULT_WATCHLIST_CODES:005930,000660,373220,207940,005380,000270,068270,005490,035420,035720}
   auth:
     jwt:
       secret-base64: ${JWT_SECRET_BASE64}
@@ -65,11 +67,7 @@ app:
     last-success-ttl: 3m
   share-image:
     bucket: ${SHARE_IMAGE_BUCKET:disabled}
-    public-base-url: ${SHARE_IMAGE_PUBLIC_BASE_URL:}
-    key-prefix: ${SHARE_IMAGE_KEY_PREFIX:diary-share-images}
     region: ${AWS_REGION:ap-northeast-2}
-    endpoint: ${SHARE_IMAGE_STORAGE_ENDPOINT:}
-    path-style-access: ${SHARE_IMAGE_PATH_STYLE_ACCESS:false}
     font-family: ${SHARE_IMAGE_FONT_FAMILY:Noto Sans CJK KR}
     width: ${SHARE_IMAGE_WIDTH:1200}
     height: ${SHARE_IMAGE_HEIGHT:630}

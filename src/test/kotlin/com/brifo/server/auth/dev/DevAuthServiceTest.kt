@@ -2,9 +2,13 @@ package com.brifo.server.auth.dev
 
 import com.brifo.server.auth.dto.response.OAuthLoginResponse
 import com.brifo.server.auth.service.OAuthLoginService
+import com.brifo.server.policy.entity.Policy
 import com.brifo.server.policy.repository.PolicyRepository
 import com.brifo.server.policy.service.PolicyService
+import com.brifo.server.stock.entity.Stock
 import com.brifo.server.stock.repository.StockRepository
+import com.brifo.server.user.dto.response.CompleteOnboardingResponse
+import com.brifo.server.user.entity.User
 import com.brifo.server.user.repository.UserRepository
 import com.brifo.server.user.service.UserService
 import org.junit.jupiter.api.BeforeEach
@@ -13,8 +17,12 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Answers
 import org.mockito.Mock
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.never
+import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
+import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -92,5 +100,36 @@ class DevAuthServiceTest {
 
         assertEquals("signup-token", response.signupToken)
         verifyNoInteractions(initialApBalanceUpdater)
+    }
+
+    @Test
+    fun `dev 온보딩은 비활성화된 데모 종목이 아닌 실제 활성 종목 코드를 조회한다`() {
+        val userPublicId = UUID.randomUUID()
+        val user = mock(User::class.java)
+        `when`(user.socialId).thenReturn("dev:$userPublicId")
+        `when`(userRepository.findByPublicId(userPublicId)).thenReturn(user)
+
+        val activeCodes = listOf("005930", "000660", "035420")
+        activeCodes.forEach { code ->
+            val stock = mock(Stock::class.java)
+            `when`(stock.publicId).thenReturn(UUID.randomUUID())
+            `when`(stockRepository.findByCode(code)).thenReturn(stock)
+        }
+
+        val policy = mock(Policy::class.java)
+        `when`(policy.isActive).thenReturn(true)
+        `when`(policy.publicId).thenReturn(UUID.randomUUID())
+        `when`(policyRepository.findAll()).thenReturn(listOf(policy))
+
+        val response = mock(CompleteOnboardingResponse::class.java)
+        `when`(userService.completeOnboarding(userPublicId)).thenReturn(response)
+
+        val result = service.completeOnboarding(userPublicId)
+
+        assertEquals(response, result)
+        activeCodes.forEach { code -> verify(stockRepository).findByCode(code) }
+        listOf("BRIFO01", "BRIFO02", "BRIFO03").forEach { code ->
+            verify(stockRepository, never()).findByCode(code)
+        }
     }
 }

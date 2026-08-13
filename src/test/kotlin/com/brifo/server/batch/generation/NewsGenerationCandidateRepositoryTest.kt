@@ -10,7 +10,10 @@ import com.brifo.server.news.entity.NewsSource
 import com.brifo.server.news.repository.NewsCardRepository
 import com.brifo.server.news.repository.NewsRepository
 import com.brifo.server.stock.entity.Stock
+import com.brifo.server.stock.entity.UserStock
 import com.brifo.server.stock.repository.StockRepository
+import com.brifo.server.user.entity.OAuthProvider
+import com.brifo.server.user.entity.User
 import jakarta.persistence.EntityManager
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -21,6 +24,7 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 @DataJpaTest
 @Import(TestcontainersConfiguration::class, JpaConfig::class, QueryDslConfig::class)
@@ -41,9 +45,14 @@ class NewsGenerationCandidateRepositoryTest {
     @Test
     fun `이미 카드가 있는 뉴스를 제외한 뒤 상위 2건을 선정한다`() {
         val stock = stockRepository.save(Stock.create("BRF001", "브리포주식", "금융"))
+        val unassociatedStock = stockRepository.save(Stock.create("BRF002", "미관심주식", "금융"))
+        val user = User.create(OAuthProvider.KAKAO, "batch-user", "batch-user@example.com")
+        entityManager.persist(user)
+        entityManager.persist(UserStock.create(user, stock))
         val first = saveNews(stock, "first", "0.90", LocalDateTime.of(2026, 8, 3, 11, 0))
         val second = saveNews(stock, "second", "0.80", LocalDateTime.of(2026, 8, 3, 10, 0))
         val third = saveNews(stock, "third", "0.70", LocalDateTime.of(2026, 8, 3, 9, 0))
+        val unassociated = saveNews(unassociatedStock, "unassociated", "1.00", LocalDateTime.of(2026, 8, 3, 12, 0))
         cardRepository.save(
             NewsCard.create(
                 news = first,
@@ -57,12 +66,25 @@ class NewsGenerationCandidateRepositoryTest {
         entityManager.flush()
         entityManager.clear()
 
-        val candidates = newsRepository.findGenerationCandidateIds(
-            LocalDate.of(2026, 8, 3).atStartOfDay(),
-            LocalDate.of(2026, 8, 4).atStartOfDay(),
-        )
+        val candidates = newsRepository.findGenerationCandidateIds(listOf("NONE"))
 
         assertEquals(listOf(requireNotNull(second.id), requireNotNull(third.id)), candidates)
+        assertFalse(requireNotNull(unassociated.id) in candidates)
+    }
+
+    @Test
+    fun `관심종목이 없어도 기본 워치리스트 종목은 생성 대상에 포함한다`() {
+        val watchlistStock = stockRepository.save(Stock.create("BRF003", "기본워치리스트", "금융"))
+        val otherStock = stockRepository.save(Stock.create("BRF004", "그외주식", "금융"))
+        val candidate = saveNews(watchlistStock, "watchlist", "0.90", LocalDateTime.of(2026, 8, 3, 11, 0))
+        val excluded = saveNews(otherStock, "other", "0.90", LocalDateTime.of(2026, 8, 3, 11, 0))
+        entityManager.flush()
+        entityManager.clear()
+
+        val candidates = newsRepository.findGenerationCandidateIds(listOf("BRF003"))
+
+        assertEquals(listOf(requireNotNull(candidate.id)), candidates)
+        assertFalse(requireNotNull(excluded.id) in candidates)
     }
 
     private fun saveNews(

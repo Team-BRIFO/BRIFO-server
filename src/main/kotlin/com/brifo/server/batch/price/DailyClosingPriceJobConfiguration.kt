@@ -1,11 +1,11 @@
-package com.brifo.server.batch.collection
+package com.brifo.server.batch.price
 
 import com.brifo.server.batch.common.BatchJobParameters
 import com.brifo.server.batch.common.BatchProperties
 import com.brifo.server.batch.common.BatchRestartListener
-import com.brifo.server.news.client.NewsCollectionClient
-import com.brifo.server.news.repository.NewsRepository
+import com.brifo.server.stock.repository.DailyStockPriceRepository
 import com.brifo.server.stock.repository.StockRepository
+import com.brifo.server.stock.service.StockPriceService
 import org.springframework.batch.core.configuration.annotation.StepScope
 import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.job.builder.JobBuilder
@@ -21,50 +21,46 @@ import org.springframework.transaction.PlatformTransactionManager
 import java.time.LocalDate
 
 @Configuration
-class NewsCollectionJobConfiguration {
+class DailyClosingPriceJobConfiguration {
     @Bean
-    fun newsCollectionJob(
+    fun dailyClosingPriceJob(
         jobRepository: JobRepository,
-        @Qualifier("collectNewsStep") collectNewsStep: Step,
+        @Qualifier("fetchDailyClosingPriceStep") fetchDailyClosingPriceStep: Step,
         restartListener: BatchRestartListener,
     ): Job =
         JobBuilder(JOB_NAME, jobRepository)
-            .start(collectNewsStep)
+            .start(fetchDailyClosingPriceStep)
             .listener(restartListener)
             .build()
 
     @Bean
-    fun collectNewsStep(
+    fun fetchDailyClosingPriceStep(
         jobRepository: JobRepository,
         transactionManager: PlatformTransactionManager,
-        newsCollectionTasklet: Tasklet,
+        dailyClosingPriceTasklet: Tasklet,
         properties: BatchProperties,
     ): Step =
-        StepBuilder("collectNewsStep", jobRepository)
-            .tasklet(newsCollectionTasklet, transactionManager)
+        StepBuilder("fetchDailyClosingPriceStep", jobRepository)
+            .tasklet(dailyClosingPriceTasklet, transactionManager)
             .startLimit(properties.maxExecutions)
             .build()
 
     @Bean
     @StepScope
-    fun newsCollectionTasklet(
+    fun dailyClosingPriceTasklet(
         @Value("#{jobParameters['${BatchJobParameters.TARGET_DATE}']}") targetDate: String,
-        client: NewsCollectionClient,
         stockRepository: StockRepository,
-        newsRepository: NewsRepository,
-        importanceCalculator: NewsImportanceCalculator,
-        properties: BatchProperties,
+        dailyStockPriceRepository: DailyStockPriceRepository,
+        stockPriceService: StockPriceService,
     ): Tasklet =
-        NewsCollectionTasklet(
+        DailyClosingPriceTasklet(
             targetDate = LocalDate.parse(targetDate),
-            client = client,
             stockRepository = stockRepository,
-            newsRepository = newsRepository,
-            importanceCalculator = importanceCalculator,
-            defaultWatchlistCodes = properties.defaultWatchlistCodes,
+            dailyStockPriceRepository = dailyStockPriceRepository,
+            stockPriceService = stockPriceService,
         )
 
     companion object {
-        const val JOB_NAME = "newsCollectionJob"
+        const val JOB_NAME = "dailyClosingPriceJob"
     }
 }

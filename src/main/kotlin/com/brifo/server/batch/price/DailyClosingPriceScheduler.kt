@@ -1,4 +1,4 @@
-package com.brifo.server.batch.collection
+package com.brifo.server.batch.price
 
 import com.brifo.server.batch.common.BatchJobParameters
 import org.slf4j.LoggerFactory
@@ -13,26 +13,24 @@ import java.time.LocalDate
 
 @Component
 @ConditionalOnProperty(prefix = "app.batch", name = ["scheduling-enabled"], havingValue = "true")
-class NewsCollectionScheduler(
+class DailyClosingPriceScheduler(
     private val jobOperator: JobOperator,
-    @Qualifier(NewsCollectionJobConfiguration.JOB_NAME)
+    @Qualifier(DailyClosingPriceJobConfiguration.JOB_NAME)
     private val job: Job,
     private val clock: Clock,
 ) {
-    @Scheduled(cron = "0 0 0 * * *", zone = SEOUL_ZONE)
-    fun collect() = launch(CollectionRound.CLOSING)
-
-    private fun launch(round: CollectionRound) {
-        val targetDate = LocalDate.now(clock).minusDays(1)
+    @Scheduled(cron = "0 0 16 * * MON-FRI", zone = SEOUL_ZONE)
+    fun backfill() {
+        val targetDate = LocalDate.now(clock)
         runCatching {
-            jobOperator.start(job, BatchJobParameters.forCollection(targetDate, round.name))
+            jobOperator.start(job, BatchJobParameters.forDate(targetDate))
         }.onFailure { exception ->
-            log.error("뉴스 수집 배치 실행에 실패했습니다. targetDate={}, round={}", targetDate, round, exception)
+            log.error("일별 종가 백필 배치 실행에 실패했습니다. targetDate={}", targetDate, exception)
         }
     }
 
     private companion object {
         const val SEOUL_ZONE = "Asia/Seoul"
-        val log = LoggerFactory.getLogger(NewsCollectionScheduler::class.java)
+        val log = LoggerFactory.getLogger(DailyClosingPriceScheduler::class.java)
     }
 }
