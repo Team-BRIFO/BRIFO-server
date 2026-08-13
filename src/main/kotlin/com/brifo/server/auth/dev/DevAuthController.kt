@@ -42,4 +42,10 @@ class DevAuthController(
         signupTokenCookieManager.clear(response)
         return ApiResponse.success(SuccessCode.OK, result)
     }
+
+    @PostMapping("/master/token")
+    fun issueMasterToken(
+        @Valid @RequestBody request: DevMasterTokenRequest,
+    ): ApiResponse<DevMasterTokenResponse> =
+        ApiResponse.success(SuccessCode.OK, devAuthService.issueMasterToken(request))
 }

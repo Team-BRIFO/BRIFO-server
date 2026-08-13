@@ -69,6 +69,7 @@ class DiaryQueryRepositoryImpl(
                     briefingNewsCard.newsCard.news.stock.publicId,
                     briefingNewsCard.newsCard.news.stock.name,
                     decisionResult.dailyStockPrice.changeRate,
+                    decisionResult.dailyStockPrice.tradeDate,
                     decision.briefing.agent.publicId,
                     decision.briefing.agent.agentType,
                     decision.briefing.agent.nickname,

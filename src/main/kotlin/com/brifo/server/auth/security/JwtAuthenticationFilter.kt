@@ -28,7 +28,7 @@ class JwtAuthenticationFilter(
         if (tokenCandidate != null && SecurityContextHolder.getContext().authentication == null) {
             try {
                 val claims = jwtTokenProvider.parseAuthenticationToken(tokenCandidate.value)
-                if (claims.tokenType != tokenCandidate.expectedType) {
+                if (claims.tokenType !in tokenCandidate.expectedTypes) {
                     throw InvalidJwtTokenException()
                 }
                 val authentication =
@@ -56,7 +56,7 @@ class JwtAuthenticationFilter(
         val authorization = request.getHeader(HttpHeaders.AUTHORIZATION)?.trim()
         if (authorization == null) {
             return signupTokenCookieManager.resolve(request)?.let {
-                TokenCandidate(it, JwtTokenProvider.AuthenticationTokenType.SIGNUP, TokenSource.COOKIE)
+                TokenCandidate(it, setOf(JwtTokenProvider.AuthenticationTokenType.SIGNUP), TokenSource.COOKIE)
             }
         }
         if (!authorization.startsWith(BEARER_PREFIX, ignoreCase = true)) {
@@ -68,7 +68,16 @@ class JwtAuthenticationFilter(
             .substring(BEARER_PREFIX.length)
             .trim()
             .takeIf { it.isNotEmpty() }
-            ?.let { TokenCandidate(it, JwtTokenProvider.AuthenticationTokenType.ACCESS, TokenSource.HEADER) }
+            ?.let {
+                TokenCandidate(
+                    it,
+                    setOf(
+                        JwtTokenProvider.AuthenticationTokenType.ACCESS,
+                        JwtTokenProvider.AuthenticationTokenType.MASTER,
+                    ),
+                    TokenSource.HEADER,
+                )
+            }
             ?: run {
                 request.setAttribute(AUTH_ERROR_CODE_ATTRIBUTE, AuthErrorCode.INVALID_TOKEN)
                 null
@@ -77,7 +86,7 @@ class JwtAuthenticationFilter(
 
     private data class TokenCandidate(
         val value: String,
-        val expectedType: JwtTokenProvider.AuthenticationTokenType,
+        val expectedTypes: Set<JwtTokenProvider.AuthenticationTokenType>,
         val source: TokenSource,
     )
 
@@ -90,6 +99,7 @@ class JwtAuthenticationFilter(
         const val AUTH_ERROR_CODE_ATTRIBUTE = "auth.errorCode"
         const val ACCESS_AUTHORITY = "TOKEN_ACCESS"
         const val SIGNUP_AUTHORITY = "TOKEN_SIGNUP"
+        const val MASTER_AUTHORITY = "TOKEN_MASTER"
         private const val TOKEN_AUTHORITY_PREFIX = "TOKEN_"
         private const val BEARER_PREFIX = "Bearer "
     }
