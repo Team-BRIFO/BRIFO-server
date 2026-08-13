@@ -40,4 +40,10 @@ class DevBatchController(
         @Valid @RequestBody request: DevDateBatchRequest,
     ): ApiResponse<DevBatchRunResponse> =
         ApiResponse.success(SuccessCode.OK, service.rerunDecisionSettlement(request))
+
+    @PostMapping("/daily-closing-price/rerun")
+    fun rerunDailyClosingPrice(
+        @Valid @RequestBody request: DevDateBatchRequest,
+    ): ApiResponse<DevBatchRunResponse> =
+        ApiResponse.success(SuccessCode.OK, service.rerunDailyClosingPrice(request))
 }

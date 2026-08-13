@@ -99,6 +99,18 @@ class DevBatchCleanupService(
         return DevBatchCleanupResult(settlements = settlements)
     }
 
+    @Transactional
+    fun cleanupForDailyClosingPrice(targetDate: LocalDate) {
+        jdbc.update(
+            """
+            DELETE FROM daily_stock_prices
+            WHERE trade_date = :targetDate
+              AND is_closing = FALSE
+            """,
+            MapSqlParameterSource("targetDate", targetDate),
+        )
+    }
+
     private fun cleanupNewsCards(newsIds: List<Long>): DevBatchCleanupResult {
         if (newsIds.isEmpty()) return DevBatchCleanupResult()
 
