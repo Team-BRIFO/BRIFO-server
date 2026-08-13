@@ -32,17 +32,19 @@ class DevAuthService(
     private val stockRepository: StockRepository,
     private val userRepository: UserRepository,
     private val userService: UserService,
+    private val initialApBalanceUpdater: DevInitialApBalanceUpdater,
 ) {
     @Transactional
     fun signUp(request: DevSignUpRequest): DevSignUpResponse {
         verifyPassword(request.password)
 
         val identifier = UUID.randomUUID().toString()
+        val socialId = "$DEV_SOCIAL_ID_PREFIX$identifier"
         val result =
             oauthLoginService.login(
                 OAuthUserProfile(
                     provider = OAuthProvider.KAKAO,
-                    socialId = "$DEV_SOCIAL_ID_PREFIX$identifier",
+                    socialId = socialId,
                     email = "$identifier@dev.invalid",
                     nickname = null,
                 ),
@@ -50,6 +52,10 @@ class DevAuthService(
 
         if (result !is OAuthLoginResponse.SignupRequired) {
             throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "Unexpected dev signup result")
+        }
+
+        request.initialBalanceAp?.let { initialBalanceAp ->
+            initialApBalanceUpdater.update(socialId, initialBalanceAp)
         }
 
         return DevSignUpResponse(signupToken = result.signupToken)
