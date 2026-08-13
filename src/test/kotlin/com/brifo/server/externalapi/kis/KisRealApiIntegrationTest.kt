@@ -10,15 +10,9 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
-import org.mockito.ArgumentMatchers.any
-import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.`when`
-import org.springframework.data.redis.core.StringRedisTemplate
-import org.springframework.data.redis.core.ValueOperations
 import java.math.BigDecimal
 import java.time.DayOfWeek
-import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -39,7 +33,8 @@ class KisRealApiIntegrationTest {
         val config = ExternalRestClientConfig()
         val currentPriceRestClient = config.kisCurrentPriceRestClient(properties)
         val dailyPriceRestClient = config.kisDailyPriceRestClient(properties)
-        val tokenProvider = KisTokenProvider(currentPriceRestClient, properties, stubRedisTemplate())
+        // 두 테스트가 1분 안에 실행되므로 토큰을 실제로 캐싱해야 KIS 분당 발급 제한을 피한다.
+        val tokenProvider = KisTokenProvider(currentPriceRestClient, properties, fakeStringRedisTemplate())
         val callService = ExternalApiCallService(mock(ExternalApiCallLogService::class.java))
 
         stockPriceClient =
@@ -89,20 +84,6 @@ class KisRealApiIntegrationTest {
         println("============================")
 
         assertThat(result.price).isGreaterThan(BigDecimal.ZERO)
-    }
-
-    /** 실호출 테스트는 캐시가 항상 비어 있는 것처럼 동작시켜 매번 새 토큰을 받는다. */
-    @Suppress("UNCHECKED_CAST")
-    private fun stubRedisTemplate(): StringRedisTemplate {
-        val redisTemplate = mock(StringRedisTemplate::class.java)
-        val valueOperations = mock(ValueOperations::class.java) as ValueOperations<String, String>
-
-        `when`(redisTemplate.opsForValue()).thenReturn(valueOperations)
-        `when`(
-            valueOperations.setIfAbsent(anyString(), anyString(), any(Duration::class.java)),
-        ).thenReturn(true)
-
-        return redisTemplate
     }
 
     private fun previousWeekday(today: LocalDate): LocalDate {
