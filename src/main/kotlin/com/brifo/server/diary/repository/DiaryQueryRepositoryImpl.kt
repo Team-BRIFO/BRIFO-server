@@ -69,6 +69,8 @@ class DiaryQueryRepositoryImpl(
                     briefingNewsCard.newsCard.news.stock.publicId,
                     briefingNewsCard.newsCard.news.stock.name,
                     decisionResult.dailyStockPrice.changeRate,
+                    decisionResult.dailyStockPrice.tradeDate,
+                    apTransaction.amount,
                     decision.briefing.agent.publicId,
                     decision.briefing.agent.agentType,
                     decision.briefing.agent.nickname,
@@ -82,6 +84,11 @@ class DiaryQueryRepositoryImpl(
             .join(diaryEntry.decision, decision)
             .join(decisionResult).on(decisionResult.decision.eq(decision))
             .join(briefingNewsCard).on(briefingNewsCard.briefing.eq(decision.briefing))
+            .join(apTransaction)
+            .on(
+                apTransaction.targetType.eq(ApTransactionTargetType.DECISION),
+                apTransaction.targetId.eq(decision.id),
+            )
             .where(
                 diaryEntry.publicId.eq(diaryPublicId),
                 decision.briefing.agent.user.publicId.eq(userPublicId),
