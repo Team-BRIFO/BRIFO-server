@@ -33,7 +33,8 @@ class KisRealApiIntegrationTest {
         val config = ExternalRestClientConfig()
         val currentPriceRestClient = config.kisCurrentPriceRestClient(properties)
         val dailyPriceRestClient = config.kisDailyPriceRestClient(properties)
-        val tokenProvider = KisTokenProvider(currentPriceRestClient, properties)
+        // 두 테스트가 1분 안에 실행되므로 토큰을 실제로 캐싱해야 KIS 분당 발급 제한을 피한다.
+        val tokenProvider = KisTokenProvider(currentPriceRestClient, properties, fakeStringRedisTemplate())
         val callService = ExternalApiCallService(mock(ExternalApiCallLogService::class.java))
 
         stockPriceClient =
