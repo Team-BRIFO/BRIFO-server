@@ -8,6 +8,7 @@ import org.springframework.batch.core.scope.context.ChunkContext
 import org.springframework.batch.core.step.StepContribution
 import org.springframework.batch.core.step.tasklet.Tasklet
 import org.springframework.batch.infrastructure.repeat.RepeatStatus
+import java.time.Duration
 import java.time.LocalDate
 
 /**
@@ -19,6 +20,9 @@ class DailyClosingPriceTasklet(
     private val stockRepository: StockRepository,
     private val dailyStockPriceRepository: DailyStockPriceRepository,
     private val stockPriceService: StockPriceService,
+    private val requestInterval: Duration = REQUEST_INTERVAL,
+    /** 테스트에서 실제로 기다리지 않도록 빼는 훅. 운영에서는 Thread.sleep. */
+    private val sleeper: (Duration) -> Unit = { Thread.sleep(it.toMillis()) },
 ) : Tasklet {
     override fun execute(
         contribution: StepContribution,
@@ -44,12 +48,18 @@ class DailyClosingPriceTasklet(
                     exception,
                 )
             }
+
+            // KIS 실전 계좌는 초당 20건으로 제한한다(EGW00201). 같은 앱키를 쓰는
+            // 다른 트래픽(현재가 조회 등)과 공유되므로 여유를 두고 스로틀링한다.
+            // 실패해도 이미 KIS 호출은 소모됐으므로 성공 여부와 무관하게 대기한다.
+            sleeper(requestInterval)
         }
 
         return RepeatStatus.FINISHED
     }
 
     private companion object {
+        val REQUEST_INTERVAL: Duration = Duration.ofMillis(150)
         val log = LoggerFactory.getLogger(DailyClosingPriceTasklet::class.java)
     }
 }

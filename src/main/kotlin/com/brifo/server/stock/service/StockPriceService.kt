@@ -13,7 +13,6 @@ import com.brifo.server.stock.entity.Stock
 import com.brifo.server.stock.repository.DailyStockPriceRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -149,7 +148,16 @@ class StockPriceService(
         }
     }
 
-    @Transactional
+    /**
+     * 일부러 `@Transactional`을 붙이지 않는다.
+     *
+     * 호출자(`DailyClosingPriceTasklet`)는 하나의 배치 트랜잭션 안에서 종목마다 이 메서드를
+     * 부른다. `@Transactional`이 있으면 KIS 호출 실패(RuntimeException)가 그 배치 트랜잭션
+     * 전체를 rollback-only로 표시해, 이미 성공한 다른 종목들까지 커밋 시점에
+     * `UnexpectedRollbackException`으로 전부 날아간다 — "종목별 부분 실패 허용"이라는
+     * 설계 의도를 정반대로 뒤집는다. 실제로 이 상태로 배포 후 재현됐다.
+     * `dailyStockPriceRepository.save()` 자체는 Spring Data JPA가 알아서 트랜잭션을 잡는다.
+     */
     fun saveClosingPrice(
         stock: Stock,
         tradeDate: LocalDate,
