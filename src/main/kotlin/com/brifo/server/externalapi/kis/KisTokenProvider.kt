@@ -2,7 +2,6 @@ package com.brifo.server.externalapi.kis
 
 import com.brifo.server.externalapi.kis.dto.KisTokenRequest
 import com.brifo.server.externalapi.kis.dto.KisTokenResponse
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.redis.core.StringRedisTemplate
@@ -24,9 +23,6 @@ class KisTokenProvider(
     private val restClient: RestClient,
     private val properties: KisProperties,
     private val redisTemplate: StringRedisTemplate,
-    /** 다른 인스턴스가 발급을 끝낼 때까지 기다리는 시간. 테스트에서 줄여 쓴다. */
-    private val issueWaitTimeout: Duration = Duration.ofSeconds(5),
-    private val pollInterval: Duration = Duration.ofMillis(200),
 ) {
     fun getAccessToken(): String = cachedToken() ?: issue()
 
@@ -39,53 +35,28 @@ class KisTokenProvider(
     private fun cachedToken(): String? = redisTemplate.opsForValue().get(TOKEN_KEY)
 
     /**
-     * 발급 락을 잡은 인스턴스만 KIS를 호출한다.
+     * 락을 못 잡으면 기다리지 않고 즉시 실패한다.
      *
-     * 락을 놓친 인스턴스가 곧바로 발급을 시도하면, 락을 잡은 쪽이 아직 토큰을 저장하기 전인
-     * 짧은 구간에서 동시에 KIS를 때려 분당 제한을 다시 초과한다.
-     * 그래서 락을 놓치면 토큰이 캐시에 나타날 때까지 기다린다.
+     * 예전에는 락을 놓치면 몇 초씩 폴링했는데, 발급이 계속 실패하는 상황(예: 잘못된 키)에서는
+     * 이 대기가 배치가 처리하는 종목 수만큼 그대로 곱해져 배치 하나가 수십 분씩 멈췄다.
+     * 즉시 실패시키고 상위 재시도·다음 배치 실행에 맡기는 편이 훨씬 안전하다.
      */
     private fun issue(): String {
-        repeat(MAX_ISSUE_ROUNDS) { round ->
-            if (acquireIssueLock()) {
-                return requestAndCache()
-            }
-
-            // 락을 잡은 인스턴스가 저장을 끝내길 기다린다.
-            awaitCachedToken()?.let { return it }
-
-            // 여기까지 왔다면 락 보유자가 발급에 실패했거나 죽은 것이다.
-            // 락 TTL이 만료되면 다음 라운드에서 우리가 락을 잡는다.
-            log.warn(
-                "KIS 토큰 대기 시간을 초과했습니다. 재시도합니다. round={}/{}",
-                round + 1,
-                MAX_ISSUE_ROUNDS,
-            )
+        if (!acquireIssueLock()) {
+            return cachedToken()
+                ?: error(
+                    "KIS 토큰 발급이 진행 중이거나 방금 실패했습니다. " +
+                        "발급은 1분에 1회로 제한되어 있어 잠시 후 다시 시도하면 됩니다.",
+                )
         }
 
-        error("KIS 토큰을 확보하지 못했습니다. 발급 락이 해제되지 않았습니다.")
+        // 여기서 실패하면 예외를 그대로 전파한다. 락은 일부러 유지한다 —
+        // 지금 지우면 다음 호출이 곧바로 재시도해 KIS 분당 발급 제한을 다시 때린다.
+        return requestAndCache()
     }
 
     private fun acquireIssueLock(): Boolean =
         redisTemplate.opsForValue().setIfAbsent(ISSUE_LOCK_KEY, LOCK_VALUE, ISSUE_INTERVAL) == true
-
-    /** 캐시에 토큰이 나타날 때까지 짧게 폴링한다. 시간 내에 못 받으면 null. */
-    private fun awaitCachedToken(): String? {
-        val deadline = System.nanoTime() + issueWaitTimeout.toNanos()
-
-        while (System.nanoTime() < deadline) {
-            cachedToken()?.let { return it }
-
-            try {
-                Thread.sleep(pollInterval.toMillis())
-            } catch (exception: InterruptedException) {
-                Thread.currentThread().interrupt()
-                throw IllegalStateException("KIS 토큰 대기 중 인터럽트되었습니다.", exception)
-            }
-        }
-
-        return cachedToken()
-    }
 
     private fun requestAndCache(): String {
         val response = restClient
@@ -117,13 +88,5 @@ class KisTokenProvider(
         val ISSUE_INTERVAL: Duration = Duration.ofMinutes(1)
         val EXPIRY_MARGIN: Duration = Duration.ofMinutes(5)
         val MIN_TTL: Duration = Duration.ofMinutes(1)
-
-        /**
-         * 락 보유자가 죽었을 때를 대비한 재시도 횟수.
-         * 요청 경로에서 호출되므로 무한정 기다리지 않고, 실패 시 상위의 재시도·폴백에 맡긴다.
-         */
-        const val MAX_ISSUE_ROUNDS = 2
-
-        val log = LoggerFactory.getLogger(KisTokenProvider::class.java)
     }
 }
