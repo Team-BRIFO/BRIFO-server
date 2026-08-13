@@ -47,7 +47,13 @@ class DevAuthSecurityConfig {
                 it.requestMatchers(HttpMethod.POST, "/api/dev/signup").permitAll()
                 it
                     .requestMatchers(HttpMethod.POST, "/api/dev/onboarding/complete")
-                    .hasAuthority(JwtAuthenticationFilter.SIGNUP_AUTHORITY)
+                    .hasAnyAuthority(
+                        JwtAuthenticationFilter.SIGNUP_AUTHORITY,
+                        JwtAuthenticationFilter.MASTER_AUTHORITY,
+                    )
+                it
+                    .requestMatchers(HttpMethod.POST, "/api/dev/master/token")
+                    .permitAll()
                 it
                     .requestMatchers(HttpMethod.POST, "/api/dev/batches/**")
                     .permitAll()

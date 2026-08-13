@@ -2,6 +2,7 @@ package com.brifo.server.auth.dev
 
 import com.brifo.server.auth.dto.internal.OAuthUserProfile
 import com.brifo.server.auth.dto.response.OAuthLoginResponse
+import com.brifo.server.auth.service.JwtTokenProvider
 import com.brifo.server.auth.service.OAuthLoginService
 import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.exception.BusinessException
@@ -33,6 +34,7 @@ class DevAuthService(
     private val userRepository: UserRepository,
     private val userService: UserService,
     private val initialApBalanceUpdater: DevInitialApBalanceUpdater,
+    private val jwtTokenProvider: JwtTokenProvider,
 ) {
     @Transactional
     fun signUp(request: DevSignUpRequest): DevSignUpResponse {
@@ -87,6 +89,29 @@ class DevAuthService(
         )
         policyService.agreePolicies(userPublicId, activePolicies.map { requireNotNull(it.publicId) })
         return userService.completeOnboarding(userPublicId)
+    }
+
+    @Transactional
+    fun issueMasterToken(request: DevMasterTokenRequest): DevMasterTokenResponse {
+        verifyPassword(request.password)
+
+        val identifier = UUID.randomUUID().toString()
+        val result =
+            oauthLoginService.login(
+                OAuthUserProfile(
+                    provider = OAuthProvider.KAKAO,
+                    socialId = "$DEV_SOCIAL_ID_PREFIX$identifier",
+                    email = "$identifier@dev.invalid",
+                    nickname = null,
+                ),
+            )
+
+        if (result !is OAuthLoginResponse.SignupRequired) {
+            throw BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "Unexpected dev master signup result")
+        }
+
+        val userPublicId = jwtTokenProvider.parseSignupToken(result.signupToken).userPublicId
+        return DevMasterTokenResponse(accessToken = jwtTokenProvider.issueMasterToken(userPublicId))
     }
 
     private fun verifyPassword(actual: String) {
