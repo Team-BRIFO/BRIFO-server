@@ -420,7 +420,7 @@ class ExternalApiCallServiceUnitTest {
                 ExternalApiCallPolicy.STOCK_PRICE to (5L to 1),
                 ExternalApiCallPolicy.NEWS_COLLECTION to (5L to 1),
                 ExternalApiCallPolicy.AI_CARD_NEWS to (15L to 1),
-                ExternalApiCallPolicy.AI_BRIEFING to (30L to 0),
+                ExternalApiCallPolicy.AI_BRIEFING to (60L to 0),
             )
 
         assertThat(expectedTimeouts.keys).containsExactlyInAnyOrderElementsOf(ExternalApiCallPolicy.entries)
