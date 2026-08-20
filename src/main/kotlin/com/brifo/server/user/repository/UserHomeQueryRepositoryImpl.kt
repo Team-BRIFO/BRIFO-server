@@ -71,6 +71,12 @@ class UserHomeQueryRepositoryImpl(
     }
 
     companion object {
-        private const val NEWS_CARD_LIMIT = 10L
+        /**
+         * 사용자 전체 기준 상한이다. 프론트가 이 목록을 종목별로 묶어 건수를 표시하므로,
+         * 잘리면 표시 건수가 그 종목의 실제 카드 수와 어긋난다.
+         * 실제 결과는 관심 종목 수(최대 3개, `MAX_STOCK_SELECTION_COUNT`)와 종목당 수집 뉴스
+         * 건수(`external.naver.display-count`)의 곱으로 이미 좁혀져 있다. 여유를 둔 값이다.
+         */
+        private const val NEWS_CARD_LIMIT = 30L
     }
 }
