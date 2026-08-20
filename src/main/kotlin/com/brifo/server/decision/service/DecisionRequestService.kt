@@ -62,7 +62,7 @@ class DecisionRequestService(
             ),
         )
         badgeAwardService.awardBadge(userPublicId, BadgeCode.B02)
-        if (devBehaviorProperties.immediateDecisionSettlement) {
+        if (needsImmediateSettlement(requestedAt)) {
             eventPublisher?.publishEvent(
                 DecisionCreatedEvent(
                     decisionPublicId = requireNotNull(decision.publicId),
@@ -82,6 +82,15 @@ class DecisionRequestService(
         )
     }
 
+    /**
+     * 휴장일 예측은 즉시 정산이 유일한 정산 경로다. 정산 스케줄러 cron이 `MON-FRI`라
+     * 주말에 등록된 예측을 나중에 거둬갈 배치가 없기 때문에, 개발용 즉시 정산 설정과
+     * 무관하게 항상 정산 이벤트를 발행한다.
+     */
+    private fun needsImmediateSettlement(requestedAt: LocalDateTime): Boolean =
+        devBehaviorProperties.immediateDecisionSettlement ||
+            (devBehaviorProperties.weekendMarketEnabled && !DecisionMarketPolicy.isBusinessDay(requestedAt))
+
     private fun validateRequest(
         requestedAt: LocalDateTime,
         confidenceLevel: Int,
@@ -89,7 +98,7 @@ class DecisionRequestService(
         if (confidenceLevel !in 1..5) {
             throw BusinessException(ErrorCode.INVALID_REQUEST)
         }
-        if (!DecisionMarketPolicy.isBusinessDay(requestedAt)) {
+        if (!devBehaviorProperties.weekendMarketEnabled && !DecisionMarketPolicy.isBusinessDay(requestedAt)) {
             throw DecisionRequestClosedException()
         }
         if (devBehaviorProperties.decisionRequestCutoffEnabled && !DecisionMarketPolicy.isRegistrationOpen(requestedAt)) {

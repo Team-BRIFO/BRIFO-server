@@ -16,6 +16,9 @@ app:
     briefing-time-restrictions-enabled: false
     decision-request-cutoff-enabled: false
     immediate-decision-settlement: true
+    # 데모데이(토) 부스 시연용. 주말에도 브리핑·예측을 받고 직전 거래일 종가로 즉시 정산한다.
+    # 시연이 끝나면 false로 되돌린다.
+    weekend-market-enabled: true
   auth:
     signup-cookie:
       secure: false

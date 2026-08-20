@@ -34,7 +34,7 @@ class BriefingRequestValidator(
     /** 요청 시각이 당일 브리핑 요청 마감 시각 전인지 검증한다. */
     private fun validateRequestTime(command: BriefingRequestTask.Command) {
         val requestedAt = command.requestedAt
-        if (requestedAt.dayOfWeek in CLOSED_DAYS) {
+        if (!devBehaviorProperties.weekendMarketEnabled && requestedAt.dayOfWeek in CLOSED_DAYS) {
             throw BriefingRequestClosedException()
         }
         if (

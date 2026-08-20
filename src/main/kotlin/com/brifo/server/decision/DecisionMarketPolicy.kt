@@ -12,7 +12,10 @@ object DecisionMarketPolicy {
         requestedAt.dayOfWeek !in CLOSED_DAYS && requestedAt.toLocalTime().isBefore(REGISTRATION_CUTOFF)
 
     fun isBusinessDay(requestedAt: LocalDateTime): Boolean =
-        requestedAt.dayOfWeek !in CLOSED_DAYS
+        isMarketOpenOn(requestedAt.toLocalDate())
+
+    /** 해당 날짜에 장이 열리는지. 공휴일은 반영하지 않는다. */
+    fun isMarketOpenOn(date: LocalDate): Boolean = date.dayOfWeek !in CLOSED_DAYS
 
     fun settlementCutoff(targetDate: LocalDate): LocalDateTime =
         targetDate.atTime(REGISTRATION_CUTOFF)
