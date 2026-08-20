@@ -24,11 +24,10 @@ import kotlin.test.assertTrue
 class NaverNewsCollectionClientTest {
     private val callService = ExternalApiCallService(mock(ExternalApiCallLogService::class.java))
     private val objectMapper = jacksonObjectMapper()
-    private val properties = NaverNewsProperties(displayCount = 20)
+    private val properties = NaverNewsProperties(searchDisplayCount = 20, collectCount = 3)
     private val stock = NewsCollectionClient.StockRef("BRIFO01", "브리포테크")
     private val request = NewsCollectionClient.Request(
         targetDate = LocalDate.of(2026, 8, 12),
-        publishedUntil = LocalDate.of(2026, 8, 12).atTime(11, 30),
         stocks = listOf(stock),
     )
 
@@ -93,6 +92,71 @@ class NaverNewsCollectionClientTest {
         assertEquals(dedupKeyA, dedupKeyB)
     }
 
+    @Test
+    fun `제목에 종목 표기가 없는 기사는 수집하지 않는다`() {
+        val fixture = restClient()
+        val client = NaverNewsCollectionClient(fixture.client, callService, properties, objectMapper)
+        fixture.server.expect(requestTo(containsString("/search/v1/news")))
+            .andRespond(
+                withSuccess(
+                    itemsResponse(
+                        item(title = "[포토뉴스]코레일, AI 활용 사이버공격 대응 훈련 실시", link = "https://n.example/1"),
+                        item(title = "<b>브리포테크</b> 실적 발표", link = "https://n.example/2"),
+                    ),
+                    MediaType.APPLICATION_JSON,
+                ),
+            )
+
+        val result = client.collect(request).news
+
+        assertEquals(listOf("브리포테크 실적 발표"), result.map { it.title })
+        fixture.server.verify()
+    }
+
+    @Test
+    fun `관련 기사가 많아도 수집 건수 상한까지만 가져온다`() {
+        val fixture = restClient()
+        val client = NaverNewsCollectionClient(fixture.client, callService, properties, objectMapper)
+        fixture.server.expect(requestTo(containsString("/search/v1/news")))
+            .andRespond(
+                withSuccess(
+                    itemsResponse(
+                        *(1..5).map { index ->
+                            item(title = "브리포테크 소식 $index", link = "https://n.example/$index")
+                        }.toTypedArray(),
+                    ),
+                    MediaType.APPLICATION_JSON,
+                ),
+            )
+
+        val result = client.collect(request).news
+
+        assertEquals(3, result.size)
+        assertEquals(listOf("브리포테크 소식 1", "브리포테크 소식 2", "브리포테크 소식 3"), result.map { it.title })
+        fixture.server.verify()
+    }
+
+    @Test
+    fun `종목명이 기사 표기와 다르면 대체 검색어로 조회한다`() {
+        val fixture = restClient()
+        val client = NaverNewsCollectionClient(fixture.client, callService, properties, objectMapper)
+        fixture.server.expect(requestTo(containsString("/search/v1/news")))
+            .andExpect(queryParam("query", java.net.URLEncoder.encode("네이버", "UTF-8")))
+            .andRespond(
+                withSuccess(
+                    itemsResponse(item(title = "네이버, 2분기 실적 발표", link = "https://n.example/1")),
+                    MediaType.APPLICATION_JSON,
+                ),
+            )
+
+        val result = client.collect(
+            request.copy(stocks = listOf(NewsCollectionClient.StockRef("035420", "NAVER"))),
+        ).news
+
+        assertEquals(listOf("네이버, 2분기 실적 발표"), result.map { it.title })
+        fixture.server.verify()
+    }
+
     private fun restClient(): RestFixture {
         val builder = RestClient.builder()
             .baseUrl("http://naver-test")
@@ -117,6 +181,29 @@ class NaverNewsCollectionClientTest {
               "pubDate": "Wed, 12 Aug 2026 09:00:00 +0900"
             }
           ]
+        }
+        """.trimIndent()
+
+    private fun item(
+        title: String,
+        link: String,
+    ) = """
+        {
+          "title": "$title",
+          "originallink": "https://press.example/1",
+          "link": "$link",
+          "description": "본문 요약",
+          "pubDate": "Wed, 12 Aug 2026 09:00:00 +0900"
+        }
+    """.trimIndent()
+
+    private fun itemsResponse(vararg items: String) =
+        """
+        {
+          "total": ${'$'}{items.size},
+          "start": 1,
+          "display": 20,
+          "items": [${'$'}{items.joinToString(",")}]
         }
         """.trimIndent()
 
