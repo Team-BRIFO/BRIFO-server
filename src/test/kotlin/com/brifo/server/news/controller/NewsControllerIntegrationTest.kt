@@ -13,6 +13,7 @@ import com.brifo.server.stock.service.StockPriceService
 import com.brifo.server.term.entity.GlossaryTerm
 import com.brifo.server.term.entity.NewsCardTerm
 import jakarta.persistence.EntityManager
+import org.hamcrest.Matchers.hasItem
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.ArgumentMatchers.anyString
@@ -94,13 +95,15 @@ class NewsControllerIntegrationTest @Autowired constructor(
     }
 
     @Test
-    fun `오늘 카드뉴스가 세 개 이상이면 두 개만 조회한다`() {
+    fun `오늘 카드뉴스가 세 개 이상이면 전부 조회한다`() {
         val stockId = saveNewsCardData(includeExtraCard = true)
 
+        // 분석용 2장 제한(findAnalysisCards)이 상세 목록에 새어들면 안 된다.
         mockMvc
             .perform(get("/api/stocks/{stockId}/news-cards", stockId))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.result.newsCards.length()").value(2))
+            .andExpect(jsonPath("$.result.newsCards.length()").value(3))
+            .andExpect(jsonPath("$.result.newsCards[*].headline").value(hasItem("삼성전자 추가 뉴스")))
     }
 
     private fun saveNewsCardData(includeExtraCard: Boolean = false): UUID {
