@@ -43,7 +43,10 @@ class NewsCardGenerationSchedulerTest {
         `when`(jobRepository.getLastJobExecution(instance)).thenReturn(collectionExecution)
         `when`(collectionExecution.status).thenReturn(BatchStatus.COMPLETED)
         `when`(
-            newsRepository.findGenerationCandidateIds(batchProperties.defaultWatchlistCodes),
+            newsRepository.findGenerationCandidateIds(
+                batchProperties.defaultWatchlistCodes,
+                batchProperties.newsCardsPerStock,
+            ),
         ).thenReturn(listOf(1L))
         `when`(jobOperator.start(any(Job::class.java), any(JobParameters::class.java)))
             .thenThrow(IllegalStateException("temporary failure"))
