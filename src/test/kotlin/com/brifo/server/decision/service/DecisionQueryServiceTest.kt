@@ -25,14 +25,14 @@ class DecisionQueryServiceTest {
     )
 
     @Test
-    fun `오늘의 미정산 결정은 서울 기준 오늘 날짜로 조회한다`() {
+    fun `오늘의 결정 목록은 서울 기준 오늘 날짜로 조회한다`() {
         val userId = UUID.randomUUID()
         val today = LocalDate.of(2026, 7, 21)
-        `when`(repository.findTodayUnsettledDecisions(userId, today)).thenReturn(emptyList())
+        `when`(repository.findTodayDecisions(userId, today)).thenReturn(emptyList())
 
         service.getDecisions(userId)
 
-        verify(repository).findTodayUnsettledDecisions(userId, today)
+        verify(repository).findTodayDecisions(userId, today)
     }
 
     @Test
