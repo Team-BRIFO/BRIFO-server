@@ -6,6 +6,7 @@ import com.brifo.server.externalapi.ExternalApiCallService
 import com.brifo.server.externalapi.idempotency.ExternalApiIdempotencyKeyGenerator
 import com.brifo.server.externalapi.naver.NaverNewsProperties
 import com.brifo.server.externalapi.naver.NaverNewsSearchResponse
+import com.brifo.server.news.StockNewsKeywordPolicy
 import com.brifo.server.news.entity.NewsSource
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.http.ResponseEntity
@@ -32,18 +33,19 @@ class NaverNewsCollectionClient(
         }
 
         val news = request.stocks.asSequence().flatMap { stock ->
+            val searchKeyword = StockNewsKeywordPolicy.searchKeyword(stock.name)
             val response = externalApiCallService.execute(
                 provider = "NAVER", apiName = "NEWS_COLLECTION", policy = ExternalApiCallPolicy.NEWS_COLLECTION,
                 retryEnabled = true,
                 context = ExternalApiCallContext(
                     idempotencyKey = ExternalApiIdempotencyKeyGenerator.newsCollection(stock.code, request.targetDate),
                 ),
-                requestPayload = mapOf("stockCode" to stock.code, "query" to stock.name),
+                requestPayload = mapOf("stockCode" to stock.code, "query" to searchKeyword),
             ) {
                 val rawResponse = restClient.get().uri {
                     it.path("/search/v1/news")
-                        .queryParam("query", stock.name)
-                        .queryParam("display", properties.displayCount)
+                        .queryParam("query", searchKeyword)
+                        .queryParam("display", properties.searchDisplayCount)
                         .queryParam("sort", "date")
                         .queryParam("format", "json")
                         .build()
@@ -65,6 +67,9 @@ class NaverNewsCollectionClient(
                     publishedAt = parsePublishedAt(item.pubDate),
                 )
             }
+                // 제목 판정은 `<b>` 태그와 HTML 엔티티를 걷어낸 뒤에 해야 한다.
+                .filter { StockNewsKeywordPolicy.isRelevant(stock.name, it.title) }
+                .take(properties.collectCount)
         }.toList()
         return NewsCollectionClient.Result(news)
     }
