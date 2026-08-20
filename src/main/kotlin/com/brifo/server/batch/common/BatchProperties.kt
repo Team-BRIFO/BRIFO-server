@@ -19,7 +19,7 @@ data class BatchProperties(
      * 종목당 하루에 만들 카드뉴스 장수.
      *
      * 생성 배치는 하루 한 번 돌고 종목별 최신 뉴스에서 이 수만큼만 후보를 뽑는다.
-     * 수집한 것보다 많이 만들 수는 없으므로 `external.naver.display-count` 이하로 둔다.
+     * 수집한 것보다 많이 만들 수는 없으므로 `external.naver.collect-count` 이하로 둔다.
      */
     val newsCardsPerStock: Int = 3,
 ) {
