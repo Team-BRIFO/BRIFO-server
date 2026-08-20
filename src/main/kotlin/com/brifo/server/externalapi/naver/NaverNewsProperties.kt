@@ -10,5 +10,6 @@ data class NaverNewsProperties(
     val clientSecret: String = "disabled",
     val connectTimeout: Duration = Duration.ofSeconds(3),
     val readTimeout: Duration = Duration.ofSeconds(5),
-    val displayCount: Int = 5,
+    /** 종목당 수집할 뉴스 건수. 종목당 호출은 1회라 건수를 바꿔도 API 호출 수는 그대로다. */
+    val displayCount: Int = 3,
 )
