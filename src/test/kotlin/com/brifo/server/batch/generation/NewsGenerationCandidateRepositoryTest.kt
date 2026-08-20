@@ -43,7 +43,7 @@ class NewsGenerationCandidateRepositoryTest {
     private lateinit var entityManager: EntityManager
 
     @Test
-    fun `이미 카드가 있는 뉴스를 제외한 뒤 상위 2건을 선정한다`() {
+    fun `이미 카드가 있는 뉴스를 제외한 뒤 종목당 상한만큼 선정한다`() {
         val stock = stockRepository.save(Stock.create("BRF001", "브리포주식", "금융"))
         val unassociatedStock = stockRepository.save(Stock.create("BRF002", "미관심주식", "금융"))
         val user = User.create(OAuthProvider.KAKAO, "batch-user", "batch-user@example.com")
@@ -66,10 +66,31 @@ class NewsGenerationCandidateRepositoryTest {
         entityManager.flush()
         entityManager.clear()
 
-        val candidates = newsRepository.findGenerationCandidateIds(listOf("NONE"))
+        val candidates = newsRepository.findGenerationCandidateIds(listOf("NONE"), 2)
 
         assertEquals(listOf(requireNotNull(second.id), requireNotNull(third.id)), candidates)
         assertFalse(requireNotNull(unassociated.id) in candidates)
+    }
+
+    @Test
+    fun `종목당 상한을 올리면 그만큼 카드 생성 후보가 늘어난다`() {
+        val stock = stockRepository.save(Stock.create("BRF005", "상한주식", "금융"))
+        val first = saveNews(stock, "limit-first", "0.90", LocalDateTime.of(2026, 8, 3, 12, 0))
+        val second = saveNews(stock, "limit-second", "0.80", LocalDateTime.of(2026, 8, 3, 11, 0))
+        val third = saveNews(stock, "limit-third", "0.70", LocalDateTime.of(2026, 8, 3, 10, 0))
+        saveNews(stock, "limit-fourth", "0.60", LocalDateTime.of(2026, 8, 3, 9, 0))
+        entityManager.flush()
+        entityManager.clear()
+
+        // 수집 건수를 늘려도 이 상한이 2로 고정돼 있어 카드가 2장에서 늘지 않던 버그가 있었다.
+        assertEquals(
+            listOf(requireNotNull(first.id), requireNotNull(second.id), requireNotNull(third.id)),
+            newsRepository.findGenerationCandidateIds(listOf("BRF005"), 3),
+        )
+        assertEquals(
+            listOf(requireNotNull(first.id), requireNotNull(second.id)),
+            newsRepository.findGenerationCandidateIds(listOf("BRF005"), 2),
+        )
     }
 
     @Test
@@ -81,7 +102,7 @@ class NewsGenerationCandidateRepositoryTest {
         entityManager.flush()
         entityManager.clear()
 
-        val candidates = newsRepository.findGenerationCandidateIds(listOf("BRF003"))
+        val candidates = newsRepository.findGenerationCandidateIds(listOf("BRF003"), 3)
 
         assertEquals(listOf(requireNotNull(candidate.id)), candidates)
         assertFalse(requireNotNull(excluded.id) in candidates)

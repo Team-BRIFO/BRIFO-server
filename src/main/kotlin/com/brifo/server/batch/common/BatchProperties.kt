@@ -15,10 +15,18 @@ data class BatchProperties(
      * 신규 유저가 처음 담은 종목도 다음 배치까지 카드뉴스가 비어 있게 된다.
      */
     val defaultWatchlistCodes: List<String> = DEFAULT_WATCHLIST_CODES,
+    /**
+     * 종목당 하루에 만들 카드뉴스 장수.
+     *
+     * 생성 배치는 하루 한 번 돌고 종목별 최신 뉴스에서 이 수만큼만 후보를 뽑는다.
+     * 수집한 것보다 많이 만들 수는 없으므로 `external.naver.display-count` 이하로 둔다.
+     */
+    val newsCardsPerStock: Int = 3,
 ) {
     init {
         require(!restartDelay.isNegative && !restartDelay.isZero) { "restartDelay는 양수여야 합니다." }
         require(maxExecutions >= 1) { "maxExecutions는 1 이상이어야 합니다." }
+        require(newsCardsPerStock >= 1) { "newsCardsPerStock은 1 이상이어야 합니다." }
         require(defaultWatchlistCodes.isNotEmpty()) { "defaultWatchlistCodes는 최소 1개여야 합니다." }
         // 빈 문자열은 IN 조건에서 어떤 종목도 잡지 못해, 설정 실수만으로 수집·생성이 다시 멈춘다.
         // 조용히 0건이 되느니 기동 시점에 실패시킨다.
