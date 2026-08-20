@@ -12,7 +12,7 @@ import java.time.Clock
 import java.time.LocalDate
 import java.util.UUID
 
-/** 오늘의 미정산 결정과 정산 완료 결과를 조회한다. */
+/** 오늘의 결정 목록과 정산 완료 결과를 조회한다. */
 @Service
 class DecisionQueryService(
     private val decisionRepository: DecisionRepository,
@@ -22,7 +22,7 @@ class DecisionQueryService(
     @Transactional(readOnly = true)
     fun getDecisions(userPublicId: UUID): GetDecisionsResponse =
         GetDecisionsResponse(
-            items = decisionRepository.findTodayUnsettledDecisions(
+            items = decisionRepository.findTodayDecisions(
                 userPublicId = userPublicId,
                 displayDate = LocalDate.now(clock),
             ),
