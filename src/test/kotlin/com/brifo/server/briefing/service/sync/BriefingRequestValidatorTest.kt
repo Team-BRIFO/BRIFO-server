@@ -5,6 +5,7 @@ import com.brifo.server.briefing.exception.BriefingRequestClosedException
 import com.brifo.server.briefing.service.sync.BriefingRequestTask
 import com.brifo.server.briefing.service.sync.BriefingRequestValidator
 import com.brifo.server.global.code.ErrorCode
+import com.brifo.server.global.config.DevBehaviorProperties
 import com.brifo.server.global.exception.BusinessException
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -56,6 +57,16 @@ class BriefingRequestValidatorTest {
         }
 
         assertEquals(BriefingErrorCode.BRIEFING_REQUEST_CLOSED, exception.errorCode)
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["2026-07-18T10:00:00", "2026-07-19T10:00:00"])
+    fun `주말 시장 모드에서는 주말에도 브리핑을 요청할 수 있다`(requestedAt: LocalDateTime) {
+        val weekendValidator = BriefingRequestValidator(
+            DevBehaviorProperties(weekendMarketEnabled = true),
+        )
+
+        weekendValidator.validate(command(requestedAt = requestedAt))
     }
 
     private fun assertInvalidAgentSelection(agentPublicIds: List<UUID>) {

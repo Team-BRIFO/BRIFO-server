@@ -12,6 +12,7 @@ import com.brifo.server.decision.entity.DecisionDirection
 import com.brifo.server.decision.exception.DecisionAlreadyExistsException
 import com.brifo.server.decision.exception.DecisionRequestClosedException
 import com.brifo.server.decision.repository.DecisionRepository
+import com.brifo.server.global.config.DevBehaviorProperties
 import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.news.entity.News
 import com.brifo.server.news.entity.NewsCard
@@ -25,6 +26,7 @@ import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
+import org.springframework.context.ApplicationEventPublisher
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -68,6 +70,65 @@ class DecisionRequestServiceTest {
         }
 
         verifyNoInteractions(briefingRepository, decisionRepository)
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["2026-07-18T01:00:00Z", "2026-07-19T01:00:00Z"])
+    fun `주말 시장 모드에서는 주말 결정을 등록하고 즉시 정산 이벤트를 발행한다`(instant: String) {
+        val userId = UUID.randomUUID()
+        val briefingId = UUID.randomUUID()
+        val displayDate = LocalDate.ofInstant(Instant.parse(instant), ZoneId.of("Asia/Seoul"))
+        val context = briefingContext(displayDate)
+        val decision = mock(Decision::class.java)
+        val eventPublisher = mock(ApplicationEventPublisher::class.java)
+        `when`(briefingRepository.findOwnedBriefing(userId, briefingId)).thenReturn(context.briefing)
+        `when`(decisionRepository.existsDailyDecision(userId, context.stockId, displayDate)).thenReturn(false)
+        `when`(decision.publicId).thenReturn(UUID.randomUUID())
+        `when`(decision.direction).thenReturn(DecisionDirection.UP)
+        `when`(decision.confidenceLevel).thenReturn(3.toShort())
+        `when`(decisionRepository.saveAndFlush(any(Decision::class.java))).thenReturn(decision)
+
+        serviceAt(
+            instant = instant,
+            // 휴장일 정산은 개발용 즉시 정산 설정과 무관하게 동작해야 한다.
+            devBehaviorProperties = DevBehaviorProperties(
+                decisionRequestCutoffEnabled = false,
+                immediateDecisionSettlement = false,
+                weekendMarketEnabled = true,
+            ),
+            eventPublisher = eventPublisher,
+        ).request(userId, briefingId, DecisionDirection.UP, 3)
+
+        verify(eventPublisher).publishEvent(
+            DecisionCreatedEvent(
+                decisionPublicId = requireNotNull(decision.publicId),
+                targetDate = displayDate,
+            ),
+        )
+    }
+
+    @Test
+    fun `평일에는 즉시 정산 설정이 꺼져 있으면 정산 이벤트를 발행하지 않는다`() {
+        val userId = UUID.randomUUID()
+        val briefingId = UUID.randomUUID()
+        val date = LocalDate.of(2026, 7, 21)
+        val context = briefingContext(date)
+        val decision = mock(Decision::class.java)
+        val eventPublisher = mock(ApplicationEventPublisher::class.java)
+        `when`(briefingRepository.findOwnedBriefing(userId, briefingId)).thenReturn(context.briefing)
+        `when`(decisionRepository.existsDailyDecision(userId, context.stockId, date)).thenReturn(false)
+        `when`(decision.publicId).thenReturn(UUID.randomUUID())
+        `when`(decision.direction).thenReturn(DecisionDirection.UP)
+        `when`(decision.confidenceLevel).thenReturn(3.toShort())
+        `when`(decisionRepository.saveAndFlush(any(Decision::class.java))).thenReturn(decision)
+
+        serviceAt(
+            instant = "2026-07-21T05:00:00Z",
+            devBehaviorProperties = DevBehaviorProperties(weekendMarketEnabled = true),
+            eventPublisher = eventPublisher,
+        ).request(userId, briefingId, DecisionDirection.UP, 3)
+
+        verifyNoInteractions(eventPublisher)
     }
 
     @Test
@@ -200,13 +261,18 @@ class DecisionRequestServiceTest {
         verify(badgeAwardService).awardBadge(userId, BadgeCode.B02)
     }
 
-    private fun serviceAt(instant: String) =
-        DecisionRequestService(
-            briefingRepository,
-            decisionRepository,
-            badgeAwardService,
-            Clock.fixed(Instant.parse(instant), ZoneId.of("Asia/Seoul")),
-        )
+    private fun serviceAt(
+        instant: String,
+        devBehaviorProperties: DevBehaviorProperties = DevBehaviorProperties(),
+        eventPublisher: ApplicationEventPublisher? = null,
+    ) = DecisionRequestService(
+        briefingRepository,
+        decisionRepository,
+        badgeAwardService,
+        Clock.fixed(Instant.parse(instant), ZoneId.of("Asia/Seoul")),
+        devBehaviorProperties,
+        eventPublisher,
+    )
 
     private fun briefingContext(
         displayDate: LocalDate,
