@@ -9,8 +9,6 @@ import com.brifo.server.stock.repository.StockRepository
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.mockingDetails
-import org.mockito.Mockito.never
-import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import org.springframework.batch.core.scope.context.ChunkContext
@@ -18,6 +16,7 @@ import org.springframework.batch.core.step.StepContribution
 import java.math.BigDecimal
 import java.time.LocalDate
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class ClosingPriceTaskletTest {
     private val decisionRepository = mock(DecisionRepository::class.java)
@@ -61,5 +60,50 @@ class ClosingPriceTaskletTest {
         assertEquals(0, mockingDetails(priceRepository).invocations.count { it.method.name == "save" })
     }
 
-    private fun tasklet() = ClosingPriceTasklet(targetDate, decisionRepository, stockRepository, priceRepository, client)
+    @Test
+    fun `휴장일에는 외부 조회 없이 직전 거래일 시세를 그날의 종가로 저장한다`() {
+        val saturday = LocalDate.of(2026, 8, 1)
+        val stock = mock(Stock::class.java)
+        val previousClose = mock(DailyStockPrice::class.java)
+        `when`(decisionRepository.findUnsettledStockIds(saturday, false)).thenReturn(listOf(2L))
+        `when`(stockRepository.findAllById(listOf(2L))).thenReturn(listOf(stock))
+        `when`(stock.id).thenReturn(2L)
+        `when`(priceRepository.findByStockIdAndTradeDateAndIsClosingTrue(2L, saturday)).thenReturn(null)
+        `when`(priceRepository.findTopByStockIdAndTradeDateBeforeOrderByTradeDateDesc(2L, saturday))
+            .thenReturn(previousClose)
+        `when`(previousClose.price).thenReturn(BigDecimal("71000.00"))
+        `when`(previousClose.changeRate).thenReturn(BigDecimal("1.14"))
+
+        tasklet(saturday).execute(mock(StepContribution::class.java), mock(ChunkContext::class.java))
+
+        verifyNoInteractions(client)
+        val saved = mockingDetails(priceRepository).invocations.single { it.method.name == "save" }.arguments[0]
+            as DailyStockPrice
+        assertEquals(saturday, saved.tradeDate)
+        assertEquals(true, saved.isClosing)
+        assertEquals(BigDecimal("71000.00"), saved.price)
+        assertEquals(BigDecimal("1.14"), saved.changeRate)
+    }
+
+    @Test
+    fun `휴장일에 직전 거래일 시세가 없으면 실패한다`() {
+        val saturday = LocalDate.of(2026, 8, 1)
+        val stock = mock(Stock::class.java)
+        `when`(decisionRepository.findUnsettledStockIds(saturday, false)).thenReturn(listOf(2L))
+        `when`(stockRepository.findAllById(listOf(2L))).thenReturn(listOf(stock))
+        `when`(stock.id).thenReturn(2L)
+        `when`(stock.code).thenReturn("BRF001")
+        `when`(priceRepository.findByStockIdAndTradeDateAndIsClosingTrue(2L, saturday)).thenReturn(null)
+        `when`(priceRepository.findTopByStockIdAndTradeDateBeforeOrderByTradeDateDesc(2L, saturday))
+            .thenReturn(null)
+
+        assertFailsWith<IllegalStateException> {
+            tasklet(saturday).execute(mock(StepContribution::class.java), mock(ChunkContext::class.java))
+        }
+
+        verifyNoInteractions(client)
+    }
+
+    private fun tasklet(date: LocalDate = targetDate) =
+        ClosingPriceTasklet(date, decisionRepository, stockRepository, priceRepository, client)
 }
