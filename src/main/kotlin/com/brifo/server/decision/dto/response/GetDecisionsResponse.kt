@@ -13,6 +13,7 @@ data class GetDecisionsResponse(
         val decisionId: UUID,
         val direction: DecisionDirection,
         val confidenceLevel: Int,
+        val isSettled: Boolean,
         val agent: DecisionListAgent,
         val stock: DecisionListStock,
     )

@@ -85,7 +85,7 @@ class DecisionControllerTest {
     }
 
     @Test
-    fun `시세가 없어도 오늘의 미정산 결정은 null 시세와 함께 반환한다`() {
+    fun `시세가 없어도 오늘의 결정은 null 시세와 함께 반환한다`() {
         val decisionId = UUID.randomUUID()
         val agentId = UUID.randomUUID()
         val stockId = UUID.randomUUID()
@@ -96,6 +96,7 @@ class DecisionControllerTest {
                         decisionId = decisionId,
                         direction = DecisionDirection.DOWN,
                         confidenceLevel = 3,
+                        isSettled = false,
                         agent = GetDecisionsResponse.DecisionListAgent(agentId, AgentType.TANKER),
                         stock = GetDecisionsResponse.DecisionListStock(stockId, "삼성전자", null, null, null, null),
                     ),
@@ -108,6 +109,7 @@ class DecisionControllerTest {
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.result.items[0].decisionId").value(decisionId.toString()))
+            .andExpect(jsonPath("$.result.items[0].isSettled").value(false))
             .andExpect(jsonPath("$.result.items[0].agent.agentId").value(agentId.toString()))
             .andExpect(jsonPath("$.result.items[0].agent.agentType").value("TANKER"))
             .andExpect(jsonPath("$.result.items[0].stock.stockId").value(stockId.toString()))

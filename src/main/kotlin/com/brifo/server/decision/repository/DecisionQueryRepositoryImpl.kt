@@ -12,6 +12,7 @@ import com.brifo.server.decision.entity.QDecisionResult.Companion.decisionResult
 import com.brifo.server.stock.entity.QDailyStockPrice
 import com.brifo.server.stock.entity.QDailyStockPrice.Companion.dailyStockPrice
 import com.querydsl.core.types.Projections
+import com.querydsl.core.types.dsl.CaseBuilder
 import com.querydsl.core.types.dsl.Expressions
 import com.querydsl.jpa.JPAExpressions
 import com.querydsl.jpa.impl.JPAQueryFactory
@@ -40,7 +41,7 @@ class DecisionQueryRepositoryImpl(
                 briefingNewsCard.newsCard.displayDate.eq(displayDate),
             ).fetchFirst() != null
 
-    override fun findTodayUnsettledDecisions(
+    override fun findTodayDecisions(
         userPublicId: UUID,
         displayDate: LocalDate,
     ): List<GetDecisionsResponse.DecisionItem> {
@@ -57,6 +58,10 @@ class DecisionQueryRepositoryImpl(
             "cast({0} as long)",
             dailyStockPrice.price,
         )
+        val isSettled = CaseBuilder()
+            .`when`(decisionResult.id.isNotNull())
+            .then(true)
+            .otherwise(false)
         return queryFactory
             .select(
                 Projections.constructor(
@@ -64,6 +69,7 @@ class DecisionQueryRepositoryImpl(
                     decision.publicId,
                     decision.direction,
                     decision.confidenceLevel.intValue(),
+                    isSettled,
                     Projections.constructor(
                         GetDecisionsResponse.DecisionListAgent::class.java,
                         decision.briefing.agent.publicId,
@@ -81,6 +87,8 @@ class DecisionQueryRepositoryImpl(
                 ),
             ).from(decision)
             .join(decision.briefing.briefingNewsCards, briefingNewsCard)
+            .leftJoin(decisionResult)
+            .on(decisionResult.decision.eq(decision))
             .leftJoin(dailyStockPrice)
             .on(
                 dailyStockPrice.stock.eq(briefingNewsCard.newsCard.news.stock),
@@ -108,11 +116,6 @@ class DecisionQueryRepositoryImpl(
                         .from(firstBriefingNewsCard)
                         .where(firstBriefingNewsCard.briefing.eq(decision.briefing)),
                 ),
-                JPAExpressions
-                    .selectOne()
-                    .from(decisionResult)
-                    .where(decisionResult.decision.eq(decision))
-                    .notExists(),
             ).orderBy(decision.createdAt.desc(), decision.id.desc())
             .fetch()
     }

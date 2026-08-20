@@ -70,14 +70,14 @@ class DecisionQueryRepositoryJpaTest @Autowired constructor(
     }
 
     @Test
-    fun `오늘의 미정산 결정은 최신 가격이 없어도 중복 없이 조회한다`() {
+    fun `오늘의 결정은 최신 가격이 없어도 중복 없이 조회한다`() {
         val date = LocalDate.of(2026, 7, 21)
         val scenario = BriefingDatabaseFixture(entityManager).requestScenario(date, agentCount = 1)
         val decision = persistDecision(scenario, DecisionDirection.DOWN)
         entityManager.flush()
         entityManager.clear()
 
-        val items = decisionRepository.findTodayUnsettledDecisions(
+        val items = decisionRepository.findTodayDecisions(
             scenario.user.publicId!!,
             date,
         )
@@ -85,13 +85,14 @@ class DecisionQueryRepositoryJpaTest @Autowired constructor(
         assertEquals(1, items.size)
         assertEquals(decision.publicId, items.single().decisionId)
         assertEquals(scenario.agents.single().publicId, items.single().agent.agentId)
+        assertFalse(items.single().isSettled)
         assertNull(items.single().stock.price)
         assertNull(items.single().stock.changeRate)
         assertNull(items.single().stock.tradeDate)
     }
 
     @Test
-    fun `오늘의 미정산 결정은 가장 최신 거래일 시세를 반환한다`() {
+    fun `오늘의 결정은 가장 최신 거래일 시세를 반환한다`() {
         val date = LocalDate.of(2026, 7, 21)
         val scenario = BriefingDatabaseFixture(entityManager).requestScenario(date, agentCount = 1)
         persistDecision(scenario, DecisionDirection.UP)
@@ -110,7 +111,7 @@ class DecisionQueryRepositoryJpaTest @Autowired constructor(
         entityManager.flush()
         entityManager.clear()
 
-        val item = decisionRepository.findTodayUnsettledDecisions(
+        val item = decisionRepository.findTodayDecisions(
             scenario.user.publicId!!,
             date,
         ).single()
@@ -121,22 +122,28 @@ class DecisionQueryRepositoryJpaTest @Autowired constructor(
     }
 
     @Test
-    fun `오늘의 내 미정산 결정만 조회한다`() {
+    fun `오늘의 내 결정만 조회한다`() {
         val date = LocalDate.of(2026, 7, 21)
         val scenario = BriefingDatabaseFixture(entityManager).requestScenario(date, agentCount = 1)
-        val decision = persistDecision(scenario, DecisionDirection.DOWN)
+        persistDecision(scenario, DecisionDirection.DOWN)
         entityManager.flush()
 
         assertTrue(
-            decisionRepository.findTodayUnsettledDecisions(UUID.randomUUID(), date).isEmpty(),
+            decisionRepository.findTodayDecisions(UUID.randomUUID(), date).isEmpty(),
         )
         assertTrue(
-            decisionRepository.findTodayUnsettledDecisions(
+            decisionRepository.findTodayDecisions(
                 scenario.user.publicId!!,
                 date.minusDays(1),
             ).isEmpty(),
         )
+    }
 
+    @Test
+    fun `정산이 끝난 결정도 그날 목록에 남고 정산 여부로 구분한다`() {
+        val date = LocalDate.of(2026, 7, 21)
+        val scenario = BriefingDatabaseFixture(entityManager).requestScenario(date, agentCount = 1)
+        val decision = persistDecision(scenario, DecisionDirection.DOWN)
         val price = DailyStockPrice.create(
             stock = scenario.stock,
             tradeDate = date,
@@ -147,12 +154,13 @@ class DecisionQueryRepositoryJpaTest @Autowired constructor(
         entityManager.flush()
         entityManager.clear()
 
-        assertTrue(
-            decisionRepository.findTodayUnsettledDecisions(
-                scenario.user.publicId!!,
-                date,
-            ).isEmpty(),
-        )
+        val item = decisionRepository.findTodayDecisions(
+            scenario.user.publicId!!,
+            date,
+        ).single()
+
+        assertEquals(decision.publicId, item.decisionId)
+        assertTrue(item.isSettled)
     }
 
     @Test
