@@ -151,6 +151,12 @@ class UserService(
     companion object {
         private const val MIN_STOCK_SELECTION_COUNT = 1L
         private const val MAX_STOCK_SELECTION_COUNT = 3
+        /**
+         * 온보딩 시 생성하는 기본 사원 프로필.
+         *
+         * 일급은 루키 < 탱커 < 프로 순이다. 프로가 가장 비싼 사원이며, 이 순서가 뒤집히면
+         * 사원 화면의 일급 서열이 기획과 어긋난다.
+         */
         private val DEFAULT_AGENT_PROFILES =
             listOf(
                 DefaultAgentProfile(AgentType.ROOKIE, "Claude Haiku 4.5", "루키", 10),
