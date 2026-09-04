@@ -78,7 +78,7 @@ class BriefingRequestTransactionIntegrationTest @Autowired constructor(
     }
 
     @Test
-    fun `카드뉴스가 세 개여도 모두 포함한 브리핑과 급여 거래를 만든다`() {
+    fun `카드뉴스가 세 개여도 분석에는 최신 두 장만 포함한다`() {
         val date = LocalDate.now(ZoneId.of("Asia/Seoul"))
         val scenario = BriefingDatabaseFixture(entityManager).requestScenario(date, cardCount = 3, agentCount = 1)
 
@@ -93,7 +93,9 @@ class BriefingRequestTransactionIntegrationTest @Autowired constructor(
         ).single()
         assertEquals(1, result.requestedCount)
         assertEquals(10, result.totalSalaryCost)
-        assertEquals(3, briefing.newsCards.size)
+        // 분석에 넣는 카드 장수는 findAnalysisCards 의 NEWS_CARD_LIMIT(2) 로 고정돼 있다.
+        // 생성되는 카드 수(batch.newsCardsPerStock, 기본 3)와는 별개의 값이다.
+        assertEquals(2, briefing.newsCards.size)
         assertEquals(90, scenario.user.balanceAp)
     }
 

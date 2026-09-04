@@ -17,6 +17,7 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -141,6 +142,8 @@ class DiaryShareImageServiceTest {
             stockId = UUID.randomUUID(),
             stockName = "삼성전자",
             changeRate = BigDecimal("2.5"),
+            tradeDate = LocalDate.of(2026, 8, 10),
+            apDelta = 80,
             agentId = UUID.randomUUID(),
             agentType = AgentType.ROOKIE,
             agentNickname = "루키",

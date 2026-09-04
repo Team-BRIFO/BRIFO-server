@@ -2,6 +2,9 @@ package com.brifo.server.diary.service
 
 import com.brifo.server.ServerTestConfiguration
 import com.brifo.server.batch.anyKotlin
+import com.brifo.server.ap.entity.ApTransaction
+import com.brifo.server.ap.entity.ApTransactionReason
+import com.brifo.server.ap.entity.ApTransactionTargetType
 import com.brifo.server.briefing.entity.Briefing
 import com.brifo.server.briefing.entity.BriefingDirection
 import com.brifo.server.briefing.support.BriefingDatabaseFixture
@@ -116,6 +119,17 @@ class DiaryShareImageConcurrencyIntegrationTest {
                 changeRate = BigDecimal("2.55"),
             ).also(entityManager::persist)
         entityManager.persist(DecisionResult.create(decision, price, true))
+        // 다이어리 상세 조회는 정산 AP 거래를 조인한다. 운영에서는 정산이 결과와 AP 거래를
+        // 함께 남기므로, 픽스처도 같이 만들어야 조회에 걸린다.
+        entityManager.persist(
+            ApTransaction.create(
+                user = scenario.user,
+                amount = 80,
+                reason = ApTransactionReason.DECISION_WIN,
+                targetType = ApTransactionTargetType.DECISION,
+                targetId = decision.id,
+            ),
+        )
         val diary = DiaryEntry.create(decision).also(entityManager::persist)
         entityManager.flush()
         entityManager.refresh(diary)

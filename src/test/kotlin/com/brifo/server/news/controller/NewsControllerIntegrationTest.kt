@@ -66,14 +66,21 @@ class NewsControllerIntegrationTest @Autowired constructor(
             .andExpect(jsonPath("$.result.stock.changeRate").value(2.1))
             .andExpect(jsonPath("$.result.newsCards").isArray)
             .andExpect(jsonPath("$.result.newsCards.length()").value(2))
+            // 카드뉴스는 최신순(newsCard.id DESC)으로 내려간다.
+            .andExpect(jsonPath("$.result.newsCards[0].headline").value("삼성전자 공급계약"))
             .andExpect(
                 jsonPath("$.result.newsCards[0].publishedDate")
+                    .value(displayDate.atTime(11, 0).atZone(ZoneId.of("Asia/Seoul")).toInstant().toString()),
+            )
+            .andExpect(jsonPath("$.result.newsCards[1].headline").value("삼성전자 실적 개선"))
+            .andExpect(
+                jsonPath("$.result.newsCards[1].publishedDate")
                     .value(displayDate.atTime(10, 0).atZone(ZoneId.of("Asia/Seoul")).toInstant().toString()),
             )
-            .andExpect(jsonPath("$.result.newsCards[0].imageUrl").value("https://cdn.example.com/news/1.png"))
-            .andExpect(jsonPath("$.result.newsCards[0].terms[0].displayOrder").value(0))
-            .andExpect(jsonPath("$.result.newsCards[0].terms[1].displayOrder").value(1))
-            .andExpect(jsonPath("$.result.newsCards[0].terms[1].surface").value("순매수"))
+            .andExpect(jsonPath("$.result.newsCards[1].imageUrl").value("https://cdn.example.com/news/1.png"))
+            .andExpect(jsonPath("$.result.newsCards[1].terms[0].displayOrder").value(0))
+            .andExpect(jsonPath("$.result.newsCards[1].terms[1].displayOrder").value(1))
+            .andExpect(jsonPath("$.result.newsCards[1].terms[1].surface").value("순매수"))
     }
 
     @Test
@@ -85,13 +92,15 @@ class NewsControllerIntegrationTest @Autowired constructor(
             .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.code").value("COMMON_400"))
 
+        // 존재하지 않는 종목은 STOCK_404 다. 종목은 있는데 오늘 카드가 없는 경우는
+        // 오류가 아니라 200 + 빈 목록으로 응답한다.
         mockMvc
             .perform(
                 get("/api/stocks/{stockId}/news-cards", UUID.randomUUID())
                     .param("userId", userId),
             )
             .andExpect(status().isNotFound)
-            .andExpect(jsonPath("$.code").value("CARD_404"))
+            .andExpect(jsonPath("$.code").value("STOCK_404"))
     }
 
     @Test
