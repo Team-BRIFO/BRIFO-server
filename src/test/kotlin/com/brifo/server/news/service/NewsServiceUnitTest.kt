@@ -46,7 +46,7 @@ class NewsServiceUnitTest {
         val stockId = UUID.randomUUID()
         val stock = mock(Stock::class.java)
 
-        `when`(newsCardRepository.findDisplayCards(stockId, LocalDate.of(2026, 7, 4))).thenReturn(emptyList())
+        `when`(newsCardRepository.findDailyCards(stockId, LocalDate.of(2026, 7, 4))).thenReturn(emptyList())
         `when`(stockRepository.findByPublicId(stockId)).thenReturn(stock)
         `when`(stock.id).thenReturn(2L)
         `when`(stock.code).thenReturn("005930")
@@ -77,7 +77,7 @@ class NewsServiceUnitTest {
         val stock = mock(Stock::class.java)
         val cards = List(5) { index -> newsCard(stock, cardId = UUID.randomUUID(), headline = "헤드라인 $index") }
 
-        `when`(newsCardRepository.findDisplayCards(stockId, displayDate)).thenReturn(cards)
+        `when`(newsCardRepository.findDailyCards(stockId, displayDate)).thenReturn(cards)
         `when`(termRepository.findAllByNewsCardIdOrderByDisplayOrderAsc(anyLong())).thenReturn(emptyList())
         `when`(stock.id).thenReturn(2L)
         `when`(stock.code).thenReturn("000660")
@@ -97,7 +97,7 @@ class NewsServiceUnitTest {
 
         val response = newsService.getNewsCards(stockId)
 
-        // 분석용 2장 제한(findAnalysisCards)이 상세 목록에 새어들지 않아야 한다.
+        // 그날 카드가 세 장이면 세 장 모두 내려가야 한다.
         assertEquals(5, response.newsCards.size)
         assertEquals(cards.map { it.headline }, response.newsCards.map { it.headline })
     }
@@ -106,7 +106,7 @@ class NewsServiceUnitTest {
     fun `카드뉴스도 종목도 없으면 예외가 발생한다`() {
         val stockId = UUID.randomUUID()
 
-        `when`(newsCardRepository.findDisplayCards(stockId, LocalDate.of(2026, 7, 4))).thenReturn(emptyList())
+        `when`(newsCardRepository.findDailyCards(stockId, LocalDate.of(2026, 7, 4))).thenReturn(emptyList())
         `when`(stockRepository.findByPublicId(stockId)).thenReturn(null)
 
         assertFailsWith<StockNotFoundException> {
@@ -123,7 +123,7 @@ class NewsServiceUnitTest {
         val stock = mock(Stock::class.java)
 
         `when`(
-            newsCardRepository.findDisplayCards(
+            newsCardRepository.findDailyCards(
                 stockId,
                 displayDate,
             ),

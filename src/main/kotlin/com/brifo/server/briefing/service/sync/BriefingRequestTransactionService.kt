@@ -77,7 +77,7 @@ class BriefingRequestTransactionService(
     }
 
     private fun validateBeforeLock(command: BriefingRequestTask.Command): List<NewsCard> {
-        val newsCards = newsCardRepository.findAnalysisCards(
+        val newsCards = newsCardRepository.findDailyCards(
             command.stockPublicId,
             command.requestedAt.toLocalDate(),
         )

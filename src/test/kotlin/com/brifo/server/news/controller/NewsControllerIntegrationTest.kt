@@ -107,7 +107,7 @@ class NewsControllerIntegrationTest @Autowired constructor(
     fun `오늘 카드뉴스가 세 개 이상이면 전부 조회한다`() {
         val stockId = saveNewsCardData(includeExtraCard = true)
 
-        // 분석용 2장 제한(findAnalysisCards)이 상세 목록에 새어들면 안 된다.
+        // 그날 카드가 세 장이면 세 장 모두 내려가야 한다.
         mockMvc
             .perform(get("/api/stocks/{stockId}/news-cards", stockId))
             .andExpect(status().isOk)
