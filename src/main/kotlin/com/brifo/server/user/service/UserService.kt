@@ -154,8 +154,8 @@ class UserService(
         private val DEFAULT_AGENT_PROFILES =
             listOf(
                 DefaultAgentProfile(AgentType.ROOKIE, "Claude Haiku 4.5", "루키", 10),
-                DefaultAgentProfile(AgentType.PRO, "Claude Sonnet 4.6", "프로", 15),
-                DefaultAgentProfile(AgentType.TANKER, "Claude Opus 5", "탱커", 25),
+                DefaultAgentProfile(AgentType.PRO, "Claude Sonnet 4.6", "프로", 25),
+                DefaultAgentProfile(AgentType.TANKER, "Claude Opus 5", "탱커", 15),
             )
     }
 
