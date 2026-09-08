@@ -200,10 +200,10 @@ class NaverNewsCollectionClientTest {
     private fun itemsResponse(vararg items: String) =
         """
         {
-          "total": ${'$'}{items.size},
+          "total": ${items.size},
           "start": 1,
           "display": 20,
-          "items": [${'$'}{items.joinToString(",")}]
+          "items": [${items.joinToString(",")}]
         }
         """.trimIndent()
 

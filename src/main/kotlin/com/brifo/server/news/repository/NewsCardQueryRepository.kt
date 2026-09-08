@@ -5,14 +5,13 @@ import java.time.LocalDate
 import java.util.UUID
 
 interface NewsCardQueryRepository {
-    /** 사원이 분석할 카드를 고른다. 분석에 넣는 장수가 정해져 있어 상한이 있다. */
-    fun findAnalysisCards(
-        stockPublicId: UUID,
-        displayDate: LocalDate,
-    ): List<NewsCard>
-
-    /** 카드뉴스 상세 화면에 보여줄, 그날 그 종목의 카드 전부. */
-    fun findDisplayCards(
+    /**
+     * 그날 그 종목의 카드뉴스 전부. 상세 화면 목록과 사원 분석이 같은 집합을 쓴다.
+     *
+     * 하루에 만드는 장수는 `app.batch.news-cards-per-stock`(기본 3)이 정한다.
+     * 여기서 따로 상한을 두면 생성 설정과 조용히 어긋나므로 두지 않는다.
+     */
+    fun findDailyCards(
         stockPublicId: UUID,
         displayDate: LocalDate,
     ): List<NewsCard>

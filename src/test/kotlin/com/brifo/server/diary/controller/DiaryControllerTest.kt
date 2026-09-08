@@ -16,6 +16,8 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean
+import java.math.BigDecimal
+import java.time.LocalDate
 import java.util.UUID
 
 class DiaryControllerTest {
@@ -61,7 +63,13 @@ class DiaryControllerTest {
         val diaryId = UUID.randomUUID()
         val imageUrl = "https://cdn.brifo.app/diary-share-images/$diaryId.png"
         `when`(shareImageService.create(userId, diaryId)).thenReturn(
-            CreateDiaryShareImageResponse(diaryId, imageUrl, reused = false),
+            CreateDiaryShareImageResponse(
+                diaryId = diaryId,
+                shareImageUrl = imageUrl,
+                reused = false,
+                changeRate = BigDecimal("2.55"),
+                tradeDate = LocalDate.of(2026, 8, 10),
+            ),
         )
 
         mockMvc

@@ -8,17 +8,19 @@ class NewsImportanceCalculatorTest {
     private val calculator = NewsImportanceCalculator()
 
     @Test
-    fun `공시가 있고 마감 회차이면 최대 중요도다`() {
-        val importance = calculator.calculate(CollectionRound.CLOSING, hasDisclosure = true)
+    fun `마감 회차의 중요도는 최대값이다`() {
+        val importance = calculator.calculate(CollectionRound.CLOSING)
 
         assertEquals("1.00", importance.toPlainString())
     }
 
     @Test
-    fun `공시가 없으면 늦은 회차의 중요도가 높다`() {
-        val morning = calculator.calculate(CollectionRound.MORNING, hasDisclosure = false)
-        val closing = calculator.calculate(CollectionRound.CLOSING, hasDisclosure = false)
+    fun `늦은 회차일수록 중요도가 높다`() {
+        val morning = calculator.calculate(CollectionRound.MORNING)
+        val midday = calculator.calculate(CollectionRound.MIDDAY)
+        val closing = calculator.calculate(CollectionRound.CLOSING)
 
-        assertTrue(closing > morning)
+        assertTrue(morning < midday)
+        assertTrue(midday < closing)
     }
 }

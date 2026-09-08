@@ -1,6 +1,7 @@
 package com.brifo.server.auth.dev
 
 import com.brifo.server.auth.dto.response.OAuthLoginResponse
+import com.brifo.server.auth.service.JwtTokenProvider
 import com.brifo.server.auth.service.OAuthLoginService
 import com.brifo.server.policy.entity.Policy
 import com.brifo.server.policy.repository.PolicyRepository
@@ -45,6 +46,9 @@ class DevAuthServiceTest {
     @Mock
     private lateinit var userService: UserService
 
+    @Mock
+    private lateinit var jwtTokenProvider: JwtTokenProvider
+
     private lateinit var initialApBalanceUpdater: DevInitialApBalanceUpdater
     private lateinit var service: DevAuthService
     private var updatedSocialId: String? = null
@@ -82,6 +86,7 @@ class DevAuthServiceTest {
                 userRepository = userRepository,
                 userService = userService,
                 initialApBalanceUpdater = initialApBalanceUpdater,
+                jwtTokenProvider = jwtTokenProvider,
             )
     }
 

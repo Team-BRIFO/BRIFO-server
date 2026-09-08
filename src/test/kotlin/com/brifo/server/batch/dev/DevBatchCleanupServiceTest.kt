@@ -1,6 +1,5 @@
 package com.brifo.server.batch.dev
 
-import com.brifo.server.batch.collection.CollectionRound
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
@@ -28,7 +27,7 @@ class DevBatchCleanupServiceTest {
         `when`(
             queryRepository.findNewsIdsPublishedBetween(
                 targetDate.atStartOfDay(),
-                CollectionRound.CLOSING.cutoffAt(targetDate),
+                targetDate.plusDays(1).atStartOfDay(),
             ),
         ).thenReturn(listOf(1L))
         `when`(queryRepository.findCardIds(listOf(1L))).thenReturn(listOf(2L))
@@ -39,7 +38,7 @@ class DevBatchCleanupServiceTest {
         `when`(queryRepository.findCardDisplayDates(listOf(2L))).thenReturn(listOf(LocalDate.of(2026, 8, 7)))
         `when`(jdbc.update(any(String::class.java), any(MapSqlParameterSource::class.java))).thenReturn(1)
 
-        val result = service.cleanupForCollection(targetDate, CollectionRound.CLOSING)
+        val result = service.cleanupForCollection(targetDate)
 
         assertEquals(1, result.news)
         assertEquals(1, result.newsCards)
@@ -64,7 +63,7 @@ class DevBatchCleanupServiceTest {
         `when`(
             queryRepository.findNewsIdsPublishedBetween(
                 targetDate.atStartOfDay(),
-                CollectionRound.CLOSING.cutoffAt(targetDate),
+                targetDate.plusDays(1).atStartOfDay(),
             ),
         ).thenReturn(listOf(1L))
         `when`(queryRepository.findCardIds(listOf(1L))).thenReturn(listOf(cardId))
@@ -74,7 +73,7 @@ class DevBatchCleanupServiceTest {
         `when`(queryRepository.findCardDisplayDates(listOf(cardId))).thenReturn(listOf(LocalDate.of(2026, 8, 7)))
         `when`(jdbc.update(any(String::class.java), any(MapSqlParameterSource::class.java))).thenReturn(1)
 
-        val result = service.cleanupForCollection(targetDate, CollectionRound.CLOSING)
+        val result = service.cleanupForCollection(targetDate)
 
         assertEquals(1, result.newsCards)
         assertEquals(0, result.briefings)

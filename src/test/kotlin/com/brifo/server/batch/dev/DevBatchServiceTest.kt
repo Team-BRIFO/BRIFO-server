@@ -36,6 +36,7 @@ class DevBatchServiceTest {
     private val newsCollectionJob = mock(Job::class.java)
     private val newsCardGenerationJob = mock(Job::class.java)
     private val decisionSettlementJob = mock(Job::class.java)
+    private val dailyClosingPriceJob = mock(Job::class.java)
     private val service = DevBatchService(
         properties = DevAuthProperties(enabled = true, password = "secret"),
         cleanupService = cleanupService,
@@ -49,6 +50,7 @@ class DevBatchServiceTest {
         newsCollectionJob = newsCollectionJob,
         newsCardGenerationJob = newsCardGenerationJob,
         decisionSettlementJob = decisionSettlementJob,
+        dailyClosingPriceJob = dailyClosingPriceJob,
     )
 
     @Test

@@ -36,6 +36,9 @@ import kotlin.test.assertTrue
     properties = [
         "app.batch.scheduling-enabled=false",
         "external.data-server.base-url=http://localhost",
+        // 생성 후보는 "관심종목 ∪ 기본 워치리스트"로 좁혀져 있다.
+        // 테스트 종목이 어느 쪽에도 없으면 후보가 0건이라 카드가 만들어지지 않는다.
+        "app.batch.default-watchlist-codes=AIT001",
     ],
 )
 class NewsCardGenerationJobAiMockIntegrationTest @Autowired constructor(

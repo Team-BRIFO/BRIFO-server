@@ -26,7 +26,7 @@ class NewsService(
     @Transactional(readOnly = true)
     fun getNewsCards(stockPublicId: UUID): GetNewsCardsResponse {
         val displayDate = LocalDate.now(clock)
-        val newsCards = newsCardRepository.findDisplayCards(stockPublicId, displayDate)
+        val newsCards = newsCardRepository.findDailyCards(stockPublicId, displayDate)
         // 오늘 카드가 아직 생성되지 않은 것은 정상 상태이므로 404가 아니라 빈 목록으로 응답한다.
         // 종목 정보는 카드가 없어도 내려줘야 프론트가 헤더와 빈 상태를 함께 그릴 수 있다.
         val stock = newsCards.firstOrNull()?.news?.stock
