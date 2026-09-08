@@ -191,9 +191,9 @@ class UserServiceTest {
         verify(agentRepository).saveAll(captor.capture())
         assertEquals(
             listOf(
-                AgentSpec(AgentType.ROOKIE, "Claude Haiku 4.5", "루키", null, 10),
+                AgentSpec(AgentType.ROOKIE, "Gemini 3.5 Flash", "루키", null, 10),
                 AgentSpec(AgentType.PRO, "Claude Sonnet 4.6", "프로", null, 25),
-                AgentSpec(AgentType.TANKER, "Claude Opus 5", "탱커", null, 15),
+                AgentSpec(AgentType.TANKER, "GPT-5.3", "탱커", null, 15),
             ),
             captor.value.map {
                 AgentSpec(it.agentType, it.modelName, it.nickname, it.description, it.dailySalary)
