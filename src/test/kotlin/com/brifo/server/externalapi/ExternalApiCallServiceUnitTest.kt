@@ -433,9 +433,9 @@ class ExternalApiCallServiceUnitTest {
         }
     }
 
-    /***********************
-    * Test Helping Methods
-    ************************/
+    // ----------------------
+    // Test Helping Methods
+    // ----------------------
 
     // 공통 메서드를 만들었기 때문에 테스트에서는 요청 내용만 작성할 수 있음
     private fun execute(
