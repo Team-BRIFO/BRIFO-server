@@ -8,7 +8,7 @@ data class KisProperties(
     val appKey: String,
     val appSecret: String,
 ) {
-    /**
+    /*
      * 이 프로퍼티는 `DATA_PROVIDER=kis`일 때만 바인딩되므로(`ExternalRestClientConfig`),
      * 여기서 값이 비어 있다는 건 KIS를 쓰겠다고 해놓고 키를 안 넘겼다는 뜻이다.
      *

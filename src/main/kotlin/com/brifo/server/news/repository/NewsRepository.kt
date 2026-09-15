@@ -19,8 +19,9 @@ interface NewsRepository : JpaRepository<News, Long> {
      *
      * 생성 배치는 하루 한 번 돌기 때문에 이 값이 곧 종목당 하루 카드 장수의 상한이다.
      * 예전에는 2로 하드코딩돼 있어서, 수집 건수를 늘려도 카드는 2장에서 늘지 않았다.
+     *
+     * QueryDSL JPA는 종목별 순위를 위한 window function을 직접 지원하지 않아 native query로 유지한다.
      */
-    // QueryDSL JPA는 종목별 순위를 위한 window function을 직접 지원하지 않아 native query로 유지한다.
     @Query(
         value =
             """
