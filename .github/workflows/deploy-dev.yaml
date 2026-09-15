@@ -14,13 +14,14 @@ concurrency:
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
-  ASG_NAME: ${{ vars.ASG_NAME }}
-  EC2_DEPLOY_SCRIPT_PATH: ${{ vars.EC2_DEPLOY_SCRIPT_PATH }}
+  COMPONENT: ${{ vars.COMPONENT }}
+  INSTANCE_ID: ${{ vars.INSTANCE_ID }}
+  ARTIFACTS_BUCKET: ${{ vars.ARTIFACTS_BUCKET }}
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v7
@@ -42,59 +43,79 @@ jobs:
 
       - uses: docker/setup-buildx-action@v4
 
+      # Graviton 인스턴스에 올리므로 arm64로 빌드한다. 여기가 amd64면 컨테이너가 뜨지 않는다.
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
           context: .
           push: true
-          platforms: linux/amd64
+          platforms: linux/arm64
           tags: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
 
-      - name: Deploy to ASG via SSM
+      - name: Deploy via SSM
         shell: bash
         run: |
           set -euo pipefail
 
-          if [[ ! "${EC2_DEPLOY_SCRIPT_PATH}" =~ ^/[A-Za-z0-9._/-]+$ ]] ||
-             [[ "${EC2_DEPLOY_SCRIPT_PATH}" =~ (^|/)\.{1,2}(/|$) ]]; then
-            echo "Invalid EC2 deploy script path." >&2
-            exit 1
-          fi
+          # 명령을 JSON 파일로 만들어 넘긴다. 인라인으로 쓰면 따옴표 이스케이프에서 사고가 난다.
+          cat > /tmp/params.json <<EOF
+          {
+            "commands": [
+              "set -Eeuo pipefail",
+              "aws s3 cp s3://${ARTIFACTS_BUCKET}/deploy.sh /tmp/deploy.sh --region ${AWS_REGION}",
+              "chmod +x /tmp/deploy.sh",
+              "/tmp/deploy.sh ${COMPONENT} ${GITHUB_SHA}"
+            ],
+            "executionTimeout": ["600"]
+          }
+          EOF
 
           command_id="$(
             aws ssm send-command \
-              --targets \
-                "Key=tag:aws:autoscaling:groupName,Values=${ASG_NAME}" \
+              --instance-ids "${INSTANCE_ID}" \
               --document-name AWS-RunShellScript \
-              --parameters "commands=[\"${EC2_DEPLOY_SCRIPT_PATH} ${GITHUB_SHA}\"]" \
+              --parameters file:///tmp/params.json \
               --timeout-seconds 600 \
-              --max-concurrency "100%" \
-              --max-errors "0" \
               --query "Command.CommandId" \
               --output text
           )"
 
+          echo "SSM command: ${command_id}"
+
           while true; do
             status="$(
-              aws ssm list-commands \
+              aws ssm get-command-invocation \
                 --command-id "${command_id}" \
-                --query "Commands[0].Status" \
-                --output text
+                --instance-id "${INSTANCE_ID}" \
+                --query "Status" \
+                --output text 2>/dev/null || echo Pending
             )"
 
             case "${status}" in
               Success)
-                echo "Deployment succeeded."
                 break
                 ;;
               Pending|InProgress|Delayed)
                 sleep 5
                 ;;
               *)
-                echo "Deployment failed with status: ${status}."
+                echo "::error::Deployment failed with status: ${status}"
+                # 실패 원인을 Actions 로그에서 바로 보려면 스크립트 출력을 꺼내야 한다.
+                aws ssm get-command-invocation \
+                  --command-id "${command_id}" \
+                  --instance-id "${INSTANCE_ID}" \
+                  --query "StandardErrorContent" \
+                  --output text || true
                 exit 1
                 ;;
             esac
           done
+
+          # 성공해도 배포 로그는 남겨둔다.
+          aws ssm get-command-invocation \
+            --command-id "${command_id}" \
+            --instance-id "${INSTANCE_ID}" \
+            --query "StandardOutputContent" \
+            --output text
