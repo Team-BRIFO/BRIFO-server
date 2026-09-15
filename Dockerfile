@@ -1,4 +1,8 @@
-FROM eclipse-temurin:21-jdk-noble AS builder
+# 빌더는 빌드 머신의 네이티브 아키텍처에서 돌린다.
+# 자바 바이트코드는 아키텍처 독립적이므로 arm64 이미지를 만들 때도
+# Gradle을 arm64로 에뮬레이션할 이유가 없다. 이 지정이 없으면 amd64 러너에서
+# arm64 빌드 시 컴파일 전체가 QEMU로 돌아 20분 제한을 넘긴다.
+FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk-noble AS builder
 
 WORKDIR /workspace
 
