@@ -4,7 +4,6 @@ import com.brifo.server.stock.dto.response.GetStocksResponse
 import com.brifo.server.stock.entity.QDailyStockPrice
 import com.brifo.server.stock.entity.QDailyStockPrice.Companion.dailyStockPrice
 import com.brifo.server.stock.entity.QStock.Companion.stock
-import com.brifo.server.stock.entity.QUserStock.Companion.userStock
 import com.querydsl.core.BooleanBuilder
 import com.querydsl.core.types.Projections
 import com.querydsl.core.types.dsl.Expressions
@@ -17,7 +16,7 @@ import java.util.UUID
 class StockQueryRepositoryImpl(
     private val queryFactory: JPAQueryFactory,
 ) : StockQueryRepository {
-    override fun findPopularStocks(): List<GetStocksResponse.StockItem> {
+    override fun findPopularStocks(limit: Int): List<GetStocksResponse.StockItem> {
         val latestPrice = QDailyStockPrice("latestPrice")
         val latestFetchedPrice = QDailyStockPrice("latestFetchedPrice")
 
@@ -51,25 +50,17 @@ class StockQueryRepositoryImpl(
             queryFactory
                 .select(selectedFields)
                 .from(stock)
-                .leftJoin(userStock)
-                .on(userStock.stock.eq(stock))
                 .leftJoin(dailyStockPrice)
                 .on(
                     dailyStockPrice.stock.eq(stock),
                     dailyStockPrice.tradeDate.eq(latestTradeDate),
                     dailyStockPrice.fetchedAt.eq(latestFetchedAt),
                 ).where(stock.isActive.isTrue)
-                .groupBy(
-                    stock.publicId,
-                    stock.code,
-                    stock.name,
-                    stock.logoUrl,
-                    dailyStockPrice.price,
-                    dailyStockPrice.changeRate,
-                ).orderBy(
-                    userStock.id.count().desc(),
+                .orderBy(
+                    stock.fameRank.asc().nullsLast(),
+                    dailyStockPrice.price.coalesce(0.toBigDecimal()).desc(),
                     stock.code.asc(),
-                ).limit(5)
+                ).limit(limit.toLong())
 
         return query.fetch()
     }

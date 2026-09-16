@@ -19,8 +19,12 @@ class StockService(
         val keyword = request.keyword?.trim().orEmpty()
 
         if (keyword.isBlank()) {
+            if (request.size !in MIN_POPULAR_SIZE..MAX_POPULAR_SIZE) {
+                throw BusinessException(ErrorCode.INVALID_REQUEST)
+            }
+
             val items =
-                stockRepository.findPopularStocks().mapIndexed { index, stock ->
+                stockRepository.findPopularStocks(request.size).mapIndexed { index, stock ->
                     stock.copy(
                         rank = index + 1,
                         changeRate = stock.changeRate.setScale(1, RoundingMode.HALF_UP),
@@ -75,5 +79,7 @@ class StockService(
     private companion object {
         const val MIN_SEARCH_SIZE = 1
         const val MAX_SEARCH_SIZE = 50
+        const val MIN_POPULAR_SIZE = 1
+        const val MAX_POPULAR_SIZE = 200
     }
 }

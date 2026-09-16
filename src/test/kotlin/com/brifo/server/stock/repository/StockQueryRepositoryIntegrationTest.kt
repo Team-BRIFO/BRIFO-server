@@ -5,10 +5,6 @@ import com.brifo.server.global.config.JpaConfig
 import com.brifo.server.global.config.QueryDslConfig
 import com.brifo.server.stock.entity.DailyStockPrice
 import com.brifo.server.stock.entity.Stock
-import com.brifo.server.stock.entity.UserStock
-import com.brifo.server.user.entity.OAuthProvider
-import com.brifo.server.user.entity.User
-import com.brifo.server.user.repository.UserRepository
 import jakarta.persistence.EntityManager
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -33,85 +29,63 @@ class StockQueryRepositoryIntegrationTest {
     private lateinit var stockRepository: StockRepository
 
     @Autowired
-    private lateinit var userRepository: UserRepository
-
-    @Autowired
-    private lateinit var userStockRepository: UserStockRepository
-
-    @Autowired
     private lateinit var dailyStockPriceRepository: DailyStockPriceRepository
 
     @Autowired
     private lateinit var entityManager: EntityManager
 
     @Test
-    fun `인기 종목은 선택 수와 종목 코드 순으로 활성 종목 최대 5개를 조회한다`() {
-        val samsung = saveStock("005930", "삼성전자")
-        val hynix = saveStock("000660", "SK하이닉스")
-        val naver = saveStock("035420", "NAVER")
+    fun `인기 종목은 fame_rank, 최근 종가, 종목 코드 순으로 활성 종목을 limit 만큼 조회한다`() {
+        // fame_rank가 없는(NULL) 종목들 — 최근 종가 내림차순, 동률이면 코드 오름차순으로 정렬돼야 한다.
+        val noRankHigh = saveStock("000001", "무랭크고가")
+        val noRankLow = saveStock("000002", "무랭크저가")
+        val noRankNoPrice = saveStock("000003", "무랭크가격없음")
 
-        // 선택 수가 0인 종목도 인기 종목 후보에 포함한다.
-        val zeroFirst = saveStock("000001", "선택없음1")
-        val zeroSecond = saveStock("000002", "선택없음2")
-        val zeroThird = saveStock("000003", "선택없음3")
+        // fame_rank가 있으면 가격과 무관하게 그 순서를 우선한다.
+        val hynix = saveStockWithFameRank("000660", "SK하이닉스", fameRank = 1)
+        val samsung = saveStockWithFameRank("005930", "삼성전자", fameRank = 2)
 
-        val inactive = saveStock("999999", "비활성종목")
-        val users = (1..3).map { saveUser("user-$it") }
-
-        // 삼성전자 3회, SK하이닉스 2회, NAVER 1회 선택 상태를 만든다.
-        select(users[0], samsung)
-        select(users[1], samsung)
-        select(users[2], samsung)
-        select(users[0], hynix)
-        select(users[1], hynix)
-        select(users[0], naver)
-
-        // 선택 수가 많아도 비활성 종목은 조회 대상에서 제외한다.
-        users.forEach { select(it, inactive) }
+        val inactive = saveStockWithFameRank("999999", "비활성종목", fameRank = 0)
         deactivate(inactive)
 
+        savePrice(stock = noRankHigh, price = "90000.00", changeRate = "1.00", tradeDate = LocalDate.of(2026, 7, 21))
+        savePrice(stock = noRankLow, price = "10000.00", changeRate = "1.00", tradeDate = LocalDate.of(2026, 7, 21))
         // 같은 종목에 여러 가격이 있으면 가장 최근 거래일의 가격을 사용한다.
-        savePrice(
-            stock = samsung,
-            price = "70000.00",
-            changeRate = "1.00",
-            tradeDate = LocalDate.of(2026, 7, 20),
-        )
-        savePrice(
-            stock = samsung,
-            price = "71000.00",
-            changeRate = "2.14",
-            tradeDate = LocalDate.of(2026, 7, 21),
-        )
+        savePrice(stock = samsung, price = "70000.00", changeRate = "1.00", tradeDate = LocalDate.of(2026, 7, 20))
+        savePrice(stock = samsung, price = "71000.00", changeRate = "2.14", tradeDate = LocalDate.of(2026, 7, 21))
 
         entityManager.flush()
         entityManager.clear()
 
-        val result = stockRepository.findPopularStocks()
+        val result = stockRepository.findPopularStocks(limit = 10)
 
-        // 선택 수가 같으면 종목 코드 오름차순으로 정렬하고 최대 5개만 반환한다.
-        assertEquals(5, result.size)
+        // fame_rank가 있는 종목이 먼저, 그 다음 fame_rank가 없는 종목은 최근 종가 내림차순(가격 없는 종목은 0으로 취급해 맨 뒤)이다.
         assertEquals(
-            listOf(
-                samsung.publicId,
-                hynix.publicId,
-                naver.publicId,
-                zeroFirst.publicId,
-                zeroSecond.publicId,
-            ),
+            listOf(hynix.publicId, samsung.publicId, noRankHigh.publicId, noRankLow.publicId, noRankNoPrice.publicId),
             result.map { it.stockId },
         )
         assertTrue(result.none { it.stockId == inactive.publicId })
-        assertTrue(result.none { it.stockId == zeroThird.publicId })
 
-        val samsungResult = result.first()
+        val samsungResult = result.first { it.stockId == samsung.publicId }
         assertEquals(BigDecimal("71000.00"), samsungResult.price)
         assertEquals(BigDecimal("2.14"), samsungResult.changeRate)
 
         // 저장된 가격이 없는 종목도 화면 필수 필드를 0으로 반환한다.
-        val hynixResult = result[1]
+        val hynixResult = result.first { it.stockId == hynix.publicId }
         assertEquals(BigDecimal.ZERO, hynixResult.price)
         assertEquals(BigDecimal.ZERO, hynixResult.changeRate)
+    }
+
+    @Test
+    fun `인기 종목은 limit 개수만큼만 조회한다`() {
+        (1..7).forEach { index -> saveStock(index.toString().padStart(6, '0'), "종목$index") }
+
+        entityManager.flush()
+        entityManager.clear()
+
+        val result = stockRepository.findPopularStocks(limit = 3)
+
+        assertEquals(3, result.size)
     }
 
     @Test
@@ -197,25 +171,19 @@ class StockQueryRepositoryIntegrationTest {
                 entityManager.refresh(it)
             }
 
-    private fun saveUser(socialId: String): User =
-        userRepository.saveAndFlush(
-            User.create(
-                provider = OAuthProvider.KAKAO,
-                socialId = socialId,
-                email = "$socialId@example.com",
-            ),
-        )
-
-    private fun select(
-        user: User,
-        stock: Stock,
-    ) {
-        userStockRepository.save(
-            UserStock.create(
-                user = user,
-                stock = stock,
-            ),
-        )
+    private fun saveStockWithFameRank(
+        code: String,
+        name: String,
+        fameRank: Int,
+    ): Stock {
+        val stock = saveStock(code, name)
+        entityManager
+            .createNativeQuery("UPDATE stocks SET fame_rank = ?1 WHERE id = ?2")
+            .setParameter(1, fameRank)
+            .setParameter(2, requireNotNull(stock.id))
+            .executeUpdate()
+        entityManager.clear()
+        return stock
     }
 
     private fun savePrice(
