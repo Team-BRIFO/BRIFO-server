@@ -205,6 +205,29 @@ ON CONFLICT (code) DO UPDATE
         sector = EXCLUDED.sector,
         logo_url = EXCLUDED.logo_url;
 
+-- 검색 전 "현재 인기 종목"에 먼저 뜨는 순서. 낮을수록 상위 노출, NULL은 최근 종가순으로 그 뒤에 붙는다.
+UPDATE stocks SET fame_rank = NULL;
+UPDATE stocks
+SET fame_rank = ranked.fame_rank
+FROM (VALUES
+    ('000660', 1),  -- SK하이닉스
+    ('005930', 2),  -- 삼성전자
+    ('009150', 3),  -- 삼성전기
+    ('035420', 4),  -- NAVER
+    ('035720', 5),  -- 카카오
+    ('005380', 6),  -- 현대차
+    ('000270', 7),  -- 기아
+    ('373220', 8),  -- LG에너지솔루션
+    ('207940', 9),  -- 삼성바이오로직스
+    ('068270', 10), -- 셀트리온
+    ('005490', 11), -- POSCO홀딩스
+    ('006400', 12), -- 삼성SDI
+    ('105560', 13), -- KB금융
+    ('055550', 14), -- 신한지주
+    ('066570', 15)  -- LG전자
+) AS ranked(code, fame_rank)
+WHERE stocks.code = ranked.code;
+
 INSERT INTO daily_stock_prices (stock_id, trade_date, price, change_rate, fetched_at, is_closing)
 SELECT stock.id, DATE '1970-01-01', 0.00, 0.00, TIMESTAMP '1970-01-01 00:00:00', FALSE
 FROM stocks stock

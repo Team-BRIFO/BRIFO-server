@@ -12,6 +12,7 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import java.math.BigDecimal
 import java.util.UUID
@@ -39,15 +40,15 @@ class StockServiceUnitTest {
                     changeRate = BigDecimal("-1.25"),
                 ),
             )
-        `when`(stockRepository.findPopularStocks()).thenReturn(stocks)
+        `when`(stockRepository.findPopularStocks(5)).thenReturn(stocks)
 
-        // 인기 모드에서는 요청의 cursor와 size를 사용하지 않는다.
+        // 인기 모드에서는 요청의 cursor를 사용하지 않지만, size는 조회 개수로 그대로 전달한다.
         val response =
             stockService.getStocks(
                 GetStocksRequest(
                     keyword = "   ",
                     cursor = UUID.randomUUID(),
-                    size = 0,
+                    size = 5,
                 ),
             )
 
@@ -61,6 +62,26 @@ class StockServiceUnitTest {
         // 인기 모드는 페이지네이션을 사용하지 않는다.
         assertNull(response.page.nextCursor)
         assertFalse(response.page.hasNext)
+    }
+
+    @Test
+    fun `검색 전 인기 모드에서 size를 최대 200까지 그대로 전달한다`() {
+        `when`(stockRepository.findPopularStocks(200)).thenReturn(emptyList())
+
+        stockService.getStocks(GetStocksRequest(keyword = null, size = 200))
+
+        verify(stockRepository).findPopularStocks(200)
+    }
+
+    @Test
+    fun `인기 모드에서 size가 허용 범위를 벗어나면 예외를 던진다`() {
+        listOf(0, 201).forEach { size ->
+            assertThrows<BusinessException> {
+                stockService.getStocks(
+                    GetStocksRequest(keyword = null, size = size),
+                )
+            }
+        }
     }
 
     @Test

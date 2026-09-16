@@ -51,6 +51,10 @@ class Stock private constructor(
     var isActive: Boolean = true
         protected set
 
+    @Column(name = "fame_rank")
+    var fameRank: Int? = null
+        protected set
+
     companion object {
         fun create(
             code: String,
