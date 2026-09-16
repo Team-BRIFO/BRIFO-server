@@ -29,7 +29,10 @@ class SignupCsrfFilter(
     private fun requiresProtection(request: HttpServletRequest): Boolean {
         if (
             request.method in SAFE_METHODS ||
-            (request.method == HttpMethod.POST.name() && request.requestURI == request.contextPath + DEV_SIGNUP_PATH)
+            (
+                request.method == HttpMethod.POST.name() &&
+                    CSRF_EXEMPT_POST_PATHS.any { request.requestURI == request.contextPath + it }
+            )
         ) {
             return false
         }
@@ -42,7 +45,14 @@ class SignupCsrfFilter(
     }
 
     companion object {
-        private const val DEV_SIGNUP_PATH = "/api/dev/signup"
+        /**
+         * CSRF 검사를 면제하는 POST 경로.
+         * - /api/dev/signup: 개발용 가입 진입점
+         * - /api/auth/signup/cancel: 가입 세션을 버리기만 하는 요청. 로그인이 끊긴 뒤라
+         *   클라이언트에 CSRF 토큰이 남아있지 않은 상태에서 호출되므로, 토큰을 요구하면
+         *   정작 정리가 필요한 순간에 거절된다.
+         */
+        private val CSRF_EXEMPT_POST_PATHS = setOf("/api/dev/signup", "/api/auth/signup/cancel")
         private val SAFE_METHODS = setOf("GET", "HEAD", "OPTIONS", "TRACE")
     }
 }

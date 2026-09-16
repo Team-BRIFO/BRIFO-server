@@ -88,6 +88,7 @@ class SecurityConfig(
                         "/api/auth/login/kakao",
                         "/api/auth/login/naver",
                         "/api/auth/reissue",
+                        "/api/auth/signup/cancel",
                     ).permitAll()
                 it
                     .requestMatchers(

@@ -272,4 +272,24 @@ class SecurityConfigIntegrationTest @Autowired constructor(
             ).andExpect(status().isUnauthorized)
             .andExpect(jsonPath("$.code").value("AUTH_401_03"))
     }
+
+    @Test
+    fun `가입 세션 취소 API는 아무 토큰 없이 호출할 수 있다`() {
+        mockMvc
+            .perform(post("/api/auth/signup/cancel"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.code").value("COMMON_200"))
+    }
+
+    @Test
+    fun `가입 세션 취소 API는 Signup Token이 있어도 CSRF 토큰을 요구하지 않는다`() {
+        val signupToken = jwtTokenProvider.issueSignupToken(UUID.randomUUID())
+
+        mockMvc
+            .perform(
+                post("/api/auth/signup/cancel")
+                    .cookie(Cookie(SignupTokenCookieManager.COOKIE_NAME, signupToken)),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.code").value("COMMON_200"))
+    }
 }
