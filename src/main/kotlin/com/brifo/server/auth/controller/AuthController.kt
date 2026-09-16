@@ -78,6 +78,16 @@ class AuthController(
         return ApiResponse.success(SuccessCode.OK)
     }
 
+    /**
+     * 로그인이 중간에 끊긴 뒤 재시도할 때 이전 가입 세션 쿠키가 남아있지 않도록 정리한다.
+     * signup_token이 없거나 만료됐어도 그냥 무효화 응답을 준다(재시도를 막을 이유가 없다).
+     */
+    @PostMapping("/signup/cancel")
+    fun cancelSignup(response: HttpServletResponse): ApiResponse<Nothing> {
+        signupTokenCookieManager.clear(response)
+        return ApiResponse.success(SuccessCode.OK)
+    }
+
     private fun updateSignupTokenCookie(
         result: OAuthLoginResponse,
         response: HttpServletResponse,
