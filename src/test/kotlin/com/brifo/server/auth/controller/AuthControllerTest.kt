@@ -151,4 +151,19 @@ class AuthControllerTest {
             },
         )
     }
+
+    @Test
+    fun `가입 세션 취소는 쿠키가 없어도 항상 성공하고 쿠키를 정리한다`() {
+        mockMvc
+            .perform(post("/api/auth/signup/cancel"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.code").value("COMMON_200"))
+
+        assertTrue(
+            mockingDetails(signupTokenCookieManager).invocations.any {
+                it.method.name == "clear"
+            },
+        )
+    }
 }
