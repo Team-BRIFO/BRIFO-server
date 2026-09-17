@@ -90,8 +90,16 @@ class BriefingQueryService(
 
         val stockEntity = briefing.newsCards.first().news.stock
         val stockPublicId = stockEntity.publicId!!
-        val stock = briefingRepository.findStockSummary(stockPublicId)
-            ?: error("Latest stock price is missing for stock $stockPublicId")
+        val price = stockPriceService.getCurrentPrice(requireNotNull(stockEntity.id), stockEntity.code)
+        val stock =
+            BriefingStockResponse(
+                stockId = stockPublicId,
+                name = stockEntity.name,
+                logoUrl = stockEntity.logoUrl,
+                price = price.currentPrice,
+                changeRate = (price.changeRate ?: BigDecimal.ZERO).setScale(1, RoundingMode.HALF_UP),
+                tradeDate = price.tradeDate ?: LocalDate.now(clock),
+            )
 
         return GetBriefingDetailResponse(
             stock = stock,

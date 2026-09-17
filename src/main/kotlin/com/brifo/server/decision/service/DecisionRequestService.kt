@@ -1,5 +1,8 @@
 package com.brifo.server.decision.service
 
+import com.brifo.server.ap.entity.ApTransactionReason
+import com.brifo.server.ap.entity.ApTransactionTargetType
+import com.brifo.server.ap.service.ApTransactionService
 import com.brifo.server.briefing.entity.Briefing
 import com.brifo.server.briefing.entity.BriefingStatus
 import com.brifo.server.briefing.exception.BriefingNotCompletedException
@@ -31,6 +34,7 @@ class DecisionRequestService(
     private val briefingRepository: BriefingRepository,
     private val decisionRepository: DecisionRepository,
     private val badgeAwardService: BadgeAwardService,
+    private val apTransactionService: ApTransactionService,
     private val clock: Clock,
     private val devBehaviorProperties: DevBehaviorProperties = DevBehaviorProperties(),
     private val eventPublisher: ApplicationEventPublisher? = null,
@@ -61,6 +65,15 @@ class DecisionRequestService(
                 confidenceLevel = confidenceLevel,
             ),
         )
+        val balanceAp = apTransactionService.change(
+            userId = userPublicId,
+            deltaAp = -DECISION_ENTRY_FEE_AP,
+            reason = ApTransactionReason.DECISION_ENTRY_FEE,
+            target = ApTransactionService.Target(
+                type = ApTransactionTargetType.DECISION,
+                id = requireNotNull(decision.id),
+            ),
+        )
         badgeAwardService.awardBadge(userPublicId, BadgeCode.B02)
         if (needsImmediateSettlement(requestedAt)) {
             eventPublisher?.publishEvent(
@@ -75,6 +88,8 @@ class DecisionRequestService(
             decisionId = decision.publicId!!,
             direction = decision.direction,
             confidenceLevel = decision.confidenceLevel.toInt(),
+            entryFeeAp = DECISION_ENTRY_FEE_AP,
+            balanceAp = balanceAp,
             stock = CreateDecisionResponse.CreatedDecisionStock(
                 stockId = stock.publicId!!,
                 name = stock.name,
@@ -128,6 +143,11 @@ class DecisionRequestService(
             throw DecisionAlreadyExistsException()
         }
         return newsCard
+    }
+
+    private companion object {
+        /** 예측 등록 시 즉시 차감되는 참가비. 의뢰비(사원 배치 비용)와는 별개의 비용이다. */
+        const val DECISION_ENTRY_FEE_AP = 1_000
     }
 }
 

@@ -1,16 +1,12 @@
 package com.brifo.server.briefing.repository
 
 import com.brifo.server.agent.entity.QAgent.Companion.agent
-import com.brifo.server.briefing.dto.response.BriefingStockResponse
 import com.brifo.server.briefing.dto.response.GetStockBriefingsResponse
 import com.brifo.server.briefing.dto.response.OfficeBriefingAgentResponse
 import com.brifo.server.briefing.dto.response.OfficeBriefingItemResponse
 import com.brifo.server.briefing.entity.Briefing
 import com.brifo.server.briefing.entity.QBriefing.Companion.briefing
 import com.brifo.server.briefing.entity.QBriefingNewsCard.Companion.briefingNewsCard
-import com.brifo.server.stock.entity.QDailyStockPrice
-import com.brifo.server.stock.entity.QDailyStockPrice.Companion.dailyStockPrice
-import com.brifo.server.stock.entity.QStock.Companion.stock
 import com.querydsl.core.types.Projections
 import com.querydsl.jpa.JPAExpressions
 import com.querydsl.jpa.impl.JPAQueryFactory
@@ -121,44 +117,6 @@ class BriefingQueryRepositoryImpl(
                     },
                 )
             }
-    }
-
-    override fun findStockSummary(stockPublicId: UUID): BriefingStockResponse? {
-        val latestPrice = QDailyStockPrice("latestPrice")
-        val latestFetchedPrice = QDailyStockPrice("latestFetchedPrice")
-
-        return queryFactory
-            .select(
-                Projections.constructor(
-                    BriefingStockResponse::class.java,
-                    stock.publicId,
-                    stock.name,
-                    stock.logoUrl,
-                    dailyStockPrice.price,
-                    dailyStockPrice.changeRate,
-                    dailyStockPrice.tradeDate,
-                ),
-            ).from(stock)
-            .join(dailyStockPrice)
-            .on(dailyStockPrice.stock.eq(stock))
-            .where(
-                stock.publicId.eq(stockPublicId),
-                dailyStockPrice.tradeDate.eq(
-                    JPAExpressions
-                        .select(latestPrice.tradeDate.max())
-                        .from(latestPrice)
-                        .where(latestPrice.stock.eq(stock)),
-                ),
-                dailyStockPrice.fetchedAt.eq(
-                    JPAExpressions
-                        .select(latestFetchedPrice.fetchedAt.max())
-                        .from(latestFetchedPrice)
-                        .where(
-                            latestFetchedPrice.stock.eq(stock),
-                            latestFetchedPrice.tradeDate.eq(dailyStockPrice.tradeDate),
-                        ),
-                ),
-            ).fetchOne()
     }
 
     override fun findOwnerPublicId(briefingPublicId: UUID): UUID? =
