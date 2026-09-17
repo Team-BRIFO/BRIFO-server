@@ -2,6 +2,7 @@ package com.brifo.server.decision.service
 
 import com.brifo.server.ap.entity.ApTransactionReason
 import com.brifo.server.ap.entity.ApTransactionTargetType
+import com.brifo.server.ap.exception.InsufficientApBalanceException
 import com.brifo.server.ap.service.ApTransactionService
 import com.brifo.server.briefing.entity.Briefing
 import com.brifo.server.briefing.entity.BriefingStatus
@@ -21,6 +22,8 @@ import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.config.DevBehaviorProperties
 import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.news.entity.NewsCard
+import com.brifo.server.user.exception.UserNotFoundException
+import com.brifo.server.user.repository.UserRepository
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -35,6 +38,7 @@ class DecisionRequestService(
     private val decisionRepository: DecisionRepository,
     private val badgeAwardService: BadgeAwardService,
     private val apTransactionService: ApTransactionService,
+    private val userRepository: UserRepository,
     private val clock: Clock,
     private val devBehaviorProperties: DevBehaviorProperties = DevBehaviorProperties(),
     private val eventPublisher: ApplicationEventPublisher? = null,
@@ -57,6 +61,11 @@ class DecisionRequestService(
             requestedAt = requestedAt,
         )
         val stock = newsCard.news.stock
+
+        val user = userRepository.findForUpdateByPublicId(userPublicId) ?: throw UserNotFoundException()
+        if (user.balanceAp < DECISION_ENTRY_FEE_AP) {
+            throw InsufficientApBalanceException()
+        }
 
         val decision = decisionRepository.saveAndFlush(
             Decision.create(
