@@ -11,7 +11,7 @@ class DevSignUpRequest(
     @field:Min(1)
     @field:Max(2_000_000)
     @field:Schema(
-        description = "개발용 계정의 초기 AP 잔액입니다. 생략하면 기본 초기 지급액(1,000,000 AP)이 유지됩니다.",
+        description = "개발용 계정의 초기 자금 잔액입니다. 생략하면 기본 초기 지급액(1,000,000원)이 유지됩니다.",
         example = "15000",
         nullable = true,
     )

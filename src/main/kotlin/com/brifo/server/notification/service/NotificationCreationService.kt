@@ -107,7 +107,7 @@ class NotificationCreationService(
             body =
                 "${data.stockName} ${formatChangeRate(data.changeRate)} · " +
                     "${data.direction.label()} 예측 ${if (data.isCorrect) "적중" else "실패"} · " +
-                    "AP ${formatSigned(data.apAmount)} (잔액 ${formatNumber(data.balanceAp)})",
+                    "${formatSigned(data.apAmount)}원 (잔액 ${formatNumber(data.balanceAp)}원)",
         )
     }
 
@@ -143,7 +143,7 @@ class NotificationCreationService(
         val badge = userBadgeRepository.findByIdAndUserPublicId(eventId, userId)?.badge ?: invalidTarget(eventId)
         return Content(
             title = "뱃지를 획득했어요 · ${badge.name}",
-            body = "${badge.description ?: badge.name} 보상 +${formatNumber(badge.rewardAp)} AP를 지급했어요",
+            body = "${badge.description ?: badge.name} 보상 +${formatNumber(badge.rewardAp)}원을 지급했어요",
         )
     }
 
@@ -161,7 +161,7 @@ class NotificationCreationService(
                     reasons = listOf(ApTransactionReason.ATTENDANCE),
                 ) ?: invalidTarget(userId)
         return Content(
-            title = "출석 보너스 +${formatNumber(transaction.amount)} AP",
+            title = "출석 보너스 +${formatNumber(transaction.amount)}원",
             body = "${reward.consecutiveDays}일 연속 출석 중이에요. 내일도 만나요!",
         )
     }
@@ -177,8 +177,8 @@ class NotificationCreationService(
             title = "분석 의뢰비가 지급됐어요",
             body =
                 "${agentTypes.joinToString(" · ") { it.label() }} ${salaries.size}명에게 의뢰 · " +
-                    "${formatSigned(salaries.sumOf { it.salaryAmount })} AP " +
-                    "(잔액 ${formatNumber(salaries.first().balanceAp)})",
+                    "${formatSigned(salaries.sumOf { it.salaryAmount })}원 " +
+                    "(잔액 ${formatNumber(salaries.first().balanceAp)}원)",
         )
     }
 

@@ -134,7 +134,7 @@ class NotificationCreationServiceUnitTest {
             code = NotificationCode.DECISION_RESULT,
             target = NotificationCreationService.Target(NotificationTargetType.DECISION, decisionId),
             expectedTitle = "오늘의 정산이 끝났어요",
-            expectedBody = "삼성전자 ▲+1.9% · 상승 예측 적중 · AP +100 (잔액 1,380)",
+            expectedBody = "삼성전자 ▲+1.9% · 상승 예측 적중 · +100원 (잔액 1,380원)",
         )
         `when`(notificationRepository.findDecisionResultContent(userId, decisionId)).thenReturn(
             NotificationContentProjection.DecisionResult(
@@ -151,7 +151,7 @@ class NotificationCreationServiceUnitTest {
             code = NotificationCode.DECISION_RESULT,
             target = NotificationCreationService.Target(NotificationTargetType.DECISION, decisionId),
             expectedTitle = "오늘의 정산이 끝났어요",
-            expectedBody = "삼성전자 ▼1.9% · 하락 예측 실패 · AP -100 (잔액 1,280)",
+            expectedBody = "삼성전자 ▼1.9% · 하락 예측 실패 · -100원 (잔액 1,280원)",
         )
         assertCreatedContent(
             userId = userId,
@@ -195,7 +195,7 @@ class NotificationCreationServiceUnitTest {
             code = NotificationCode.AGENT_SALARY_PAID,
             target = NotificationCreationService.Target(NotificationTargetType.STOCK_BRIEFINGS, stockId),
             expectedTitle = "분석 의뢰비가 지급됐어요",
-            expectedBody = "루키 · 프로 · 탱커 3명에게 의뢰 · -50 AP (잔액 1,280)",
+            expectedBody = "루키 · 프로 · 탱커 3명에게 의뢰 · -50원 (잔액 1,280원)",
         )
     }
 
@@ -237,14 +237,14 @@ class NotificationCreationServiceUnitTest {
             NotificationCode.BADGE_AWARDED,
             NotificationCreationService.Target(NotificationTargetType.BADGE, badgeId),
             "뱃지를 획득했어요 · 첫 적중",
-            "첫 예측을 맞혔어요! 보상 +50 AP를 지급했어요",
+            "첫 예측을 맞혔어요! 보상 +50원을 지급했어요",
             userBadgeId,
         )
         assertCreatedContent(
             userId,
             NotificationCode.ATTENDANCE_REWARDED,
             NotificationCreationService.Target(NotificationTargetType.NONE, null),
-            "출석 보너스 +50 AP",
+            "출석 보너스 +50원",
             "3일 연속 출석 중이에요. 내일도 만나요!",
             attendanceRewardId,
         )
