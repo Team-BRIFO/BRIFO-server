@@ -118,6 +118,7 @@ class ApTransaction private constructor(
             val expectedTargetType = when (reason) {
                 ApTransactionReason.ATTENDANCE -> ApTransactionTargetType.ATTENDANCE_REWARD
                 ApTransactionReason.BADGE -> ApTransactionTargetType.USER_BADGE
+                ApTransactionReason.DECISION_ENTRY_FEE,
                 ApTransactionReason.DECISION_WIN,
                 ApTransactionReason.DECISION_LOSE,
                 ApTransactionReason.NEUTRAL_HIT -> ApTransactionTargetType.DECISION
@@ -140,7 +141,9 @@ class ApTransaction private constructor(
         ) {
             val valid = when (reason) {
                 ApTransactionReason.DECISION_LOSE -> amount <= 0
-                ApTransactionReason.SALARY -> amount < 0
+                ApTransactionReason.SALARY,
+                ApTransactionReason.DECISION_ENTRY_FEE,
+                -> amount < 0
                 else -> amount > 0
             }
             require(valid) {

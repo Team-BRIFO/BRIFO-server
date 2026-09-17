@@ -57,6 +57,8 @@ class DecisionControllerTest {
                 decisionId = decisionId,
                 direction = DecisionDirection.UP,
                 confidenceLevel = 4,
+                entryFeeAp = 1_000,
+                balanceAp = 99_000,
                 stock = CreateDecisionResponse.CreatedDecisionStock(stockId, "삼성전자"),
             ),
         )

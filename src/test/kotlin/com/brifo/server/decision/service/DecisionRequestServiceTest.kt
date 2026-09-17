@@ -1,5 +1,9 @@
 package com.brifo.server.decision.service
 
+import com.brifo.server.ap.entity.ApTransactionReason
+import com.brifo.server.ap.entity.ApTransactionTargetType
+import com.brifo.server.ap.exception.InsufficientApBalanceException
+import com.brifo.server.ap.service.ApTransactionService
 import com.brifo.server.badge.code.BadgeCode
 import com.brifo.server.badge.service.BadgeAwardService
 import com.brifo.server.briefing.entity.Briefing
@@ -38,6 +42,7 @@ class DecisionRequestServiceTest {
     private val briefingRepository = mock(BriefingRepository::class.java)
     private val decisionRepository = mock(DecisionRepository::class.java)
     private val badgeAwardService = mock(BadgeAwardService::class.java)
+    private val apTransactionService = mock(ApTransactionService::class.java)
 
     @Test
     fun `15시 30분부터는 DB를 조회하지 않고 결정 등록을 거절한다`() {
@@ -84,6 +89,7 @@ class DecisionRequestServiceTest {
         `when`(briefingRepository.findOwnedBriefing(userId, briefingId)).thenReturn(context.briefing)
         `when`(decisionRepository.existsDailyDecision(userId, context.stockId, displayDate)).thenReturn(false)
         `when`(decision.publicId).thenReturn(UUID.randomUUID())
+        `when`(decision.id).thenReturn(1L)
         `when`(decision.direction).thenReturn(DecisionDirection.UP)
         `when`(decision.confidenceLevel).thenReturn(3.toShort())
         `when`(decisionRepository.saveAndFlush(any(Decision::class.java))).thenReturn(decision)
@@ -118,6 +124,7 @@ class DecisionRequestServiceTest {
         `when`(briefingRepository.findOwnedBriefing(userId, briefingId)).thenReturn(context.briefing)
         `when`(decisionRepository.existsDailyDecision(userId, context.stockId, date)).thenReturn(false)
         `when`(decision.publicId).thenReturn(UUID.randomUUID())
+        `when`(decision.id).thenReturn(1L)
         `when`(decision.direction).thenReturn(DecisionDirection.UP)
         `when`(decision.confidenceLevel).thenReturn(3.toShort())
         `when`(decisionRepository.saveAndFlush(any(Decision::class.java))).thenReturn(decision)
@@ -244,9 +251,18 @@ class DecisionRequestServiceTest {
         `when`(briefingRepository.findOwnedBriefing(userId, briefingId)).thenReturn(context.briefing)
         `when`(decisionRepository.existsDailyDecision(userId, context.stockId, date)).thenReturn(false)
         `when`(decision.publicId).thenReturn(decisionId)
+        `when`(decision.id).thenReturn(42L)
         `when`(decision.direction).thenReturn(DecisionDirection.NEUTRAL)
         `when`(decision.confidenceLevel).thenReturn(2.toShort())
         `when`(decisionRepository.saveAndFlush(any(Decision::class.java))).thenReturn(decision)
+        `when`(
+            apTransactionService.change(
+                userId,
+                -1_000,
+                ApTransactionReason.DECISION_ENTRY_FEE,
+                ApTransactionService.Target(ApTransactionTargetType.DECISION, 42L),
+            ),
+        ).thenReturn(99_000)
 
         val response = serviceAt("2026-07-21T05:00:00Z").request(
             userId,
@@ -257,8 +273,42 @@ class DecisionRequestServiceTest {
 
         kotlin.test.assertEquals(decisionId, response.decisionId)
         kotlin.test.assertEquals(context.stockId, response.stock.stockId)
+        kotlin.test.assertEquals(1_000, response.entryFeeAp)
+        kotlin.test.assertEquals(99_000, response.balanceAp)
         verify(context.briefing, times(1)).newsCards
         verify(badgeAwardService).awardBadge(userId, BadgeCode.B02)
+    }
+
+    @Test
+    fun `참가비를 낼 자금이 부족하면 결정 등록을 거절한다`() {
+        val userId = UUID.randomUUID()
+        val briefingId = UUID.randomUUID()
+        val date = LocalDate.of(2026, 7, 21)
+        val context = briefingContext(date)
+        val decision = mock(Decision::class.java)
+        `when`(briefingRepository.findOwnedBriefing(userId, briefingId)).thenReturn(context.briefing)
+        `when`(decisionRepository.existsDailyDecision(userId, context.stockId, date)).thenReturn(false)
+        `when`(decision.id).thenReturn(7L)
+        `when`(decisionRepository.saveAndFlush(any(Decision::class.java))).thenReturn(decision)
+        `when`(
+            apTransactionService.change(
+                userId,
+                -1_000,
+                ApTransactionReason.DECISION_ENTRY_FEE,
+                ApTransactionService.Target(ApTransactionTargetType.DECISION, 7L),
+            ),
+        ).thenThrow(InsufficientApBalanceException::class.java)
+
+        assertFailsWith<InsufficientApBalanceException> {
+            serviceAt("2026-07-21T05:00:00Z").request(
+                userId,
+                briefingId,
+                DecisionDirection.UP,
+                3,
+            )
+        }
+
+        verifyNoInteractions(badgeAwardService)
     }
 
     private fun serviceAt(
@@ -269,6 +319,7 @@ class DecisionRequestServiceTest {
         briefingRepository,
         decisionRepository,
         badgeAwardService,
+        apTransactionService,
         Clock.fixed(Instant.parse(instant), ZoneId.of("Asia/Seoul")),
         devBehaviorProperties,
         eventPublisher,
