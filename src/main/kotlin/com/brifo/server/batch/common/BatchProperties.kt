@@ -22,11 +22,20 @@ data class BatchProperties(
      * 수집한 것보다 많이 만들 수는 없으므로 `external.naver.collect-count` 이하로 둔다.
      */
     val newsCardsPerStock: Int = 3,
+    /**
+     * 카드뉴스 생성 스텝에서 종목 하나(뉴스 하나)의 생성이 계속 실패해도 건너뛸 수 있는 최대 개수.
+     *
+     * 생성 스텝은 종목별로 종목 코드 순서대로 처리되는데, fault tolerance가 없으면 한 종목의
+     * AI 응답 실패 하나가 스텝 전체를 즉시 중단시켜 그 뒤 순서의 종목은 시도조차 되지 않는다.
+     * 실제로 이 상태로 배포되어 특정 종목만 카드가 만들어지고 이후 종목은 전부 비어 있었다.
+     */
+    val newsCardGenerationSkipLimit: Int = 20,
 ) {
     init {
         require(!restartDelay.isNegative && !restartDelay.isZero) { "restartDelay는 양수여야 합니다." }
         require(maxExecutions >= 1) { "maxExecutions는 1 이상이어야 합니다." }
         require(newsCardsPerStock >= 1) { "newsCardsPerStock은 1 이상이어야 합니다." }
+        require(newsCardGenerationSkipLimit >= 0) { "newsCardGenerationSkipLimit은 0 이상이어야 합니다." }
         require(defaultWatchlistCodes.isNotEmpty()) { "defaultWatchlistCodes는 최소 1개여야 합니다." }
         // 빈 문자열은 IN 조건에서 어떤 종목도 잡지 못해, 설정 실수만으로 수집·생성이 다시 멈춘다.
         // 조용히 0건이 되느니 기동 시점에 실패시킨다.

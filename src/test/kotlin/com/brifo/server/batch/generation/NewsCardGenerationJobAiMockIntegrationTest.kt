@@ -38,7 +38,7 @@ import kotlin.test.assertTrue
         "external.data-server.base-url=http://localhost",
         // 생성 후보는 "관심종목 ∪ 기본 워치리스트"로 좁혀져 있다.
         // 테스트 종목이 어느 쪽에도 없으면 후보가 0건이라 카드가 만들어지지 않는다.
-        "app.batch.default-watchlist-codes=AIT001",
+        "app.batch.default-watchlist-codes=AIT001,AIT002,AIT003",
     ],
 )
 class NewsCardGenerationJobAiMockIntegrationTest @Autowired constructor(
@@ -91,6 +91,65 @@ class NewsCardGenerationJobAiMockIntegrationTest @Autowired constructor(
         assertTrue(requestBody.contains("AI 요청에 전달할 뉴스 요약"))
         assertFalse(requestBody.contains("imageUrl"))
         assertFalse(requestBody.contains("sourceImageUrl"))
+    }
+
+    @Test
+    fun `한 종목의 카드뉴스 생성이 실패해도 이후 순서 종목은 계속 생성된다`() {
+        val targetDate = LocalDate.of(2026, 8, 4)
+
+        // stock_id가 낮은(먼저 처리되는) 종목의 카드뉴스 생성을 실패시킨다.
+        val failingStock = stockRepository.save(Stock.create("AIT002", "실패 종목", "테스트"))
+        val failingNews = newsRepository.save(
+            News.create(
+                stock = failingStock,
+                source = NewsSource.TEST,
+                sourceUrl = "brifo",
+                sourceImageUrl = null,
+                title = "실패하는 뉴스",
+                summary = "AI가 실패 응답을 내려주는 뉴스",
+                importance = BigDecimal("0.90"),
+                dedupKey = "ai-mock-batch-test-failing",
+                publishedAt = LocalDateTime.of(targetDate, java.time.LocalTime.of(9, 0)),
+            ),
+        )
+
+        // stock_id가 더 높은(뒤에 처리되는) 종목은 정상적으로 카드뉴스가 생성돼야 한다.
+        val succeedingStock = stockRepository.save(Stock.create("AIT003", "성공 종목", "테스트"))
+        val succeedingNews = newsRepository.save(
+            News.create(
+                stock = succeedingStock,
+                source = NewsSource.TEST,
+                sourceUrl = "brifo",
+                sourceImageUrl = null,
+                title = "성공하는 뉴스",
+                summary = "AI가 정상 응답을 내려주는 뉴스",
+                importance = BigDecimal("0.90"),
+                dedupKey = "ai-mock-batch-test-succeeding",
+                publishedAt = LocalDateTime.of(targetDate, java.time.LocalTime.of(9, 0)),
+            ),
+        )
+        val succeedingNewsPublicId = requireNotNull(succeedingNews.publicId)
+
+        // 실패 종목 요청에는 비즈니스 실패 응답을(재시도 대상 아님), 성공 종목 요청에는 정상 응답을 순서대로 큐에 넣는다.
+        aiServer.enqueue(
+            MockResponse()
+                .setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+                .setBody("""{"isSuccess":false,"code":"AI500","message":"카드뉴스 생성 실패"}"""),
+        )
+        aiServer.enqueue(
+            MockResponse()
+                .setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+                .setBody(
+                    """{"isSuccess":true,"code":"COMMON200","message":"성공","result":{"newsId":"$succeedingNewsPublicId","cardNews":[{"headline":"성공 헤드라인","points":["포인트"],"keywords":["키워드"],"terms":[]}]}}""",
+                ),
+        )
+
+        val execution = jobOperator.start(job, BatchJobParameters.forDevDate(targetDate))
+
+        assertEquals(BatchStatus.COMPLETED, execution.status)
+        assertTrue(newsCardRepository.findAll().none { it.news.id == failingNews.id })
+        val succeedingCard = newsCardRepository.findAll().single { it.news.id == succeedingNews.id }
+        assertEquals("성공 헤드라인", succeedingCard.headline)
     }
 
     companion object {
