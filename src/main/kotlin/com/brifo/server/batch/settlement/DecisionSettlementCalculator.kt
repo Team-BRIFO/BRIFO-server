@@ -26,13 +26,13 @@ class DecisionSettlementCalculator {
     ): ApSettlement =
         when {
             predicted == DecisionDirection.NEUTRAL && isCorrect ->
-                ApSettlement(10, ApTransactionReason.NEUTRAL_HIT)
+                ApSettlement(10_000, ApTransactionReason.NEUTRAL_HIT)
             predicted == DecisionDirection.NEUTRAL ->
                 ApSettlement(0, ApTransactionReason.DECISION_LOSE)
             isCorrect ->
-                ApSettlement(confidenceLevel * 20, ApTransactionReason.DECISION_WIN)
+                ApSettlement(confidenceLevel * 20_000, ApTransactionReason.DECISION_WIN)
             else ->
-                ApSettlement(-confidenceLevel * 10, ApTransactionReason.DECISION_LOSE)
+                ApSettlement(-confidenceLevel * 10_000, ApTransactionReason.DECISION_LOSE)
         }
 
     fun experience(

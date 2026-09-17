@@ -19,11 +19,11 @@ class DecisionSettlementCalculatorTest {
     @Test
     fun `상승 하락 적중과 오답 AP를 계산한다`() {
         assertEquals(
-            DecisionSettlementCalculator.ApSettlement(100, ApTransactionReason.DECISION_WIN),
+            DecisionSettlementCalculator.ApSettlement(100_000, ApTransactionReason.DECISION_WIN),
             calculator.apSettlement(DecisionDirection.UP, true, 5),
         )
         assertEquals(
-            DecisionSettlementCalculator.ApSettlement(-50, ApTransactionReason.DECISION_LOSE),
+            DecisionSettlementCalculator.ApSettlement(-50_000, ApTransactionReason.DECISION_LOSE),
             calculator.apSettlement(DecisionDirection.DOWN, false, 5),
         )
     }
