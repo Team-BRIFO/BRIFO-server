@@ -20,6 +20,7 @@ import com.brifo.server.user.entity.OAuthProvider
 import com.brifo.server.user.entity.User
 import com.brifo.server.user.exception.OnboardingProfileNotCompletedException
 import com.brifo.server.user.exception.OnboardingStocksNotSelectedException
+import com.brifo.server.user.exception.PendingStockChangeNotFoundException
 import com.brifo.server.user.exception.RequiredPoliciesNotAgreedException
 import com.brifo.server.user.exception.UserNotFoundException
 import com.brifo.server.user.repository.UserRepository
@@ -156,6 +157,41 @@ class UserServiceTest {
         }
 
         verify(userRepository, never()).findForUpdateByPublicId(userId)
+        verifyNoInteractions(pendingUserStockRepository)
+    }
+
+    @Test
+    fun `대기 중인 관심종목 변경을 취소한다`() {
+        val userId = UUID.randomUUID()
+        val user = user()
+        `when`(userRepository.findForUpdateByPublicId(userId)).thenReturn(user)
+        `when`(pendingUserStockRepository.deleteAllByUser(user)).thenReturn(2)
+
+        userService.cancelPendingStockChange(userId)
+
+        verify(pendingUserStockRepository).deleteAllByUser(user)
+    }
+
+    @Test
+    fun `대기 중인 관심종목 변경이 없으면 취소할 수 없다`() {
+        val userId = UUID.randomUUID()
+        val user = user()
+        `when`(userRepository.findForUpdateByPublicId(userId)).thenReturn(user)
+        `when`(pendingUserStockRepository.deleteAllByUser(user)).thenReturn(0)
+
+        assertThrows(PendingStockChangeNotFoundException::class.java) {
+            userService.cancelPendingStockChange(userId)
+        }
+    }
+
+    @Test
+    fun `존재하지 않는 사용자는 대기 중인 관심종목 변경을 취소할 수 없다`() {
+        val userId = UUID.randomUUID()
+        `when`(userRepository.findForUpdateByPublicId(userId)).thenReturn(null)
+
+        assertThrows(UserNotFoundException::class.java) {
+            userService.cancelPendingStockChange(userId)
+        }
         verifyNoInteractions(pendingUserStockRepository)
     }
 

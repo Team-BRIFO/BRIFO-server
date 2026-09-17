@@ -1,6 +1,7 @@
 package com.brifo.server.user.dto.response
 
 import io.swagger.v3.oas.annotations.media.ArraySchema
+import java.time.LocalDate
 import java.util.UUID
 
 data class GetMyPageResponse(
@@ -14,10 +15,17 @@ data class GetMyPageResponse(
     val learnedTermCount: Int,
     @field:ArraySchema(minItems = 1, maxItems = 3)
     val stocks: List<MyPageStock>,
+    val pendingStockChange: PendingStockChange?,
 ) {
     data class MyPageStock(
         val stockId: UUID,
         val name: String,
         val logoUrl: String?,
+    )
+
+    data class PendingStockChange(
+        @field:ArraySchema(minItems = 1, maxItems = 3)
+        val stocks: List<MyPageStock>,
+        val effectiveAt: LocalDate,
     )
 }

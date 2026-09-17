@@ -258,6 +258,38 @@ class UserQueryServiceTest {
     }
 
     @Test
+    fun `대기 중인 관심종목 변경이 있으면 마이페이지에 적용 예정일과 함께 반환한다`() {
+        val userId = UUID.randomUUID()
+        val user = completedUser()
+        val pendingStockId = UUID.randomUUID()
+        val pendingStock = mock(Stock::class.java)
+        val pendingUserStock = mock(PendingUserStock::class.java)
+        `when`(userRepository.findByPublicId(userId)).thenReturn(user)
+        `when`(pendingUserStockRepository.findAllByUser(user)).thenReturn(listOf(pendingUserStock))
+        `when`(pendingUserStock.stock).thenReturn(pendingStock)
+        `when`(pendingUserStock.effectiveAt).thenReturn(LocalDateTime.of(2026, 7, 22, 0, 0))
+        `when`(pendingStock.publicId).thenReturn(pendingStockId)
+        `when`(pendingStock.name).thenReturn("SK하이닉스")
+
+        val response = queryService.getMyPage(userId)
+
+        assertEquals(listOf(pendingStockId), response.pendingStockChange?.stocks?.map { it.stockId })
+        assertEquals(listOf("SK하이닉스"), response.pendingStockChange?.stocks?.map { it.name })
+        assertEquals(LocalDate.of(2026, 7, 22), response.pendingStockChange?.effectiveAt)
+    }
+
+    @Test
+    fun `대기 중인 관심종목 변경이 없으면 마이페이지의 적용 예정 변경은 null이다`() {
+        val userId = UUID.randomUUID()
+        val user = completedUser()
+        `when`(userRepository.findByPublicId(userId)).thenReturn(user)
+
+        val response = queryService.getMyPage(userId)
+
+        assertEquals(null, response.pendingStockChange)
+    }
+
+    @Test
     fun `적용 예정 관심 종목이 없으면 프로필 조회는 현재 관심 종목을 반환한다`() {
         val userId = UUID.randomUUID()
         val user = completedUser()

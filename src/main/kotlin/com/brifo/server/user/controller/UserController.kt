@@ -85,6 +85,14 @@ class UserController(
         return ApiResponse.success(UserSuccessCode.USER_DELETED)
     }
 
+    @DeleteMapping("/users/me/profile/pending-stocks")
+    fun cancelPendingStockChange(
+        @AuthenticationPrincipal userPublicId: UUID,
+    ): ApiResponse<Nothing> {
+        userService.cancelPendingStockChange(userPublicId)
+        return ApiResponse.success(UserSuccessCode.PENDING_STOCK_CHANGE_CANCELLED)
+    }
+
     @GetMapping("/users/me/home")
     fun getUserHome(
         @AuthenticationPrincipal userPublicId: UUID,
