@@ -21,6 +21,6 @@ enum class ApSuccessCode(
     CREDIT_LOAN_CLAIMED(
         HttpStatus.OK,
         "AP_200_03",
-        "신용대출 AP를 받았습니다.",
+        "신용대출 자금을 받았습니다.",
     ),
 }

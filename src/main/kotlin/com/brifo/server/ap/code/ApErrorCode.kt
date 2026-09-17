@@ -31,6 +31,6 @@ enum class ApErrorCode(
     INSUFFICIENT_AP_BALANCE(
         HttpStatus.CONFLICT,
         "AP_409_05",
-        "AP가 부족합니다.",
+        "자금이 부족합니다.",
     ),
 }
