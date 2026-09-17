@@ -93,7 +93,7 @@ class DecisionSettlementServiceTest {
         service.settle(DecisionSettlementItem(decisionId, priceId, true))
 
         assertEquals(1, org.mockito.Mockito.mockingDetails(resultRepository).invocations.count { it.method.name == "save" })
-        verify(apService).settleDecision(userPublicId, 100, com.brifo.server.ap.entity.ApTransactionReason.DECISION_WIN, decisionId)
+        verify(apService).settleDecision(userPublicId, 100_000, com.brifo.server.ap.entity.ApTransactionReason.DECISION_WIN, decisionId)
         verify(fixture.agent).addExperience(50)
         assertEquals(1, org.mockito.Mockito.mockingDetails(diaryRepository).invocations.count { it.method.name == "save" })
         verify(badgeService).awardBadge(userPublicId, BadgeCode.B03)
