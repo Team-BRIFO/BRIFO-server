@@ -13,6 +13,7 @@ import com.brifo.server.stock.entity.Stock
 import com.brifo.server.stock.repository.DailyStockPriceRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.math.BigDecimal
 import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -123,12 +124,25 @@ class StockPriceService(
 
             val fetchedAt = LocalDateTime.now(clock)
 
+            // 데이터 서버는 당일 등락률이 아직 확정되지 않으면 0을 그대로 내려준다.
+            // 이 값을 그대로 캐싱하면 배치로 저장된 전일 종가 대비 등락률(항상 확정값)과
+            // 어긋나 화면마다 다른 수치가 보인다. 0으로 온 경우에만 최근 저장된 종가로 대체한다.
+            val changeRate =
+                if (remotePrice.changeRate.compareTo(BigDecimal.ZERO) == 0) {
+                    dailyStockPriceRepository
+                        .findTopByStockIdOrderByTradeDateDescFetchedAtDescIdDesc(stockId)
+                        ?.changeRate
+                        ?: remotePrice.changeRate
+                } else {
+                    remotePrice.changeRate
+                }
+
             val priceToCache =
                 StockCurrentPriceCache(
                     code = remotePrice.stockCode,
                     currentPrice = remotePrice.currentPrice,
                     priceChange = remotePrice.priceChange,
-                    changeRate = remotePrice.changeRate,
+                    changeRate = changeRate,
                     fetchedAt = fetchedAt,
                 )
 
@@ -140,7 +154,7 @@ class StockPriceService(
                 stockCode = remotePrice.stockCode,
                 currentPrice = remotePrice.currentPrice,
                 priceChange = remotePrice.priceChange,
-                changeRate = remotePrice.changeRate,
+                changeRate = changeRate,
                 priceStatus = PriceStatus.DELAYED_CURRENT,
                 fetchedAt = fetchedAt,
                 tradeDate = today,
