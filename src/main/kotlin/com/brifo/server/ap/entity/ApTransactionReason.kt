@@ -11,4 +11,5 @@ enum class ApTransactionReason {
     SALARY,
     SALARY_REFUND,
     CREDIT_LOAN,
+    CHARGE,
 }
