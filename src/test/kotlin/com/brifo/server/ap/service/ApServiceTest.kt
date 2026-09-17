@@ -74,7 +74,7 @@ class ApServiceTest {
     }
 
     @Test
-    fun `연속 출석이 끊기면 1일차 기본 보상 50 AP를 지급한다`() {
+    fun `연속 출석이 끊기면 1일차 기본 보상을 지급한다`() {
         val userId = UUID.randomUUID()
         val user = user(id = 1L, balance = 0)
         val lastReward = attendance(id = 10L, consecutiveDays = 3, createdAt = LocalDateTime.of(2026, 7, 20, 9, 0))
@@ -84,22 +84,22 @@ class ApServiceTest {
         `when`(
             transactionService.change(
                 userId,
-                50,
+                10_000,
                 ApTransactionReason.ATTENDANCE,
                 ApTransactionService.Target(ApTransactionTargetType.ATTENDANCE_REWARD, 11L),
             ),
-        ).thenReturn(50)
+        ).thenReturn(10_000)
 
         val response = service.createAttendanceReward(userId)
 
-        assertEquals(50, response.rewardedAp)
+        assertEquals(10_000, response.rewardedAp)
         assertEquals(1, response.consecutiveDays)
         assertFalse(response.bonusRewarded)
-        assertEquals(50, response.balanceAp)
+        assertEquals(10_000, response.balanceAp)
     }
 
     @Test
-    fun `전날이 6일차면 7일차 보너스를 포함해 250 AP를 지급한다`() {
+    fun `전날이 6일차면 7일차 보너스를 포함해 지급한다`() {
         val userId = UUID.randomUUID()
         val user = user(id = 1L, balance = 100)
         val lastReward = attendance(id = 10L, consecutiveDays = 6, createdAt = LocalDateTime.of(2026, 7, 21, 9, 0))
@@ -109,18 +109,18 @@ class ApServiceTest {
         `when`(
             transactionService.change(
                 userId,
-                250,
+                110_000,
                 ApTransactionReason.ATTENDANCE,
                 ApTransactionService.Target(ApTransactionTargetType.ATTENDANCE_REWARD, 11L),
             ),
-        ).thenReturn(350)
+        ).thenReturn(110_100)
 
         val response = service.createAttendanceReward(userId)
 
-        assertEquals(250, response.rewardedAp)
+        assertEquals(110_000, response.rewardedAp)
         assertEquals(7, response.consecutiveDays)
         assertTrue(response.bonusRewarded)
-        assertEquals(350, response.balanceAp)
+        assertEquals(110_100, response.balanceAp)
         verify(badgeAwardService).awardBadge(userId, BadgeCode.B05)
         verify(badgeAwardService).awardBadge(userId, BadgeCode.B06)
     }
@@ -136,7 +136,7 @@ class ApServiceTest {
         `when`(
             transactionService.change(
                 userId,
-                50,
+                10_000,
                 ApTransactionReason.ATTENDANCE,
                 ApTransactionService.Target(ApTransactionTargetType.ATTENDANCE_REWARD, 11L),
             ),
@@ -145,7 +145,7 @@ class ApServiceTest {
         val response = service.createAttendanceReward(userId)
 
         assertEquals(1, response.consecutiveDays)
-        assertEquals(50, response.rewardedAp)
+        assertEquals(10_000, response.rewardedAp)
         assertFalse(response.bonusRewarded)
     }
 
@@ -164,18 +164,18 @@ class ApServiceTest {
     }
 
     @Test
-    fun `튜토리얼 보상은 최초 한 번만 200 AP를 지급한다`() {
+    fun `튜토리얼 보상은 최초 한 번만 지급한다`() {
         val userId = UUID.randomUUID()
         val user = user(id = 1L, balance = 0)
         givenLockedUser(userId, user)
-        `when`(transactionService.change(userId, 200, ApTransactionReason.TUTORIAL)).thenReturn(200)
+        `when`(transactionService.change(userId, 100_000, ApTransactionReason.TUTORIAL)).thenReturn(100_000)
 
-        assertEquals(200, service.createTutorialReward(userId).balanceAp)
+        assertEquals(100_000, service.createTutorialReward(userId).balanceAp)
         verify(badgeAwardService).awardBadge(userId, BadgeCode.B01)
         inOrder(userRepository, transactionRepository, transactionService).apply {
             verify(userRepository).findForUpdateByPublicId(userId)
             verify(transactionRepository).existsByUserIdAndReason(1L, ApTransactionReason.TUTORIAL)
-            verify(transactionService).change(userId, 200, ApTransactionReason.TUTORIAL)
+            verify(transactionService).change(userId, 100_000, ApTransactionReason.TUTORIAL)
         }
 
         `when`(transactionRepository.existsByUserIdAndReason(1L, ApTransactionReason.TUTORIAL)).thenReturn(true)
@@ -216,7 +216,7 @@ class ApServiceTest {
         val agent = agent(id = 2L, owner = user, dailySalary = 100)
         givenLockedUser(userId, user)
         `when`(agentRepository.findByPublicId(agentId)).thenReturn(agent)
-        `when`(transactionService.change(userId, 200, ApTransactionReason.CREDIT_LOAN)).thenReturn(299)
+        `when`(transactionService.change(userId, 100_000, ApTransactionReason.CREDIT_LOAN)).thenReturn(299)
 
         assertEquals(299, service.createCreditLoan(userId, CreateCreditLoanRequest(agentId)).balanceAp)
 
