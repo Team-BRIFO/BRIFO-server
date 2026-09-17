@@ -21,11 +21,14 @@ import com.brifo.server.global.exception.BusinessException
 import com.brifo.server.news.entity.News
 import com.brifo.server.news.entity.NewsCard
 import com.brifo.server.stock.entity.Stock
+import com.brifo.server.user.entity.User
+import com.brifo.server.user.repository.UserRepository
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.never
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
@@ -43,6 +46,7 @@ class DecisionRequestServiceTest {
     private val decisionRepository = mock(DecisionRepository::class.java)
     private val badgeAwardService = mock(BadgeAwardService::class.java)
     private val apTransactionService = mock(ApTransactionService::class.java)
+    private val userRepository = mock(UserRepository::class.java)
 
     @Test
     fun `15시 30분부터는 DB를 조회하지 않고 결정 등록을 거절한다`() {
@@ -88,6 +92,8 @@ class DecisionRequestServiceTest {
         val eventPublisher = mock(ApplicationEventPublisher::class.java)
         `when`(briefingRepository.findOwnedBriefing(userId, briefingId)).thenReturn(context.briefing)
         `when`(decisionRepository.existsDailyDecision(userId, context.stockId, displayDate)).thenReturn(false)
+        val user = mockUser(99_000)
+        `when`(userRepository.findForUpdateByPublicId(userId)).thenReturn(user)
         `when`(decision.publicId).thenReturn(UUID.randomUUID())
         `when`(decision.id).thenReturn(1L)
         `when`(decision.direction).thenReturn(DecisionDirection.UP)
@@ -123,6 +129,8 @@ class DecisionRequestServiceTest {
         val eventPublisher = mock(ApplicationEventPublisher::class.java)
         `when`(briefingRepository.findOwnedBriefing(userId, briefingId)).thenReturn(context.briefing)
         `when`(decisionRepository.existsDailyDecision(userId, context.stockId, date)).thenReturn(false)
+        val user = mockUser(99_000)
+        `when`(userRepository.findForUpdateByPublicId(userId)).thenReturn(user)
         `when`(decision.publicId).thenReturn(UUID.randomUUID())
         `when`(decision.id).thenReturn(1L)
         `when`(decision.direction).thenReturn(DecisionDirection.UP)
@@ -250,6 +258,8 @@ class DecisionRequestServiceTest {
         val decisionId = UUID.randomUUID()
         `when`(briefingRepository.findOwnedBriefing(userId, briefingId)).thenReturn(context.briefing)
         `when`(decisionRepository.existsDailyDecision(userId, context.stockId, date)).thenReturn(false)
+        val user = mockUser(99_000)
+        `when`(userRepository.findForUpdateByPublicId(userId)).thenReturn(user)
         `when`(decision.publicId).thenReturn(decisionId)
         `when`(decision.id).thenReturn(42L)
         `when`(decision.direction).thenReturn(DecisionDirection.NEUTRAL)
@@ -280,24 +290,15 @@ class DecisionRequestServiceTest {
     }
 
     @Test
-    fun `참가비를 낼 자금이 부족하면 결정 등록을 거절한다`() {
+    fun `참가비를 낼 자금이 부족하면 결정을 저장하지 않고 등록을 거절한다`() {
         val userId = UUID.randomUUID()
         val briefingId = UUID.randomUUID()
         val date = LocalDate.of(2026, 7, 21)
         val context = briefingContext(date)
-        val decision = mock(Decision::class.java)
         `when`(briefingRepository.findOwnedBriefing(userId, briefingId)).thenReturn(context.briefing)
         `when`(decisionRepository.existsDailyDecision(userId, context.stockId, date)).thenReturn(false)
-        `when`(decision.id).thenReturn(7L)
-        `when`(decisionRepository.saveAndFlush(any(Decision::class.java))).thenReturn(decision)
-        `when`(
-            apTransactionService.change(
-                userId,
-                -1_000,
-                ApTransactionReason.DECISION_ENTRY_FEE,
-                ApTransactionService.Target(ApTransactionTargetType.DECISION, 7L),
-            ),
-        ).thenThrow(InsufficientApBalanceException::class.java)
+        val user = mockUser(999)
+        `when`(userRepository.findForUpdateByPublicId(userId)).thenReturn(user)
 
         assertFailsWith<InsufficientApBalanceException> {
             serviceAt("2026-07-21T05:00:00Z").request(
@@ -308,7 +309,8 @@ class DecisionRequestServiceTest {
             )
         }
 
-        verifyNoInteractions(badgeAwardService)
+        verifyNoInteractions(badgeAwardService, apTransactionService)
+        verify(decisionRepository, never()).saveAndFlush(any(Decision::class.java))
     }
 
     private fun serviceAt(
@@ -320,10 +322,14 @@ class DecisionRequestServiceTest {
         decisionRepository,
         badgeAwardService,
         apTransactionService,
+        userRepository,
         Clock.fixed(Instant.parse(instant), ZoneId.of("Asia/Seoul")),
         devBehaviorProperties,
         eventPublisher,
     )
+
+    private fun mockUser(balanceAp: Int): User =
+        mock(User::class.java).also { `when`(it.balanceAp).thenReturn(balanceAp) }
 
     private fun briefingContext(
         displayDate: LocalDate,
