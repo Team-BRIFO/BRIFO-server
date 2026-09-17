@@ -12,7 +12,7 @@ spring:
 
 app:
   dev-behavior:
-    immediate-interest-stock-updates: true
+    immediate-interest-stock-updates: false
     briefing-time-restrictions-enabled: false
     decision-request-cutoff-enabled: false
     immediate-decision-settlement: true
