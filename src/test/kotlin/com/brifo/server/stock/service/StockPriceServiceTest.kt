@@ -143,6 +143,59 @@ class StockPriceServiceTest {
     }
 
     @Test
+    fun `당일 등락률이 아직 확정되지 않아 0으로 오면 최근 저장된 종가의 등락률로 대체한다`() {
+        val latestDailyPrice =
+            mock(DailyStockPrice::class.java)
+
+        `when`(latestDailyPrice.changeRate)
+            .thenReturn(BigDecimal("1.5"))
+
+        `when`(cacheRepository.findByCode("005930"))
+            .thenReturn(null)
+
+        `when`(
+            kisCurrentPriceClient.getCurrentPrice(
+                stockId = 1L,
+                stockCode = "005930",
+            ),
+        ).thenReturn(
+            CurrentStockPriceClient.Result(
+                stockCode = "005930",
+                currentPrice = BigDecimal("79800"),
+                priceChange = BigDecimal("0"),
+                changeRate = BigDecimal.ZERO,
+            ),
+        )
+
+        `when`(
+            dailyPriceRepository
+                .findTopByStockIdOrderByTradeDateDescFetchedAtDescIdDesc(1L),
+        ).thenReturn(latestDailyPrice)
+
+        val result =
+            service.getCurrentPrice(
+                stockId = 1L,
+                stockCode = "005930",
+            )
+
+        assertThat(result.changeRate)
+            .isEqualByComparingTo("1.5")
+        assertThat(result.currentPrice)
+            .isEqualByComparingTo("79800")
+
+        verify(cacheRepository)
+            .save(
+                StockCurrentPriceCache(
+                    code = "005930",
+                    currentPrice = BigDecimal("79800"),
+                    priceChange = BigDecimal("0"),
+                    changeRate = BigDecimal("1.5"),
+                    fetchedAt = requireNotNull(result.fetchedAt),
+                ),
+            )
+    }
+
+    @Test
     fun `KIS 실패 시 마지막 성공값을 반환한다`() {
         val fetchedAt =
             LocalDateTime.of(
