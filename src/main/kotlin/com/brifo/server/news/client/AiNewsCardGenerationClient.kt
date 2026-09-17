@@ -19,6 +19,7 @@ class AiNewsCardGenerationClient(
             provider = "AI",
             apiName = "CREATE_CARD_NEWS",
             policy = ExternalApiCallPolicy.AI_CARD_NEWS,
+            retryEnabled = true,
 
             // newsContent는 공통 로그에서 자동으로 마스킹된다.
             requestPayload = request,

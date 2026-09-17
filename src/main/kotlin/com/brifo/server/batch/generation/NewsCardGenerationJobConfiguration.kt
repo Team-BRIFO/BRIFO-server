@@ -49,6 +49,7 @@ class NewsCardGenerationJobConfiguration {
         @Qualifier("newsCardGenerationReader") reader: ItemReader<Long>,
         @Qualifier("newsCardGenerationProcessor") processor: ItemProcessor<Long, GeneratedNewsCardItem>,
         @Qualifier("newsCardGenerationWriter") writer: ItemWriter<GeneratedNewsCardItem>,
+        skipListener: NewsCardGenerationSkipListener,
         transactionManager: PlatformTransactionManager,
         properties: BatchProperties,
     ): Step =
@@ -58,6 +59,13 @@ class NewsCardGenerationJobConfiguration {
             .reader(reader)
             .processor(processor)
             .writer(writer)
+            // 종목은 stock_id 순으로 처리된다. fault tolerance가 없으면 한 종목(뉴스 하나)의
+            // 생성 실패가 스텝 전체를 중단시켜, 그 뒤 순서의 종목은 시도조차 되지 않는다.
+            // 실패한 항목만 건너뛰고 나머지 종목은 계속 진행하도록 한다.
+            .faultTolerant()
+            .skip(Exception::class.java)
+            .skipLimit(properties.newsCardGenerationSkipLimit.toLong())
+            .skipListener(skipListener)
             .startLimit(properties.maxExecutions)
             .build()
 
