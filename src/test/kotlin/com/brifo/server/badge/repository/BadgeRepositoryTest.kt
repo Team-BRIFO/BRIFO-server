@@ -59,7 +59,7 @@ class BadgeRepositoryTest {
 
         requireNotNull(owned)
         assertEquals("B01", owned.code)
-        assertEquals(50, owned.rewardAp)
+        assertEquals(50_000, owned.rewardAp)
         assertNull(notOwned)
     }
 

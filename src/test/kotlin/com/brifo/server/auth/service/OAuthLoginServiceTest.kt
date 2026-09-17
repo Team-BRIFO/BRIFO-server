@@ -96,7 +96,7 @@ class OAuthLoginServiceTest {
         assertEquals(EMAIL, savedUser.value.email)
         verify(apTransactionService).change(
             USER_ID,
-            500,
+            1_000_000,
             ApTransactionReason.INITIAL_GRANT,
             null,
         )

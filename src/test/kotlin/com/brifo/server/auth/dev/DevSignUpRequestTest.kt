@@ -16,8 +16,8 @@ class DevSignUpRequestTest {
     }
 
     @Test
-    fun `개발 회원가입 초기 AP는 1 이상 500 이하여야 한다`() {
-        listOf(0, 501).forEach { initialBalanceAp ->
+    fun `개발 회원가입 초기 AP는 1 이상 2000000 이하여야 한다`() {
+        listOf(0, 2_000_001).forEach { initialBalanceAp ->
             val violations = validator.validate(DevSignUpRequest("password", initialBalanceAp))
 
             assertTrue(violations.any { it.propertyPath.toString() == "initialBalanceAp" })

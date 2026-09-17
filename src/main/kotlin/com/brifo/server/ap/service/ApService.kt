@@ -202,11 +202,11 @@ class ApService(
     }
 
     companion object {
-        private const val ATTENDANCE_REWARD_AP = 50
-        private const val ATTENDANCE_BONUS_AP = 200
+        private const val ATTENDANCE_REWARD_AP = 10_000
+        private const val ATTENDANCE_BONUS_AP = 100_000
         private const val THREE_DAY_ATTENDANCE_BADGE_DAYS = 3
         private const val ATTENDANCE_CYCLE_DAYS = 7
-        private const val TUTORIAL_REWARD_AP = 200
-        private const val CREDIT_LOAN_AP = 200
+        private const val TUTORIAL_REWARD_AP = 100_000
+        private const val CREDIT_LOAN_AP = 100_000
     }
 }

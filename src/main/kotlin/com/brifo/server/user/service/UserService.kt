@@ -154,14 +154,14 @@ class UserService(
         /**
          * 온보딩 시 생성하는 기본 사원 프로필.
          *
-         * 일급은 루키 < 탱커 < 프로 순이다. 프로가 가장 비싼 사원이며, 이 순서가 뒤집히면
-         * 사원 화면의 일급 서열이 기획과 어긋난다.
+         * 의뢰비는 루키 < 탱커 < 프로 순이다. 프로가 가장 비싼 사원이며, 이 순서가 뒤집히면
+         * 사원 화면의 의뢰비 서열이 기획과 어긋난다.
          */
         private val DEFAULT_AGENT_PROFILES =
             listOf(
-                DefaultAgentProfile(AgentType.ROOKIE, "Gemini 3.5 Flash", "루키", 10),
-                DefaultAgentProfile(AgentType.PRO, "Claude Sonnet 4.6", "프로", 25),
-                DefaultAgentProfile(AgentType.TANKER, "GPT-5.3", "탱커", 15),
+                DefaultAgentProfile(AgentType.ROOKIE, "Gemini 3.5 Flash", "루키", 50_000),
+                DefaultAgentProfile(AgentType.PRO, "Claude Sonnet 4.6", "프로", 200_000),
+                DefaultAgentProfile(AgentType.TANKER, "GPT-5.3", "탱커", 150_000),
             )
     }
 

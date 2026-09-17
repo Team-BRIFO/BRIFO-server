@@ -59,6 +59,6 @@ class OAuthLoginService(
         )
 
     companion object {
-        private const val INITIAL_AP = 500
+        private const val INITIAL_AP = 1_000_000
     }
 }
