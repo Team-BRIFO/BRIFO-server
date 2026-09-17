@@ -99,6 +99,7 @@ class UserControllerTest {
                 5,
                 24,
                 listOf(GetMyPageResponse.MyPageStock(stockId, "삼성전자", null)),
+                null,
             ),
         )
 
@@ -192,6 +193,18 @@ class UserControllerTest {
             .andExpect(jsonPath("$.code").value("USER_200_04"))
 
         verify(userService).deleteUser(userId)
+    }
+
+    @Test
+    fun `대기 중인 관심종목 변경 취소 요청을 서비스에 전달한다`() {
+        val userId = authenticatedUserId()
+
+        mockMvc
+            .perform(delete("/api/users/me/profile/pending-stocks").param("userId", userId.toString()))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.code").value("USER_200_05"))
+
+        verify(userService).cancelPendingStockChange(userId)
     }
 
     @Test

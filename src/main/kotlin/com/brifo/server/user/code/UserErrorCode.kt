@@ -23,4 +23,9 @@ enum class UserErrorCode(
         "USER_404",
         "사용자를 찾을 수 없습니다.",
     ),
+    PENDING_STOCK_CHANGE_NOT_FOUND(
+        HttpStatus.CONFLICT,
+        "USER_409_01",
+        "대기 중인 관심종목 변경이 없습니다.",
+    ),
 }

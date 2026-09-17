@@ -19,6 +19,7 @@ import com.brifo.server.user.dto.response.CompleteOnboardingResponse
 import com.brifo.server.user.entity.User
 import com.brifo.server.user.exception.OnboardingProfileNotCompletedException
 import com.brifo.server.user.exception.OnboardingStocksNotSelectedException
+import com.brifo.server.user.exception.PendingStockChangeNotFoundException
 import com.brifo.server.user.exception.RequiredPoliciesNotAgreedException
 import com.brifo.server.user.exception.UserNotFoundException
 import com.brifo.server.user.repository.UserRepository
@@ -103,6 +104,13 @@ class UserService(
                     throw StockNotFoundException()
                 }
             }
+
+    @Transactional
+    fun cancelPendingStockChange(userPublicId: UUID) {
+        val user = userRepository.findForUpdateByPublicId(userPublicId) ?: throw UserNotFoundException()
+        val deletedCount = pendingUserStockRepository.deleteAllByUser(user)
+        if (deletedCount == 0) throw PendingStockChangeNotFoundException()
+    }
 
     @Transactional
     fun deleteUser(userPublicId: UUID) {

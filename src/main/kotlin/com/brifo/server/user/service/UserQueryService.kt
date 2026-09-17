@@ -93,6 +93,25 @@ class UserQueryService(
                         logoUrl = stock.logoUrl,
                     )
                 },
+            pendingStockChange = findPendingStockChange(user),
+        )
+    }
+
+    private fun findPendingStockChange(user: User): GetMyPageResponse.PendingStockChange? {
+        val pendingStocks = pendingUserStockRepository.findAllByUser(user)
+        if (pendingStocks.isEmpty()) return null
+
+        return GetMyPageResponse.PendingStockChange(
+            stocks =
+                pendingStocks.map {
+                    val stock = it.stock
+                    GetMyPageResponse.MyPageStock(
+                        stockId = requireNotNull(stock.publicId) { "Persisted stock must have a public id." },
+                        name = stock.name,
+                        logoUrl = stock.logoUrl,
+                    )
+                },
+            effectiveAt = pendingStocks.first().effectiveAt.toLocalDate(),
         )
     }
 

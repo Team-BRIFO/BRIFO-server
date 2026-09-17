@@ -28,4 +28,9 @@ enum class UserSuccessCode(
         "USER_200_04",
         "회원 탈퇴가 완료되었습니다.",
     ),
+    PENDING_STOCK_CHANGE_CANCELLED(
+        HttpStatus.OK,
+        "USER_200_05",
+        "관심종목 변경 예약이 취소되었습니다.",
+    ),
 }
