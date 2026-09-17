@@ -125,6 +125,7 @@ class ApTransaction private constructor(
                 ApTransactionReason.SALARY_REFUND -> ApTransactionTargetType.BRIEFING
                 ApTransactionReason.TUTORIAL,
                 ApTransactionReason.CREDIT_LOAN,
+                ApTransactionReason.CHARGE,
                 ApTransactionReason.INITIAL_GRANT -> null
             }
 
