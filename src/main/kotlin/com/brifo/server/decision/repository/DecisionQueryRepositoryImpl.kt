@@ -60,7 +60,7 @@ class DecisionQueryRepositoryImpl(
     override fun findTodayDecisions(
         userPublicId: UUID,
         displayDate: LocalDate,
-    ): List<GetDecisionsResponse.DecisionItem> {
+    ): List<TodayDecisionRow> {
         val latestPrice = QDailyStockPrice("latestPrice")
         val latestFetchedPrice = QDailyStockPrice("latestFetchedPrice")
         val firstBriefingNewsCard = QBriefingNewsCard("firstBriefingNewsCard")
@@ -81,25 +81,21 @@ class DecisionQueryRepositoryImpl(
         return queryFactory
             .select(
                 Projections.constructor(
-                    GetDecisionsResponse.DecisionItem::class.java,
+                    TodayDecisionRow::class.java,
                     decision.publicId,
                     decision.direction,
                     decision.allocatedAp,
                     isSettled,
-                    Projections.constructor(
-                        GetDecisionsResponse.DecisionListAgent::class.java,
-                        decision.briefing.agent.publicId,
-                        decision.briefing.agent.agentType,
-                    ),
-                    Projections.constructor(
-                        GetDecisionsResponse.DecisionListStock::class.java,
-                        briefingNewsCard.newsCard.news.stock.publicId,
-                        briefingNewsCard.newsCard.news.stock.name,
-                        briefingNewsCard.newsCard.news.stock.logoUrl,
-                        price,
-                        roundedChangeRate,
-                        dailyStockPrice.tradeDate,
-                    ),
+                    decision.briefing.agent.publicId,
+                    decision.briefing.agent.agentType,
+                    briefingNewsCard.newsCard.news.stock.id,
+                    briefingNewsCard.newsCard.news.stock.publicId,
+                    briefingNewsCard.newsCard.news.stock.name,
+                    briefingNewsCard.newsCard.news.stock.code,
+                    briefingNewsCard.newsCard.news.stock.logoUrl,
+                    price,
+                    roundedChangeRate,
+                    dailyStockPrice.tradeDate,
                 ),
             ).from(decision)
             .join(decision.briefing.briefingNewsCards, briefingNewsCard)

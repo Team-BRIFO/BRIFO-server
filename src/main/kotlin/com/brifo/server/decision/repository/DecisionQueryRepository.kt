@@ -18,7 +18,7 @@ interface DecisionQueryRepository {
     fun findTodayDecisions(
         userPublicId: UUID,
         displayDate: LocalDate,
-    ): List<GetDecisionsResponse.DecisionItem>
+    ): List<TodayDecisionRow>
 
     fun findDecisionResults(
         userPublicId: UUID,
@@ -48,6 +48,28 @@ interface DecisionQueryRepository {
 
     fun findSettlementCandidate(decisionId: Long): SettlementDecision?
 }
+
+/**
+ * "오늘의 예측" 목록 조회용 내부 행. 정산 전 종목은 서비스 계층에서 이 행의
+ * stockId(Long)/stockCode로 [com.brifo.server.stock.service.StockPriceService]를 호출해
+ * 장중 실시간 현재가로 price/changeRate를 덮어쓴다.
+ */
+data class TodayDecisionRow(
+    val decisionId: UUID,
+    val direction: DecisionDirection,
+    val allocatedAp: Int,
+    val isSettled: Boolean,
+    val agentId: UUID,
+    val agentType: com.brifo.server.agent.entity.AgentType,
+    val stockId: Long,
+    val stockPublicId: UUID,
+    val stockName: String,
+    val stockCode: String,
+    val logoUrl: String?,
+    val price: Long?,
+    val changeRate: BigDecimal?,
+    val tradeDate: LocalDate?,
+)
 
 data class RecentSettledDecision(
     val stockName: String,

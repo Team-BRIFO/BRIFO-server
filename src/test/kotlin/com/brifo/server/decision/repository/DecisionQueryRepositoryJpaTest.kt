@@ -84,11 +84,11 @@ class DecisionQueryRepositoryJpaTest @Autowired constructor(
 
         assertEquals(1, items.size)
         assertEquals(decision.publicId, items.single().decisionId)
-        assertEquals(scenario.agents.single().publicId, items.single().agent.agentId)
+        assertEquals(scenario.agents.single().publicId, items.single().agentId)
         assertFalse(items.single().isSettled)
-        assertNull(items.single().stock.price)
-        assertNull(items.single().stock.changeRate)
-        assertNull(items.single().stock.tradeDate)
+        assertNull(items.single().price)
+        assertNull(items.single().changeRate)
+        assertNull(items.single().tradeDate)
     }
 
     @Test
@@ -116,9 +116,9 @@ class DecisionQueryRepositoryJpaTest @Autowired constructor(
             date,
         ).single()
 
-        assertEquals(date, item.stock.tradeDate)
-        assertEquals(72420L, item.stock.price)
-        assertEquals(BigDecimal("2.1"), item.stock.changeRate)
+        assertEquals(date, item.tradeDate)
+        assertEquals(72420L, item.price)
+        assertEquals(BigDecimal("2.1"), item.changeRate)
     }
 
     @Test
