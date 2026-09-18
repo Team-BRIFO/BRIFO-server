@@ -102,14 +102,14 @@ class PaymentServiceTest {
                 ),
             ),
         )
-        `when`(apTransactionService.change(userId, 50_000, ApTransactionReason.CHARGE)).thenReturn(150_000)
+        `when`(apTransactionService.change(userId, 2_500_000, ApTransactionReason.CHARGE)).thenReturn(2_600_000)
 
         val response = service.confirm(userId, ConfirmPaymentRequest("pay-key", "charge-1", 50_000))
 
-        assertEquals(150_000, response.balanceAp)
-        verify(apTransactionService).change(userId, 50_000, ApTransactionReason.CHARGE)
+        assertEquals(2_600_000, response.balanceAp)
+        verify(apTransactionService).change(userId, 2_500_000, ApTransactionReason.CHARGE)
         verify(badgeAwardService).awardBadge(userId, com.brifo.server.badge.code.BadgeCode.B40)
-        verify(badgeAwardService).awardBalanceMilestones(userId, 150_000)
+        verify(badgeAwardService).awardBalanceMilestones(userId, 2_600_000)
     }
 
     @Test
