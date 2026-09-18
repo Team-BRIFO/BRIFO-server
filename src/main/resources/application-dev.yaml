@@ -13,9 +13,9 @@ spring:
 app:
   dev-behavior:
     immediate-interest-stock-updates: false
-    briefing-time-restrictions-enabled: false
-    decision-request-cutoff-enabled: false
-    immediate-decision-settlement: true
+    briefing-time-restrictions-enabled: true
+    decision-request-cutoff-enabled: true
+    immediate-decision-settlement: false
     weekend-market-enabled: false
   auth:
     signup-cookie:
