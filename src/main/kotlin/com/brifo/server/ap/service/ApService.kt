@@ -135,6 +135,12 @@ class ApService(
         if (consecutiveDays >= ATTENDANCE_CYCLE_DAYS) {
             badgeAwardService.awardBadge(userId, BadgeCode.B06)
         }
+        val totalAttendanceDays = attendanceRewardRepository.countByUserId(internalUserId)
+        if (totalAttendanceDays >= 30) badgeAwardService.awardBadge(userId, BadgeCode.B13)
+        if (totalAttendanceDays >= 50) badgeAwardService.awardBadge(userId, BadgeCode.B14)
+        if (totalAttendanceDays >= 100) badgeAwardService.awardBadge(userId, BadgeCode.B15)
+        if (totalAttendanceDays >= 200) badgeAwardService.awardBadge(userId, BadgeCode.B16)
+        badgeAwardService.awardBalanceMilestones(userId, balanceAp)
         notificationCreationService.create(
             userId = userId,
             code = NotificationCode.ATTENDANCE_REWARDED,
@@ -177,6 +183,7 @@ class ApService(
         }
         val balanceAp = apTransactionService.change(userId, TUTORIAL_REWARD_AP, ApTransactionReason.TUTORIAL)
         badgeAwardService.awardBadge(userId, BadgeCode.B01)
+        badgeAwardService.awardBalanceMilestones(userId, balanceAp)
         return ApBalanceResponse(balanceAp)
     }
 
@@ -198,6 +205,7 @@ class ApService(
             throw CreditLoanNotEligibleException()
         }
         val balanceAp = apTransactionService.change(userId, CREDIT_LOAN_AP, ApTransactionReason.CREDIT_LOAN)
+        badgeAwardService.awardBalanceMilestones(userId, balanceAp)
         return ApBalanceResponse(balanceAp)
     }
 

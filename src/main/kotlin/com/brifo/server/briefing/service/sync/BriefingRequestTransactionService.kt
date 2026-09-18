@@ -7,6 +7,8 @@ import com.brifo.server.ap.entity.ApTransactionReason
 import com.brifo.server.ap.entity.ApTransactionTargetType
 import com.brifo.server.ap.exception.InsufficientApBalanceException
 import com.brifo.server.ap.service.ApTransactionService
+import com.brifo.server.badge.code.BadgeCode
+import com.brifo.server.badge.service.BadgeAwardService
 import com.brifo.server.briefing.entity.Briefing
 import com.brifo.server.briefing.entity.BriefingStatus
 import com.brifo.server.briefing.exception.BriefingAgentNotInInitialRequestException
@@ -28,6 +30,7 @@ import com.brifo.server.user.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Duration
+import java.util.UUID
 import kotlin.math.ceil
 
 /** 브리핑 요청에 필요한 잠금, DB 검증과 상태 변경을 하나의 트랜잭션으로 처리한다. */
@@ -39,6 +42,7 @@ class BriefingRequestTransactionService(
     private val newsCardRepository: NewsCardRepository,
     private val briefingRepository: BriefingRepository,
     private val apTransactionService: ApTransactionService,
+    private val badgeAwardService: BadgeAwardService,
     private val notificationCreationService: NotificationCreationService,
     private val devBehaviorProperties: DevBehaviorProperties = DevBehaviorProperties(),
 ) {
@@ -72,6 +76,7 @@ class BriefingRequestTransactionService(
                     id = command.stockPublicId,
                 ),
         )
+        awardRequestBadges(command.userPublicId)
 
         return createResult(briefings, totalSalaryCost)
     }
@@ -200,6 +205,14 @@ class BriefingRequestTransactionService(
         }
 
         return totalSalaryCost
+    }
+
+    private fun awardRequestBadges(userPublicId: UUID) {
+        val totalRequestCount = briefingRepository.countByAgentUserPublicId(userPublicId)
+        if (totalRequestCount >= 1) badgeAwardService.awardBadge(userPublicId, BadgeCode.B41)
+        if (totalRequestCount >= 10) badgeAwardService.awardBadge(userPublicId, BadgeCode.B42)
+        if (totalRequestCount >= 50) badgeAwardService.awardBadge(userPublicId, BadgeCode.B43)
+        if (totalRequestCount >= 100) badgeAwardService.awardBadge(userPublicId, BadgeCode.B44)
     }
 
     private fun createResult(

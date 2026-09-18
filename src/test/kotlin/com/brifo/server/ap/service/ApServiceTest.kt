@@ -150,6 +150,33 @@ class ApServiceTest {
     }
 
     @Test
+    fun `누적 출석일이 기준을 넘으면 개근 단계 뱃지와 자금 마일스톤을 함께 지급한다`() {
+        val userId = UUID.randomUUID()
+        val user = user(id = 1L, balance = 0)
+        val lastReward = attendance(id = 10L, consecutiveDays = 3, createdAt = LocalDateTime.of(2026, 7, 20, 9, 0))
+        givenLockedUser(userId, user)
+        `when`(attendanceRepository.findTopByUserIdOrderByCreatedAtDesc(1L)).thenReturn(lastReward)
+        givenSavedAttendance(id = 11L)
+        `when`(attendanceRepository.countByUserId(1L)).thenReturn(200L)
+        `when`(
+            transactionService.change(
+                userId,
+                10_000,
+                ApTransactionReason.ATTENDANCE,
+                ApTransactionService.Target(ApTransactionTargetType.ATTENDANCE_REWARD, 11L),
+            ),
+        ).thenReturn(600_000)
+
+        service.createAttendanceReward(userId)
+
+        verify(badgeAwardService).awardBadge(userId, BadgeCode.B13)
+        verify(badgeAwardService).awardBadge(userId, BadgeCode.B14)
+        verify(badgeAwardService).awardBadge(userId, BadgeCode.B15)
+        verify(badgeAwardService).awardBadge(userId, BadgeCode.B16)
+        verify(badgeAwardService).awardBalanceMilestones(userId, 600_000)
+    }
+
+    @Test
     fun `오늘 이미 출석했으면 새 출석과 AP 원장을 만들지 않는다`() {
         val userId = UUID.randomUUID()
         val user = user(id = 1L, balance = 50)

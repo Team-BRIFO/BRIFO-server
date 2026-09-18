@@ -3,6 +3,8 @@ package com.brifo.server.payment.service
 import com.brifo.server.ap.dto.response.ApBalanceResponse
 import com.brifo.server.ap.entity.ApTransactionReason
 import com.brifo.server.ap.service.ApTransactionService
+import com.brifo.server.badge.code.BadgeCode
+import com.brifo.server.badge.service.BadgeAwardService
 import com.brifo.server.payment.client.TossPaymentsClient
 import com.brifo.server.payment.config.TossPaymentsProperties
 import com.brifo.server.payment.dto.request.ConfirmPaymentRequest
@@ -30,6 +32,7 @@ class PaymentService(
     private val paymentRepository: PaymentRepository,
     private val tossPaymentsClient: TossPaymentsClient,
     private val apTransactionService: ApTransactionService,
+    private val badgeAwardService: BadgeAwardService,
     private val properties: TossPaymentsProperties,
     private val clock: Clock,
 ) {
@@ -74,6 +77,8 @@ class PaymentService(
                 deltaAp = payment.amount,
                 reason = ApTransactionReason.CHARGE,
             )
+        badgeAwardService.awardBadge(userId, BadgeCode.B40)
+        badgeAwardService.awardBalanceMilestones(userId, balanceAp)
         return ApBalanceResponse(balanceAp)
     }
 }

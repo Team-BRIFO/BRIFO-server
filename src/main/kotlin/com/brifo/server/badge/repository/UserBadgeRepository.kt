@@ -45,4 +45,6 @@ interface UserBadgeRepository : JpaRepository<UserBadge, Long> {
         id: Long,
         userPublicId: UUID,
     ): UserBadge?
+
+    fun countByUserPublicId(userPublicId: UUID): Long
 }

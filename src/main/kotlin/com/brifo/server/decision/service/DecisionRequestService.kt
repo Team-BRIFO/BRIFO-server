@@ -84,6 +84,13 @@ class DecisionRequestService(
             ),
         )
         badgeAwardService.awardBadge(userPublicId, BadgeCode.B02)
+        val totalDecisionCount = decisionRepository.countByBriefingAgentUserId(requireNotNull(user.id))
+        if (totalDecisionCount >= 10) badgeAwardService.awardBadge(userPublicId, BadgeCode.B17)
+        if (totalDecisionCount >= 50) badgeAwardService.awardBadge(userPublicId, BadgeCode.B18)
+        if (totalDecisionCount >= 100) badgeAwardService.awardBadge(userPublicId, BadgeCode.B19)
+        if (totalDecisionCount >= 200) badgeAwardService.awardBadge(userPublicId, BadgeCode.B20)
+        if (totalDecisionCount >= 300) badgeAwardService.awardBadge(userPublicId, BadgeCode.B21)
+        if (totalDecisionCount >= 500) badgeAwardService.awardBadge(userPublicId, BadgeCode.B22)
         if (needsImmediateSettlement(requestedAt)) {
             eventPublisher?.publishEvent(
                 DecisionCreatedEvent(

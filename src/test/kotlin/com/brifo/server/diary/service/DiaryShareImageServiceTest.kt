@@ -1,6 +1,8 @@
 package com.brifo.server.diary.service
 
 import com.brifo.server.agent.entity.AgentType
+import com.brifo.server.badge.code.BadgeCode
+import com.brifo.server.badge.service.BadgeAwardService
 import com.brifo.server.briefing.entity.BriefingDirection
 import com.brifo.server.diary.exception.DiaryNotFoundException
 import com.brifo.server.diary.exception.DiaryShareImageGenerationFailedException
@@ -38,7 +40,8 @@ class DiaryShareImageServiceTest {
                 Answers.RETURNS_DEFAULTS.answer(invocation)
             }
         }
-    private val service = DiaryShareImageService(repository, renderer, storage, transactionService)
+    private val badgeAwardService = mock(BadgeAwardService::class.java)
+    private val service = DiaryShareImageService(repository, renderer, storage, transactionService, badgeAwardService)
     private val userId = UUID.randomUUID()
     private val diaryId = UUID.randomUUID()
 
@@ -53,7 +56,7 @@ class DiaryShareImageServiceTest {
 
         assertEquals(existingUrl, result.shareImageUrl)
         assertTrue(result.reused)
-        verifyNoInteractions(renderer, transactionService)
+        verifyNoInteractions(renderer, transactionService, badgeAwardService)
     }
 
     @Test
@@ -71,6 +74,7 @@ class DiaryShareImageServiceTest {
 
         assertEquals(generatedUrl, result.shareImageUrl)
         assertFalse(result.reused)
+        org.mockito.Mockito.verify(badgeAwardService).awardBadge(userId, BadgeCode.B12)
     }
 
     @Test
@@ -87,6 +91,7 @@ class DiaryShareImageServiceTest {
 
         assertEquals(generatedUrl, result.shareImageUrl)
         assertFalse(result.reused)
+        org.mockito.Mockito.verify(badgeAwardService).awardBadge(userId, BadgeCode.B12)
     }
 
     @Test

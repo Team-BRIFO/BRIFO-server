@@ -13,4 +13,6 @@ interface BriefingRepository :
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     fun findForUpdateByPublicId(publicId: UUID): Briefing?
+
+    fun countByAgentUserPublicId(userPublicId: UUID): Long
 }

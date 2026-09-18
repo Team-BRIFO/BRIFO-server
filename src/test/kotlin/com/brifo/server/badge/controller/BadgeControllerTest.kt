@@ -37,6 +37,8 @@ class BadgeControllerTest {
                             badgeId = badgeId,
                             code = "B01",
                             name = "첫 출근",
+                            description = "튜토리얼을 처음 완료했어요!",
+                            rewardAp = 50_000,
                             isOwned = true,
                         ),
                     ),
@@ -51,6 +53,8 @@ class BadgeControllerTest {
             .andExpect(jsonPath("$.code").value("COMMON_200"))
             .andExpect(jsonPath("$.result.items[0].badgeId").value(badgeId.toString()))
             .andExpect(jsonPath("$.result.items[0].code").value("B01"))
+            .andExpect(jsonPath("$.result.items[0].description").value("튜토리얼을 처음 완료했어요!"))
+            .andExpect(jsonPath("$.result.items[0].rewardAp").value(50_000))
             .andExpect(jsonPath("$.result.items[0].isOwned").value(true))
     }
 

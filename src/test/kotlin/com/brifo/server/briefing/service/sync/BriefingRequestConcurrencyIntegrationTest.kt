@@ -67,6 +67,7 @@ class BriefingRequestConcurrencyIntegrationTest @Autowired constructor(
         assertIs<BriefingAlreadyRequestedException>(results.single { it.isFailure }.exceptionOrNull())
         assertEquals(3, briefingRepository.count())
         assertEquals(3, apTransactionRepository.findAll().count { it.reason == ApTransactionReason.SALARY })
-        assertEquals(40, userRepository.findByPublicId(command.userPublicId)!!.balanceAp)
+        // +30_000: 첫 의뢰(B41) 배지 보상
+        assertEquals(30_040, userRepository.findByPublicId(command.userPublicId)!!.balanceAp)
     }
 }

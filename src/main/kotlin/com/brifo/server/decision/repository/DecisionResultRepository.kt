@@ -24,4 +24,14 @@ interface DecisionResultRepository : JpaRepository<DecisionResult, Long> {
         isCorrect: Boolean,
         direction: DecisionDirection,
     ): Long
+
+    fun countByDecisionBriefingAgentUserIdAndIsCorrectAndDecisionConfidenceLevel(
+        userId: Long,
+        isCorrect: Boolean,
+        confidenceLevel: Short,
+    ): Long
+
+    fun findTop3ByDecisionBriefingAgentUserIdOrderByIdDesc(userId: Long): List<DecisionResult>
+
+    fun findTop5ByDecisionBriefingAgentUserIdOrderByIdDesc(userId: Long): List<DecisionResult>
 }

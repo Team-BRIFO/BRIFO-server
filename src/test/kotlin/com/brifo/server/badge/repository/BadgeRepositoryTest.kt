@@ -41,7 +41,7 @@ class BadgeRepositoryTest {
 
         val badges = badgeRepository.findAllWithOwnership(requireNotNull(user.publicId))
 
-        assertEquals((1..12).map { "B${it.toString().padStart(2, '0')}" }, badges.map { it.code })
+        assertEquals((1..50).map { "B${it.toString().padStart(2, '0')}" }, badges.map { it.code })
         assertTrue(badges.single { it.code == "B02" }.isOwned)
         assertTrue(badges.filterNot { it.code == "B02" }.none { it.isOwned })
     }

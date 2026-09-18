@@ -28,4 +28,18 @@ interface DiaryEntryRepository :
         @Param("userPublicId") userPublicId: UUID,
         @Param("diaryPublicId") diaryPublicId: UUID,
     ): DiaryEntry?
+
+    @Query(
+        """
+        SELECT count(diary)
+        FROM DiaryEntry diary
+        JOIN diary.decision decision
+        JOIN decision.briefing briefing
+        JOIN briefing.agent agent
+        JOIN agent.user user
+        WHERE user.publicId = :userPublicId
+          AND diary.shareImageUrl IS NOT NULL
+        """,
+    )
+    fun countSharedByUserPublicId(@Param("userPublicId") userPublicId: UUID): Long
 }

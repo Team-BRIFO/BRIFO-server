@@ -92,6 +92,43 @@ class BadgeAwardServiceTest {
     }
 
     @Test
+    fun `보유 뱃지가 10개를 넘기면 수집가 뱃지도 함께 지급하되 재귀적으로 다시 검사하지 않는다`() {
+        val userId = UUID.randomUUID()
+        val badgeId = UUID.randomUUID()
+        val badge = badge(1L, badgeId, 50)
+        val collectionBadgeId = UUID.randomUUID()
+        val collectionBadge = badge(45L, collectionBadgeId, 50_000)
+        `when`(badgeRepository.findByCode("B01")).thenReturn(badge)
+        `when`(userBadgeRepository.insertIfAbsent(userId, 1L)).thenReturn(1)
+        `when`(userBadgeRepository.findIdByUserPublicIdAndBadgeId(userId, 1L)).thenReturn(10L)
+        `when`(userBadgeRepository.countByUserPublicId(userId)).thenReturn(10L)
+        `when`(badgeRepository.findByCode("B45")).thenReturn(collectionBadge)
+        `when`(userBadgeRepository.insertIfAbsent(userId, 45L)).thenReturn(1)
+        `when`(userBadgeRepository.findIdByUserPublicIdAndBadgeId(userId, 45L)).thenReturn(11L)
+
+        badgeAwardService.awardBadge(userId, BadgeCode.B01)
+
+        verify(userBadgeRepository).insertIfAbsent(userId, 45L)
+        // 재귀적으로 컬렉션 마일스톤을 다시 검사하지 않으므로 count 조회는 한 번만 일어난다.
+        verify(userBadgeRepository, org.mockito.Mockito.times(1)).countByUserPublicId(userId)
+    }
+
+    @Test
+    fun `잔액 마일스톤은 기준 금액을 넘긴 항목만 지급한다`() {
+        val userId = UUID.randomUUID()
+        val badgeId = UUID.randomUUID()
+        val badge = badge(36L, badgeId, 50_000)
+        `when`(badgeRepository.findByCode("B36")).thenReturn(badge)
+        `when`(userBadgeRepository.insertIfAbsent(userId, 36L)).thenReturn(1)
+        `when`(userBadgeRepository.findIdByUserPublicIdAndBadgeId(userId, 36L)).thenReturn(1L)
+
+        badgeAwardService.awardBalanceMilestones(userId, 700_000)
+
+        verify(userBadgeRepository).insertIfAbsent(userId, 36L)
+        org.mockito.Mockito.verify(badgeRepository, org.mockito.Mockito.never()).findByCode("B37")
+    }
+
+    @Test
     fun `정의되지 않은 뱃지 코드는 BADGE_404 예외를 던진다`() {
         val userId = UUID.randomUUID()
         `when`(badgeRepository.findByCode("B01")).thenReturn(null)

@@ -19,6 +19,8 @@ class BadgeQueryRepositoryImpl(
                     badge.publicId,
                     badge.code,
                     badge.name,
+                    badge.description,
+                    badge.rewardAp,
                     userBadge.id.isNotNull,
                 ),
             ).from(badge)
