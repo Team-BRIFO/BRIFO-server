@@ -6,6 +6,7 @@ import com.brifo.server.diary.dto.request.GetDiariesRequest
 import com.brifo.server.diary.dto.request.GetDiaryCalendarRequest
 import com.brifo.server.diary.dto.response.GetDiariesResponse
 import com.brifo.server.diary.dto.response.GetDiaryCalendarResponse
+import com.brifo.server.diary.dto.response.GetDiaryDayDetailResponse
 import com.brifo.server.diary.dto.response.GetDiaryDetailResponse
 import com.brifo.server.diary.dto.response.GetDiaryStatsResponse
 import com.brifo.server.diary.exception.DiaryNotFoundException
@@ -123,6 +124,44 @@ class DiaryService(
             correctDecisionCount = correctCount,
             accuracyRate = accuracyRate(correctCount, rows.size),
             days = days,
+        )
+    }
+
+    @Transactional(readOnly = true)
+    fun getDiaryDayDetail(
+        userPublicId: UUID,
+        date: LocalDate,
+    ): GetDiaryDayDetailResponse {
+        val rows = diaryEntryRepository.findDayDetailRows(
+            userPublicId = userPublicId,
+            from = date.atStartOfDay(),
+            until = date.plusDays(1).atStartOfDay(),
+        )
+
+        return GetDiaryDayDetailResponse(
+            date = date,
+            items = rows.map { row ->
+                GetDiaryDayDetailResponse.DayDetailItem(
+                    diaryId = row.diaryId,
+                    stock = GetDiaryDayDetailResponse.DayDetailStock(
+                        stockId = row.stockId,
+                        name = row.stockName,
+                        logoUrl = row.logoUrl,
+                        changeRate = row.changeRate.setScale(1, RoundingMode.HALF_UP),
+                    ),
+                    agent = GetDiaryDayDetailResponse.DayDetailAgent(
+                        agentId = row.agentId,
+                        agentType = row.agentType,
+                        nickname = row.agentNickname,
+                    ),
+                    decision = GetDiaryDayDetailResponse.DayDetailDecision(
+                        direction = row.direction,
+                        confidenceLevel = row.confidenceLevel.toInt(),
+                        isCorrect = row.isCorrect,
+                        apDelta = row.apDelta,
+                    ),
+                )
+            },
         )
     }
 

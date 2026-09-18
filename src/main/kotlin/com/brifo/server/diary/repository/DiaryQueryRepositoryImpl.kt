@@ -117,6 +117,44 @@ class DiaryQueryRepositoryImpl(
             ).orderBy(decision.createdAt.asc(), diaryEntry.publicId.asc())
             .fetch()
 
+    override fun findDayDetailRows(
+        userPublicId: UUID,
+        from: LocalDateTime,
+        until: LocalDateTime,
+    ): List<DiaryDayDetailRow> =
+        queryFactory
+            .select(
+                QDiaryDayDetailRow(
+                    diaryEntry.publicId,
+                    decision.createdAt,
+                    briefingNewsCard.newsCard.news.stock.publicId,
+                    briefingNewsCard.newsCard.news.stock.name,
+                    briefingNewsCard.newsCard.news.stock.logoUrl,
+                    decisionResult.dailyStockPrice.changeRate,
+                    decision.direction,
+                    decision.confidenceLevel,
+                    decisionResult.isCorrect,
+                    apTransaction.amount,
+                    decision.briefing.agent.publicId,
+                    decision.briefing.agent.agentType,
+                    decision.briefing.agent.nickname,
+                ),
+            ).from(diaryEntry)
+            .join(diaryEntry.decision, decision)
+            .join(decisionResult).on(decisionResult.decision.eq(decision))
+            .join(briefingNewsCard).on(briefingNewsCard.briefing.eq(decision.briefing))
+            .join(apTransaction)
+            .on(
+                apTransaction.targetType.eq(ApTransactionTargetType.DECISION),
+                apTransaction.targetId.eq(decision.id),
+            ).where(
+                decision.briefing.agent.user.publicId.eq(userPublicId),
+                decision.createdAt.goe(from),
+                decision.createdAt.lt(until),
+            ).distinct()
+            .orderBy(decision.createdAt.asc(), diaryEntry.publicId.asc())
+            .fetch()
+
     override fun findStatsRows(userPublicId: UUID): List<DiaryStatsRow> =
         queryFactory
             .select(

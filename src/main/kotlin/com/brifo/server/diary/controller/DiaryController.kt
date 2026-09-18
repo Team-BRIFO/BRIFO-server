@@ -6,6 +6,7 @@ import com.brifo.server.diary.dto.request.GetDiaryCalendarRequest
 import com.brifo.server.diary.dto.response.CreateDiaryShareImageResponse
 import com.brifo.server.diary.dto.response.GetDiariesResponse
 import com.brifo.server.diary.dto.response.GetDiaryCalendarResponse
+import com.brifo.server.diary.dto.response.GetDiaryDayDetailResponse
 import com.brifo.server.diary.dto.response.GetDiaryDetailResponse
 import com.brifo.server.diary.dto.response.GetDiaryStatsResponse
 import com.brifo.server.diary.service.DiaryService
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import java.time.LocalDate
 import java.util.UUID
 
 @RestController
@@ -56,6 +58,16 @@ class DiaryController(
         ApiResponse.success(
             SuccessCode.OK,
             diaryService.getDiaryCalendar(userPublicId, request),
+        )
+
+    @GetMapping("/calendar/{date}")
+    fun getDiaryDayDetail(
+        @PathVariable date: LocalDate,
+        @AuthenticationPrincipal userPublicId: UUID,
+    ): ApiResponse<GetDiaryDayDetailResponse> =
+        ApiResponse.success(
+            SuccessCode.OK,
+            diaryService.getDiaryDayDetail(userPublicId, date),
         )
 
     @GetMapping("/stats")
