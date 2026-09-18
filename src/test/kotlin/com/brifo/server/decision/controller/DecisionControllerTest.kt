@@ -50,14 +50,13 @@ class DecisionControllerTest {
                 userId,
                 briefingId,
                 DecisionDirection.UP,
-                4,
+                4_000,
             ),
         ).thenReturn(
             CreateDecisionResponse(
                 decisionId = decisionId,
                 direction = DecisionDirection.UP,
-                confidenceLevel = 4,
-                entryFeeAp = 1_000,
+                allocatedAp = 4_000,
                 balanceAp = 99_000,
                 stock = CreateDecisionResponse.CreatedDecisionStock(stockId, "삼성전자"),
             ),
@@ -67,7 +66,7 @@ class DecisionControllerTest {
             post("/api/briefings/{briefingId}/decisions", briefingId)
                 .param("userId", userId.toString())
                 .contentType("application/json")
-                .content("""{"direction":"UP","confidenceLevel":4}"""),
+                .content("""{"direction":"UP","allocatedAp":4000}"""),
         )
             .andExpect(status().isCreated)
             .andExpect(jsonPath("$.code").value("COMMON_201"))
@@ -75,12 +74,12 @@ class DecisionControllerTest {
     }
 
     @Test
-    fun `확신도 범위를 벗어나면 400을 반환한다`() {
+    fun `배분 금액이 1 미만이면 400을 반환한다`() {
         mockMvc.perform(
             post("/api/briefings/{briefingId}/decisions", UUID.randomUUID())
                 .param("userId", userId.toString())
                 .contentType("application/json")
-                .content("""{"direction":"UP","confidenceLevel":6}"""),
+                .content("""{"direction":"UP","allocatedAp":0}"""),
         )
             .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.code").value("COMMON_400"))
@@ -97,7 +96,7 @@ class DecisionControllerTest {
                     GetDecisionsResponse.DecisionItem(
                         decisionId = decisionId,
                         direction = DecisionDirection.DOWN,
-                        confidenceLevel = 3,
+                        allocatedAp = 3_000,
                         isSettled = false,
                         agent = GetDecisionsResponse.DecisionListAgent(agentId, AgentType.TANKER),
                         stock = GetDecisionsResponse.DecisionListStock(stockId, "삼성전자", null, null, null, null),
@@ -129,7 +128,7 @@ class DecisionControllerTest {
                 isCorrect = true,
                 apDelta = 80,
                 direction = DecisionDirection.UP,
-                confidenceLevel = 4,
+                allocatedAp = 4_000,
                 agent = GetDecisionResultResponse.DecisionResultAgent(agentId, AgentType.ROOKIE),
                 stock = GetDecisionResultResponse.DecisionResultStock(
                     name = "삼성전자",

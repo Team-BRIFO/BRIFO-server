@@ -10,7 +10,7 @@ data class GetDecisionResultResponse(
     val isCorrect: Boolean,
     val apDelta: Int,
     val direction: DecisionDirection,
-    val confidenceLevel: Int,
+    val allocatedAp: Int,
     val agent: DecisionResultAgent,
     val stock: DecisionResultStock,
 ) {

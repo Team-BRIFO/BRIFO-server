@@ -33,12 +33,12 @@ class DiaryStatsCalculator(
                 recent30DaysAccuracyRate = accuracyRate(recentCorrectCount, recentRows.size),
                 settledDecisionCount = rows.size,
                 correctDecisionCount = correctCount,
-                averageConfidenceLevel = averageConfidenceLevel(rows),
+                averageAllocationRatePercent = averageAllocationRatePercent(rows),
                 bestCorrectStreak = bestCorrectStreak(rows),
             ),
             directionStats = directionStats(rows),
             agentStats = agentStats(rows, agents),
-            confidenceLevelStats = confidenceLevelStats(rows),
+            allocationRateStats = allocationRateStats(rows),
             stockStats = stockStats(rows),
         )
     }
@@ -67,11 +67,11 @@ class DiaryStatsCalculator(
             )
         }
 
-    private fun confidenceLevelStats(rows: List<DiaryStatsRow>): List<GetDiaryStatsResponse.ConfidenceLevelStat> =
+    private fun allocationRateStats(rows: List<DiaryStatsRow>): List<GetDiaryStatsResponse.AllocationRateStat> =
         GetDiaryStatsResponse.Level.entries.map { level ->
-            val group = rows.filter { confidenceLevel(it.confidenceLevel.toInt()) == level }
+            val group = rows.filter { allocationRateLevel(it.allocationRatePercent.toInt()) == level }
             val correct = group.count { it.isCorrect }
-            GetDiaryStatsResponse.ConfidenceLevelStat(level, group.size, correct, accuracyRate(correct, group.size))
+            GetDiaryStatsResponse.AllocationRateStat(level, group.size, correct, accuracyRate(correct, group.size))
         }
 
     private fun stockStats(rows: List<DiaryStatsRow>): List<GetDiaryStatsResponse.StockStat> =
@@ -90,11 +90,11 @@ class DiaryStatsCalculator(
                 .thenBy { it.name },
         ).take(3)
 
-    private fun averageConfidenceLevel(rows: List<DiaryStatsRow>): BigDecimal =
+    private fun averageAllocationRatePercent(rows: List<DiaryStatsRow>): BigDecimal =
         if (rows.isEmpty()) {
             BigDecimal.ZERO.setScale(1)
         } else {
-            rows.sumOf { it.confidenceLevel.toInt() }.toBigDecimal()
+            rows.sumOf { it.allocationRatePercent.toInt() }.toBigDecimal()
                 .divide(rows.size.toBigDecimal(), 1, RoundingMode.HALF_UP)
         }
 
@@ -121,10 +121,10 @@ class DiaryStatsCalculator(
                 .intValueExact()
         }
 
-    private fun confidenceLevel(level: Int): GetDiaryStatsResponse.Level =
-        when (level) {
-            in 1..2 -> GetDiaryStatsResponse.Level.LOW
-            3 -> GetDiaryStatsResponse.Level.MEDIUM
+    private fun allocationRateLevel(ratePercent: Int): GetDiaryStatsResponse.Level =
+        when {
+            ratePercent <= 13 -> GetDiaryStatsResponse.Level.LOW
+            ratePercent <= 27 -> GetDiaryStatsResponse.Level.MEDIUM
             else -> GetDiaryStatsResponse.Level.HIGH
         }
 }

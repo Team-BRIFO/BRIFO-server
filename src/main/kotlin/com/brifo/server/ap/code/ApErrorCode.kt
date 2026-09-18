@@ -33,4 +33,9 @@ enum class ApErrorCode(
         "AP_409_05",
         "자금이 부족합니다.",
     ),
+    ALLOCATION_EXCEEDS_LIMIT(
+        HttpStatus.CONFLICT,
+        "AP_409_06",
+        "배분 금액은 보유 자금의 40%를 넘을 수 없습니다.",
+    ),
 }

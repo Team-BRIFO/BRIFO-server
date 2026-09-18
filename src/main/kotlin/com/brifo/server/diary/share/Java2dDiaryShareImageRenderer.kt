@@ -56,7 +56,7 @@ class Java2dDiaryShareImageRenderer(
                 properties.height * 7 / 10,
             )
             graphics.drawString(
-                "등락률 ${model.changeRate}% · 나의 확신도 ${model.decisionConfidenceLevel}/5",
+                "등락률 ${model.changeRate}% · 자산 배분 ${model.decisionAllocationRatePercent}%",
                 padding,
                 properties.height * 4 / 5,
             )

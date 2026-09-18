@@ -280,7 +280,7 @@ class DevBatchCleanupService(
                            WHERE result.is_correct = TRUE AND decision.direction = 'NEUTRAL'
                        ) AS neutral_hit_count,
                        COALESCE(BOOL_OR(
-                           result.is_correct = TRUE AND decision.confidence_level = 5
+                           result.is_correct = TRUE AND decision.allocation_rate_percent >= 40
                        ), FALSE) AS has_high_confidence_hit,
                        EXISTS (
                            SELECT 1 FROM agents user_agent

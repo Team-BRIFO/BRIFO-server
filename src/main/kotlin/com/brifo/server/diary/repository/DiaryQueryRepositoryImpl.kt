@@ -78,7 +78,7 @@ class DiaryQueryRepositoryImpl(
                     decision.briefing.direction,
                     decision.briefing.confidenceRate,
                     decisionResult.isCorrect,
-                    decision.confidenceLevel,
+                    decision.allocationRatePercent,
                 ),
             ).from(diaryEntry)
             .join(diaryEntry.decision, decision)
@@ -132,7 +132,7 @@ class DiaryQueryRepositoryImpl(
                     briefingNewsCard.newsCard.news.stock.logoUrl,
                     decisionResult.dailyStockPrice.changeRate,
                     decision.direction,
-                    decision.confidenceLevel,
+                    decision.allocationRatePercent,
                     decisionResult.isCorrect,
                     apTransaction.amount,
                     decision.briefing.agent.publicId,
@@ -163,7 +163,7 @@ class DiaryQueryRepositoryImpl(
                     decisionResult.createdAt,
                     decisionResult.isCorrect,
                     decision.direction,
-                    decision.confidenceLevel,
+                    decision.allocationRatePercent,
                     decision.briefing.agent.publicId,
                     briefingNewsCard.newsCard.news.stock.publicId,
                     briefingNewsCard.newsCard.news.stock.name,

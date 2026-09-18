@@ -14,7 +14,7 @@ data class DiaryShareImageModel(
     val briefingDirection: BriefingDirection,
     val briefingConfidenceRate: Int,
     val isCorrect: Boolean,
-    val decisionConfidenceLevel: Int,
+    val decisionAllocationRatePercent: Int,
 )
 
 data class ShareImageFile(

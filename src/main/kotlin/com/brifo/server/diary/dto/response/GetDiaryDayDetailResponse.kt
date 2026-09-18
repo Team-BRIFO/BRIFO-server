@@ -32,7 +32,7 @@ data class GetDiaryDayDetailResponse(
 
     data class DayDetailDecision(
         val direction: DecisionDirection,
-        val confidenceLevel: Int,
+        val allocationRatePercent: Int,
         val isCorrect: Boolean,
         val apDelta: Int,
     )

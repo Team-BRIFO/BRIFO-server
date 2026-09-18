@@ -6,8 +6,7 @@ import java.util.UUID
 data class CreateDecisionResponse(
     val decisionId: UUID,
     val direction: DecisionDirection,
-    val confidenceLevel: Int,
-    val entryFeeAp: Int,
+    val allocatedAp: Int,
     val balanceAp: Int,
     val stock: CreatedDecisionStock,
 ) {

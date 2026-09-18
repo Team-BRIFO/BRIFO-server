@@ -112,7 +112,7 @@ class AgentRepositoryJpaTest @Autowired constructor(
                 )
                 entityManager.persist(it)
             }
-            val decision = Decision.create(briefing, DecisionDirection.UP, 3).also(entityManager::persist)
+            val decision = Decision.create(briefing, DecisionDirection.UP, allocatedAp = 1000, allocationRatePercent = 20).also(entityManager::persist)
             entityManager.persist(DecisionResult.create(decision, price, isCorrect))
             decision
         }

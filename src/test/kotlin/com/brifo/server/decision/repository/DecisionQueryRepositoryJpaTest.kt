@@ -221,7 +221,8 @@ class DecisionQueryRepositoryJpaTest @Autowired constructor(
         return Decision.create(
             briefing = briefing,
             direction = direction,
-            confidenceLevel = 4,
+            allocatedAp = 1_000,
+            allocationRatePercent = 20,
         ).also(entityManager::persist)
     }
 }

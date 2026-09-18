@@ -52,7 +52,7 @@ interface DecisionQueryRepository {
 data class RecentSettledDecision(
     val stockName: String,
     val direction: DecisionDirection,
-    val confidence: Int,
+    val allocationRatePercent: Int,
     val isCorrect: Boolean,
     val actualChange: BigDecimal,
 )

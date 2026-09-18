@@ -30,7 +30,7 @@ class Java2dDiaryShareImageRendererTest {
                     briefingDirection = BriefingDirection.UP,
                     briefingConfidenceRate = 72,
                     isCorrect = true,
-                    decisionConfidenceLevel = 4,
+                    decisionAllocationRatePercent = 4,
                 ),
             )
 

@@ -23,9 +23,9 @@ class DiaryStatsCalculatorTest {
         val result = calculator.calculate(emptyList(), listOf(agent))
 
         assertEquals(0, result.summary.settledDecisionCount)
-        assertEquals("0.0", result.summary.averageConfidenceLevel.toPlainString())
+        assertEquals("0.0", result.summary.averageAllocationRatePercent.toPlainString())
         assertEquals(DecisionDirection.entries.toSet(), result.directionStats.map { it.direction }.toSet())
-        assertEquals(GetDiaryStatsResponse.Level.entries, result.confidenceLevelStats.map { it.level })
+        assertEquals(GetDiaryStatsResponse.Level.entries, result.allocationRateStats.map { it.level })
         assertEquals(0, result.agentStats.single().settledDecisionCount)
         assertEquals(emptyList(), result.stockStats)
     }
@@ -73,18 +73,18 @@ class DiaryStatsCalculatorTest {
     }
 
     @Test
-    fun `확신도 평균과 적중률은 합의한 자릿수로 반올림한다`() {
+    fun `배분 비중 평균과 적중률은 합의한 자릿수로 반올림한다`() {
         val rows = listOf(
-            row(LocalDateTime.of(2026, 7, 1, 10, 0), true, confidenceLevel = 2),
-            row(LocalDateTime.of(2026, 7, 2, 10, 0), true, confidenceLevel = 4),
-            row(LocalDateTime.of(2026, 7, 3, 10, 0), false, confidenceLevel = 5),
+            row(LocalDateTime.of(2026, 7, 1, 10, 0), true, allocationRatePercent = 10),
+            row(LocalDateTime.of(2026, 7, 2, 10, 0), true, allocationRatePercent = 20),
+            row(LocalDateTime.of(2026, 7, 3, 10, 0), false, allocationRatePercent = 35),
         )
 
         val result = calculator.calculate(rows, listOf(agent))
 
-        assertEquals("3.7", result.summary.averageConfidenceLevel.toPlainString())
+        assertEquals("21.7", result.summary.averageAllocationRatePercent.toPlainString())
         assertEquals(67, result.summary.recent30DaysAccuracyRate)
-        assertEquals(listOf(1, 0, 2), result.confidenceLevelStats.map { it.settledDecisionCount })
+        assertEquals(listOf(1, 1, 1), result.allocationRateStats.map { it.settledDecisionCount })
     }
 
     @Test
@@ -105,7 +105,7 @@ class DiaryStatsCalculatorTest {
     private fun row(
         settledAt: LocalDateTime = LocalDateTime.of(2026, 7, 1, 10, 0),
         isCorrect: Boolean,
-        confidenceLevel: Short = 3,
+        allocationRatePercent: Short = 20,
         stockName: String = "삼성전자",
         agentId: UUID = agent.agentId,
     ): DiaryStatsRow =
@@ -114,7 +114,7 @@ class DiaryStatsCalculatorTest {
             settledAt = settledAt,
             isCorrect = isCorrect,
             direction = DecisionDirection.UP,
-            confidenceLevel = confidenceLevel,
+            allocationRatePercent = allocationRatePercent,
             agentId = agentId,
             stockId = UUID.nameUUIDFromBytes(stockName.toByteArray()),
             stockName = stockName,

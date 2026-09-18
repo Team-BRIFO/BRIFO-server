@@ -57,7 +57,7 @@ class DecisionRequestServiceTest {
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 DecisionDirection.UP,
-                3,
+                1_000,
             )
         }
 
@@ -74,7 +74,7 @@ class DecisionRequestServiceTest {
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 DecisionDirection.UP,
-                3,
+                1_000,
             )
         }
 
@@ -97,7 +97,7 @@ class DecisionRequestServiceTest {
         `when`(decision.publicId).thenReturn(UUID.randomUUID())
         `when`(decision.id).thenReturn(1L)
         `when`(decision.direction).thenReturn(DecisionDirection.UP)
-        `when`(decision.confidenceLevel).thenReturn(3.toShort())
+        `when`(decision.allocatedAp).thenReturn(1_000)
         `when`(decisionRepository.saveAndFlush(any(Decision::class.java))).thenReturn(decision)
 
         serviceAt(
@@ -109,7 +109,7 @@ class DecisionRequestServiceTest {
                 weekendMarketEnabled = true,
             ),
             eventPublisher = eventPublisher,
-        ).request(userId, briefingId, DecisionDirection.UP, 3)
+        ).request(userId, briefingId, DecisionDirection.UP, 1_000)
 
         verify(eventPublisher).publishEvent(
             DecisionCreatedEvent(
@@ -134,26 +134,26 @@ class DecisionRequestServiceTest {
         `when`(decision.publicId).thenReturn(UUID.randomUUID())
         `when`(decision.id).thenReturn(1L)
         `when`(decision.direction).thenReturn(DecisionDirection.UP)
-        `when`(decision.confidenceLevel).thenReturn(3.toShort())
+        `when`(decision.allocatedAp).thenReturn(1_000)
         `when`(decisionRepository.saveAndFlush(any(Decision::class.java))).thenReturn(decision)
 
         serviceAt(
             instant = "2026-07-21T05:00:00Z",
             devBehaviorProperties = DevBehaviorProperties(weekendMarketEnabled = true),
             eventPublisher = eventPublisher,
-        ).request(userId, briefingId, DecisionDirection.UP, 3)
+        ).request(userId, briefingId, DecisionDirection.UP, 1_000)
 
         verifyNoInteractions(eventPublisher)
     }
 
     @Test
-    fun `확신도가 범위를 벗어나면 DB를 조회하지 않고 요청을 거절한다`() {
+    fun `배분 금액이 1 미만이면 DB를 조회하지 않고 요청을 거절한다`() {
         assertFailsWith<BusinessException> {
             serviceAt("2026-07-21T05:00:00Z").request(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 DecisionDirection.UP,
-                6,
+                0,
             )
         }
 
@@ -171,7 +171,7 @@ class DecisionRequestServiceTest {
                 userId,
                 briefingId,
                 DecisionDirection.UP,
-                3,
+                1_000,
             )
         }
     }
@@ -188,7 +188,7 @@ class DecisionRequestServiceTest {
                 userId,
                 briefingId,
                 DecisionDirection.UP,
-                3,
+                1_000,
             )
         }
     }
@@ -207,7 +207,7 @@ class DecisionRequestServiceTest {
                 userId,
                 briefingId,
                 DecisionDirection.UP,
-                3,
+                1_000,
             )
         }
     }
@@ -224,7 +224,7 @@ class DecisionRequestServiceTest {
                 userId,
                 briefingId,
                 DecisionDirection.UP,
-                3,
+                1_000,
             )
         }
     }
@@ -243,7 +243,7 @@ class DecisionRequestServiceTest {
                 userId,
                 briefingId,
                 DecisionDirection.DOWN,
-                4,
+                1_000,
             )
         }
     }
@@ -263,7 +263,7 @@ class DecisionRequestServiceTest {
         `when`(decision.publicId).thenReturn(decisionId)
         `when`(decision.id).thenReturn(42L)
         `when`(decision.direction).thenReturn(DecisionDirection.NEUTRAL)
-        `when`(decision.confidenceLevel).thenReturn(2.toShort())
+        `when`(decision.allocatedAp).thenReturn(1_000)
         `when`(decisionRepository.saveAndFlush(any(Decision::class.java))).thenReturn(decision)
         `when`(
             apTransactionService.change(
@@ -278,12 +278,12 @@ class DecisionRequestServiceTest {
             userId,
             briefingId,
             DecisionDirection.NEUTRAL,
-            2,
+            1_000,
         )
 
         kotlin.test.assertEquals(decisionId, response.decisionId)
         kotlin.test.assertEquals(context.stockId, response.stock.stockId)
-        kotlin.test.assertEquals(1_000, response.entryFeeAp)
+        kotlin.test.assertEquals(1_000, response.allocatedAp)
         kotlin.test.assertEquals(99_000, response.balanceAp)
         verify(context.briefing, times(1)).newsCards
         verify(badgeAwardService).awardBadge(userId, BadgeCode.B02)
@@ -304,11 +304,11 @@ class DecisionRequestServiceTest {
         `when`(decision.publicId).thenReturn(UUID.randomUUID())
         `when`(decision.id).thenReturn(1L)
         `when`(decision.direction).thenReturn(DecisionDirection.UP)
-        `when`(decision.confidenceLevel).thenReturn(3.toShort())
+        `when`(decision.allocatedAp).thenReturn(1_000)
         `when`(decisionRepository.saveAndFlush(any(Decision::class.java))).thenReturn(decision)
         `when`(decisionRepository.countByBriefingAgentUserId(9L)).thenReturn(100L)
 
-        serviceAt("2026-07-21T05:00:00Z").request(userId, briefingId, DecisionDirection.UP, 3)
+        serviceAt("2026-07-21T05:00:00Z").request(userId, briefingId, DecisionDirection.UP, 1_000)
 
         verify(badgeAwardService).awardBadge(userId, BadgeCode.B17)
         verify(badgeAwardService).awardBadge(userId, BadgeCode.B18)
@@ -332,7 +332,7 @@ class DecisionRequestServiceTest {
                 userId,
                 briefingId,
                 DecisionDirection.UP,
-                3,
+                1_000,
             )
         }
 

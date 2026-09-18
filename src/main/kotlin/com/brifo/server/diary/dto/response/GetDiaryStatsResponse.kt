@@ -9,7 +9,7 @@ data class GetDiaryStatsResponse(
     val summary: DiaryStatsSummary,
     val directionStats: List<DirectionStat>,
     val agentStats: List<AgentStat>,
-    val confidenceLevelStats: List<ConfidenceLevelStat>,
+    val allocationRateStats: List<AllocationRateStat>,
     val stockStats: List<StockStat>,
 ) {
     data class DiaryStatsSummary(
@@ -18,7 +18,7 @@ data class GetDiaryStatsResponse(
         val recent30DaysAccuracyRate: Int,
         val settledDecisionCount: Int,
         val correctDecisionCount: Int,
-        val averageConfidenceLevel: BigDecimal,
+        val averageAllocationRatePercent: BigDecimal,
         val bestCorrectStreak: Int,
     )
 
@@ -38,7 +38,7 @@ data class GetDiaryStatsResponse(
         val accuracyRate: Int,
     )
 
-    data class ConfidenceLevelStat(
+    data class AllocationRateStat(
         val level: Level,
         val settledDecisionCount: Int,
         val correctDecisionCount: Int,

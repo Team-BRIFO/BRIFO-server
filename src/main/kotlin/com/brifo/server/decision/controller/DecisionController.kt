@@ -39,7 +39,7 @@ class DecisionController(
                 userPublicId = userPublicId,
                 briefingPublicId = briefingId,
                 direction = request.direction,
-                confidenceLevel = request.confidenceLevel,
+                allocatedAp = request.allocatedAp,
             ),
         )
 
