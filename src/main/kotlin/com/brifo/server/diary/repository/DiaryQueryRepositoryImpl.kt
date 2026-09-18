@@ -3,10 +3,13 @@ package com.brifo.server.diary.repository
 import com.brifo.server.ap.entity.ApTransactionTargetType
 import com.brifo.server.ap.entity.QApTransaction.Companion.apTransaction
 import com.brifo.server.briefing.entity.QBriefingNewsCard.Companion.briefingNewsCard
+import com.brifo.server.decision.entity.QDecision
 import com.brifo.server.decision.entity.QDecision.Companion.decision
 import com.brifo.server.decision.entity.QDecisionResult.Companion.decisionResult
 import com.brifo.server.diary.entity.QDiaryEntry.Companion.diaryEntry
 import com.querydsl.core.BooleanBuilder
+import com.querydsl.core.types.dsl.Expressions
+import com.querydsl.jpa.JPAExpressions
 import com.querydsl.jpa.impl.JPAQueryFactory
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
@@ -16,6 +19,23 @@ import java.util.UUID
 class DiaryQueryRepositoryImpl(
     private val queryFactory: JPAQueryFactory,
 ) : DiaryQueryRepository {
+    /**
+     * 결정 1건에는 등록 시 배분금 차감(예: -30000)과 정산 결과(적중 시 +2배, 오답 시 0,
+     * 관망 적중 시 원금 환급) 두 건의 AP 거래가 따로 남는다. 이 둘을 그냥 조인하면 행이
+     * 2배로 늘어나므로(캘린더 상세 중복 표시 버그), 합산해 결정 1건당 순손익 하나로 계산한다.
+     */
+    private fun netApDeltaSubquery(target: QDecision) =
+        Expressions.numberTemplate(
+            Int::class.javaObjectType,
+            "coalesce({0}, 0)",
+            JPAExpressions
+                .select(Expressions.numberTemplate(Int::class.javaObjectType, "sum({0})", apTransaction.amount))
+                .from(apTransaction)
+                .where(
+                    apTransaction.targetType.eq(ApTransactionTargetType.DECISION),
+                    apTransaction.targetId.eq(target.id),
+                ),
+        )
     override fun findDiaryPage(
         userPublicId: UUID,
         cursor: UUID?,
@@ -36,18 +56,14 @@ class DiaryQueryRepositoryImpl(
                     decisionResult.dailyStockPrice.tradeDate,
                     decisionResult.dailyStockPrice.stock.logoUrl,
                     decision.direction,
-                    apTransaction.amount,
+                    netApDeltaSubquery(decision),
                     decisionResult.isCorrect,
                 ),
             ).from(diaryEntry)
             .join(diaryEntry.decision, decision)
             .join(decisionResult).on(decisionResult.decision.eq(decision))
             .join(briefingNewsCard).on(briefingNewsCard.briefing.eq(decision.briefing))
-            .join(apTransaction)
-            .on(
-                apTransaction.targetType.eq(ApTransactionTargetType.DECISION),
-                apTransaction.targetId.eq(decision.id),
-            ).where(
+            .where(
                 predicate,
                 decisionResult.dailyStockPrice.stock.eq(briefingNewsCard.newsCard.news.stock),
             )
@@ -70,7 +86,7 @@ class DiaryQueryRepositoryImpl(
                     briefingNewsCard.newsCard.news.stock.name,
                     decisionResult.dailyStockPrice.changeRate,
                     decisionResult.dailyStockPrice.tradeDate,
-                    apTransaction.amount,
+                    netApDeltaSubquery(decision),
                     decision.briefing.agent.publicId,
                     decision.briefing.agent.agentType,
                     decision.briefing.agent.nickname,
@@ -84,11 +100,6 @@ class DiaryQueryRepositoryImpl(
             .join(diaryEntry.decision, decision)
             .join(decisionResult).on(decisionResult.decision.eq(decision))
             .join(briefingNewsCard).on(briefingNewsCard.briefing.eq(decision.briefing))
-            .join(apTransaction)
-            .on(
-                apTransaction.targetType.eq(ApTransactionTargetType.DECISION),
-                apTransaction.targetId.eq(decision.id),
-            )
             .where(
                 diaryEntry.publicId.eq(diaryPublicId),
                 decision.briefing.agent.user.publicId.eq(userPublicId),
@@ -134,7 +145,7 @@ class DiaryQueryRepositoryImpl(
                     decision.direction,
                     decision.allocationRatePercent,
                     decisionResult.isCorrect,
-                    apTransaction.amount,
+                    netApDeltaSubquery(decision),
                     decision.briefing.agent.publicId,
                     decision.briefing.agent.agentType,
                     decision.briefing.agent.nickname,
@@ -143,11 +154,7 @@ class DiaryQueryRepositoryImpl(
             .join(diaryEntry.decision, decision)
             .join(decisionResult).on(decisionResult.decision.eq(decision))
             .join(briefingNewsCard).on(briefingNewsCard.briefing.eq(decision.briefing))
-            .join(apTransaction)
-            .on(
-                apTransaction.targetType.eq(ApTransactionTargetType.DECISION),
-                apTransaction.targetId.eq(decision.id),
-            ).where(
+            .where(
                 decision.briefing.agent.user.publicId.eq(userPublicId),
                 decision.createdAt.goe(from),
                 decision.createdAt.lt(until),
