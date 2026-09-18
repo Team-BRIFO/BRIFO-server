@@ -33,7 +33,33 @@ class NewsCardGenerationItemProcessor(
         )
         check(response.newsId == newsPublicId) { "카드뉴스 응답의 newsId가 요청과 다릅니다." }
         val card = response.cardNews.singleOrNull() ?: error("카드뉴스 응답에는 카드가 정확히 한 개 있어야 합니다.")
-        return GeneratedNewsCardItem(newsId, card)
+        return GeneratedNewsCardItem(newsId, card.copy(points = dedupeSimilarPoints(card.points)))
+    }
+
+    /**
+     * AI가 같은 내용을 숫자만 바꿔 반복 생성하는 경우가 있다(예: "1분기"/"2분기"만 다르고
+     * 나머지 문장이 동일). 문장을 억지로 3줄 다 채우기보다, 겹치는 줄은 먼저 나온 것만 남긴다.
+     */
+    private fun dedupeSimilarPoints(points: List<String>): List<String> {
+        val kept = mutableListOf<String>()
+        for (point in points) {
+            if (kept.none { isSimilar(it, point) }) kept.add(point)
+        }
+        return kept
+    }
+
+    private fun isSimilar(
+        a: String,
+        b: String,
+    ): Boolean {
+        val tokensA = a.trim().split(WHITESPACE).toSet()
+        val tokensB = b.trim().split(WHITESPACE).toSet()
+        if (tokensA.isEmpty() || tokensB.isEmpty()) return a.trim() == b.trim()
+
+        val union = tokensA.union(tokensB).size
+        if (union == 0) return true
+        val intersection = tokensA.intersect(tokensB).size
+        return intersection.toDouble() / union >= SIMILARITY_THRESHOLD
     }
 
     /**
@@ -50,5 +76,9 @@ class NewsCardGenerationItemProcessor(
 
     private companion object {
         const val EXCLUDE_TERM_DAYS = 14L
+
+        /** 공백 기준 토큰 겹침 비율이 이 값 이상이면 같은 내용의 반복으로 본다. */
+        const val SIMILARITY_THRESHOLD = 0.7
+        val WHITESPACE = Regex("\\s+")
     }
 }
