@@ -82,6 +82,34 @@ class DiaryQueryRepositoryJpaTest @Autowired constructor(
         assertNull(unauthorized)
     }
 
+    @Test
+    fun `날짜별 상세는 그날 등록된 소유자의 정산 결정만 반환한다`() {
+        val scenario = BriefingDatabaseFixture(entityManager).requestScenario(DATE, agentCount = 1)
+        saveDiary(scenario, scenario.agents.single(), settled = true)
+        val other = BriefingDatabaseFixture(entityManager).requestScenario(DATE, agentCount = 1)
+        saveDiary(other, other.agents.single(), settled = true)
+        flushAndClear()
+        val today = LocalDate.now()
+
+        val rows = repository.findDayDetailRows(
+            scenario.user.publicId!!,
+            today.atStartOfDay(),
+            today.plusDays(1).atStartOfDay(),
+        )
+        val yesterdayRows = repository.findDayDetailRows(
+            scenario.user.publicId!!,
+            today.minusDays(1).atStartOfDay(),
+            today.atStartOfDay(),
+        )
+
+        assertEquals(1, rows.size)
+        assertEquals(scenario.stock.publicId, rows.single().stockId)
+        assertEquals(scenario.agents.single().publicId, rows.single().agentId)
+        assertEquals(true, rows.single().isCorrect)
+        assertEquals(10, rows.single().apDelta)
+        assertEquals(0, yesterdayRows.size)
+    }
+
     private fun saveDiary(
         scenario: BriefingDatabaseFixture.RequestScenario,
         agent: com.brifo.server.agent.entity.Agent,

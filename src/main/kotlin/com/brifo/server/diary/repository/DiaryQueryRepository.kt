@@ -28,6 +28,12 @@ interface DiaryQueryRepository {
     ): List<DiaryCalendarRow>
 
     fun findStatsRows(userPublicId: UUID): List<DiaryStatsRow>
+
+    fun findDayDetailRows(
+        userPublicId: UUID,
+        from: LocalDateTime,
+        until: LocalDateTime,
+    ): List<DiaryDayDetailRow>
 }
 
 @QueryProjection
@@ -68,6 +74,23 @@ data class DiaryCalendarRow(
     val decidedAt: LocalDateTime,
     val direction: DecisionDirection,
     val isCorrect: Boolean,
+)
+
+@QueryProjection
+data class DiaryDayDetailRow(
+    val diaryId: UUID,
+    val decidedAt: LocalDateTime,
+    val stockId: UUID,
+    val stockName: String,
+    val logoUrl: String?,
+    val changeRate: BigDecimal,
+    val direction: DecisionDirection,
+    val confidenceLevel: Short,
+    val isCorrect: Boolean,
+    val apDelta: Int,
+    val agentId: UUID,
+    val agentType: AgentType,
+    val agentNickname: String,
 )
 
 @QueryProjection

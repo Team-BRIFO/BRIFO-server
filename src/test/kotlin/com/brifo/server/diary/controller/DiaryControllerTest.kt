@@ -1,7 +1,10 @@
 package com.brifo.server.diary.controller
 
+import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.authenticatedUserId
+import com.brifo.server.decision.entity.DecisionDirection
 import com.brifo.server.diary.dto.response.CreateDiaryShareImageResponse
+import com.brifo.server.diary.dto.response.GetDiaryDayDetailResponse
 import com.brifo.server.diary.service.DiaryService
 import com.brifo.server.diary.service.DiaryShareImageService
 import com.brifo.server.global.error.GlobalExceptionHandler
@@ -79,5 +82,49 @@ class DiaryControllerTest {
             .andExpect(jsonPath("$.result.diaryId").value(diaryId.toString()))
             .andExpect(jsonPath("$.result.shareImageUrl").value(imageUrl))
             .andExpect(jsonPath("$.result.reused").value(false))
+    }
+
+    @Test
+    fun `날짜별 상세는 그날의 결정 목록을 반환한다`() {
+        val date = LocalDate.of(2026, 7, 21)
+        val diaryId = UUID.randomUUID()
+        val stockId = UUID.randomUUID()
+        val agentId = UUID.randomUUID()
+        `when`(service.getDiaryDayDetail(userId, date)).thenReturn(
+            GetDiaryDayDetailResponse(
+                date = date,
+                items = listOf(
+                    GetDiaryDayDetailResponse.DayDetailItem(
+                        diaryId = diaryId,
+                        stock = GetDiaryDayDetailResponse.DayDetailStock(
+                            stockId = stockId,
+                            name = "삼성전자",
+                            logoUrl = null,
+                            changeRate = BigDecimal("2.6"),
+                        ),
+                        agent = GetDiaryDayDetailResponse.DayDetailAgent(
+                            agentId = agentId,
+                            agentType = AgentType.ROOKIE,
+                            nickname = "루키",
+                        ),
+                        decision = GetDiaryDayDetailResponse.DayDetailDecision(
+                            direction = DecisionDirection.UP,
+                            confidenceLevel = 4,
+                            isCorrect = true,
+                            apDelta = 80_000,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        mockMvc
+            .perform(get("/api/diaries/calendar/{date}", date).param("userId", userId.toString()))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.result.date").value("2026-07-21"))
+            .andExpect(jsonPath("$.result.items[0].diaryId").value(diaryId.toString()))
+            .andExpect(jsonPath("$.result.items[0].stock.name").value("삼성전자"))
+            .andExpect(jsonPath("$.result.items[0].agent.nickname").value("루키"))
+            .andExpect(jsonPath("$.result.items[0].decision.isCorrect").value(true))
     }
 }

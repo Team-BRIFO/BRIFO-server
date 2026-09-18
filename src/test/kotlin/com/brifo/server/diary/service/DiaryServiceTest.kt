@@ -8,6 +8,7 @@ import com.brifo.server.diary.dto.request.GetDiariesRequest
 import com.brifo.server.diary.dto.request.GetDiaryCalendarRequest
 import com.brifo.server.diary.exception.DiaryNotFoundException
 import com.brifo.server.diary.repository.DiaryCalendarRow
+import com.brifo.server.diary.repository.DiaryDayDetailRow
 import com.brifo.server.diary.repository.DiaryEntryRepository
 import com.brifo.server.diary.repository.DiaryDetailRow
 import com.brifo.server.diary.repository.DiaryListRow
@@ -142,6 +143,68 @@ class DiaryServiceTest {
         assertTrue(result.days.single().outcome.decisionLoss)
         assertFalse(result.days.single().outcome.neutralHit)
         assertEquals(50, result.accuracyRate)
+    }
+
+    @Test
+    fun `날짜별 상세는 그날 등록된 결정을 종목·사원·결과와 함께 반환한다`() {
+        val date = LocalDate.of(2026, 7, 21)
+        val stockId = UUID.randomUUID()
+        val agentId = UUID.randomUUID()
+        `when`(
+            repository.findDayDetailRows(
+                userId,
+                date.atStartOfDay(),
+                date.plusDays(1).atStartOfDay(),
+            ),
+        ).thenReturn(
+            listOf(
+                DiaryDayDetailRow(
+                    diaryId = UUID.randomUUID(),
+                    decidedAt = LocalDateTime.of(2026, 7, 21, 10, 0),
+                    stockId = stockId,
+                    stockName = "삼성전자",
+                    logoUrl = "https://example.com/stocks/1.png",
+                    changeRate = BigDecimal("2.55"),
+                    direction = DecisionDirection.UP,
+                    confidenceLevel = 4,
+                    isCorrect = true,
+                    apDelta = 80_000,
+                    agentId = agentId,
+                    agentType = AgentType.ROOKIE,
+                    agentNickname = "루키",
+                ),
+            ),
+        )
+
+        val result = service.getDiaryDayDetail(userId, date)
+
+        assertEquals(date, result.date)
+        val item = result.items.single()
+        assertEquals(stockId, item.stock.stockId)
+        assertEquals("삼성전자", item.stock.name)
+        assertEquals(BigDecimal("2.6"), item.stock.changeRate)
+        assertEquals(agentId, item.agent.agentId)
+        assertEquals(AgentType.ROOKIE, item.agent.agentType)
+        assertEquals(DecisionDirection.UP, item.decision.direction)
+        assertEquals(4, item.decision.confidenceLevel)
+        assertTrue(item.decision.isCorrect)
+        assertEquals(80_000, item.decision.apDelta)
+    }
+
+    @Test
+    fun `날짜별 상세는 그날 결정이 없으면 빈 목록을 반환한다`() {
+        val date = LocalDate.of(2026, 7, 21)
+        `when`(
+            repository.findDayDetailRows(
+                userId,
+                date.atStartOfDay(),
+                date.plusDays(1).atStartOfDay(),
+            ),
+        ).thenReturn(emptyList())
+
+        val result = service.getDiaryDayDetail(userId, date)
+
+        assertTrue(result.items.isEmpty())
     }
 
     private fun listRow(index: Int) =
