@@ -68,7 +68,7 @@ class DecisionQueryRepositoryImpl(
                     GetDecisionsResponse.DecisionItem::class.java,
                     decision.publicId,
                     decision.direction,
-                    decision.confidenceLevel.intValue(),
+                    decision.allocatedAp,
                     isSettled,
                     Projections.constructor(
                         GetDecisionsResponse.DecisionListAgent::class.java,
@@ -141,7 +141,7 @@ class DecisionQueryRepositoryImpl(
                     decisionResult.isCorrect,
                     apTransaction.amount,
                     decision.direction,
-                    decision.confidenceLevel.intValue(),
+                    decision.allocatedAp,
                     Projections.constructor(
                         GetDecisionResultResponse.DecisionResultAgent::class.java,
                         decision.briefing.agent.publicId,
@@ -177,7 +177,7 @@ class DecisionQueryRepositoryImpl(
                     RecentSettledDecision::class.java,
                     decisionResult.dailyStockPrice.stock.name,
                     decision.direction,
-                    decision.confidenceLevel.intValue(),
+                    decision.allocationRatePercent.intValue(),
                     decisionResult.isCorrect,
                     decisionResult.dailyStockPrice.changeRate,
                 ),

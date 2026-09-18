@@ -96,7 +96,7 @@ class DiaryServiceTest {
                 briefingDirection = BriefingDirection.UP,
                 briefingConfidenceRate = 72,
                 isCorrect = true,
-                confidenceLevel = 4,
+                allocationRatePercent = 4,
             ),
         )
         `when`(shareImageStorage.createDownloadUrl(imageKey)).thenReturn(imageUrl)
@@ -166,7 +166,7 @@ class DiaryServiceTest {
                     logoUrl = "https://example.com/stocks/1.png",
                     changeRate = BigDecimal("2.55"),
                     direction = DecisionDirection.UP,
-                    confidenceLevel = 4,
+                    allocationRatePercent = 4,
                     isCorrect = true,
                     apDelta = 80_000,
                     agentId = agentId,
@@ -186,7 +186,7 @@ class DiaryServiceTest {
         assertEquals(agentId, item.agent.agentId)
         assertEquals(AgentType.ROOKIE, item.agent.agentType)
         assertEquals(DecisionDirection.UP, item.decision.direction)
-        assertEquals(4, item.decision.confidenceLevel)
+        assertEquals(4, item.decision.allocationRatePercent)
         assertTrue(item.decision.isCorrect)
         assertEquals(80_000, item.decision.apDelta)
     }
@@ -245,6 +245,6 @@ class DiaryServiceTest {
         briefingDirection = BriefingDirection.UP,
         briefingConfidenceRate = 72,
         isCorrect = true,
-        confidenceLevel = 4,
+        allocationRatePercent = 4,
     )
 }

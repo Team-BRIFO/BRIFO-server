@@ -156,7 +156,7 @@ class DiaryShareImageServiceTest {
             briefingDirection = BriefingDirection.UP,
             briefingConfidenceRate = 72,
             isCorrect = true,
-            confidenceLevel = 4,
+            allocationRatePercent = 4,
         )
 
     private fun model() =
@@ -169,6 +169,6 @@ class DiaryShareImageServiceTest {
             briefingDirection = BriefingDirection.UP,
             briefingConfidenceRate = 72,
             isCorrect = true,
-            decisionConfidenceLevel = 4,
+            decisionAllocationRatePercent = 4,
         )
 }

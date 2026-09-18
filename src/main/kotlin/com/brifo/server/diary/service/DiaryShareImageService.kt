@@ -50,7 +50,7 @@ class DiaryShareImageService(
                 briefingDirection = row.briefingDirection,
                 briefingConfidenceRate = row.briefingConfidenceRate.toInt(),
                 isCorrect = row.isCorrect,
-                decisionConfidenceLevel = row.confidenceLevel.toInt(),
+                decisionAllocationRatePercent = row.allocationRatePercent.toInt(),
             )
         val attached =
             transactionService.createIfAbsent(userPublicId, diaryPublicId) {

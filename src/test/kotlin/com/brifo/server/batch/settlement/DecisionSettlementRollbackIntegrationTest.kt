@@ -124,7 +124,7 @@ class DecisionSettlementRollbackIntegrationTest {
         )
         val agent = agentRepository.save(Agent.create(user, AgentType.ROOKIE, "model", "루키", "설명", 10))
         val briefing = briefingRepository.save(Briefing.create(listOf(card), agent))
-        val decision = decisionRepository.save(Decision.create(briefing, DecisionDirection.UP, 5))
+        val decision = decisionRepository.save(Decision.create(briefing, DecisionDirection.UP, allocatedAp = 1000, allocationRatePercent = 20))
         val price = dailyStockPriceRepository.save(
             DailyStockPrice.createClosing(
                 stock = stock,

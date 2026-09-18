@@ -109,7 +109,7 @@ class DiaryControllerTest {
                         ),
                         decision = GetDiaryDayDetailResponse.DayDetailDecision(
                             direction = DecisionDirection.UP,
-                            confidenceLevel = 4,
+                            allocationRatePercent = 20,
                             isCorrect = true,
                             apDelta = 80_000,
                         ),

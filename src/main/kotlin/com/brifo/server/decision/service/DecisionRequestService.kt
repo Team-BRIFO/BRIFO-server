@@ -2,6 +2,7 @@ package com.brifo.server.decision.service
 
 import com.brifo.server.ap.entity.ApTransactionReason
 import com.brifo.server.ap.entity.ApTransactionTargetType
+import com.brifo.server.ap.exception.AllocationExceedsLimitException
 import com.brifo.server.ap.exception.InsufficientApBalanceException
 import com.brifo.server.ap.service.ApTransactionService
 import com.brifo.server.briefing.entity.Briefing
@@ -48,11 +49,11 @@ class DecisionRequestService(
         userPublicId: UUID,
         briefingPublicId: UUID,
         direction: DecisionDirection,
-        confidenceLevel: Int,
+        allocatedAp: Int,
     ): CreateDecisionResponse {
         val requestedAt = LocalDateTime.now(clock)
 
-        validateRequest(requestedAt, confidenceLevel)
+        validateRequest(requestedAt, allocatedAp)
         val briefing = briefingRepository.findOwnedBriefing(userPublicId, briefingPublicId)
             ?: throw BriefingNotFoundException()
         val newsCard = validateDatabaseState(
@@ -63,20 +64,25 @@ class DecisionRequestService(
         val stock = newsCard.news.stock
 
         val user = userRepository.findForUpdateByPublicId(userPublicId) ?: throw UserNotFoundException()
-        if (user.balanceAp < DECISION_ENTRY_FEE_AP) {
+        if (user.balanceAp < allocatedAp) {
             throw InsufficientApBalanceException()
         }
+        if (allocatedAp.toLong() * 100 > user.balanceAp.toLong() * Decision.MAX_ALLOCATION_RATE_PERCENT) {
+            throw AllocationExceedsLimitException()
+        }
+        val allocationRatePercent = (allocatedAp * 100 / user.balanceAp).coerceIn(1, Decision.MAX_ALLOCATION_RATE_PERCENT)
 
         val decision = decisionRepository.saveAndFlush(
             Decision.create(
                 briefing = briefing,
                 direction = direction,
-                confidenceLevel = confidenceLevel,
+                allocatedAp = allocatedAp,
+                allocationRatePercent = allocationRatePercent,
             ),
         )
         val balanceAp = apTransactionService.change(
             userId = userPublicId,
-            deltaAp = -DECISION_ENTRY_FEE_AP,
+            deltaAp = -allocatedAp,
             reason = ApTransactionReason.DECISION_ENTRY_FEE,
             target = ApTransactionService.Target(
                 type = ApTransactionTargetType.DECISION,
@@ -103,8 +109,7 @@ class DecisionRequestService(
         return CreateDecisionResponse(
             decisionId = decision.publicId!!,
             direction = decision.direction,
-            confidenceLevel = decision.confidenceLevel.toInt(),
-            entryFeeAp = DECISION_ENTRY_FEE_AP,
+            allocatedAp = decision.allocatedAp,
             balanceAp = balanceAp,
             stock = CreateDecisionResponse.CreatedDecisionStock(
                 stockId = stock.publicId!!,
@@ -124,9 +129,9 @@ class DecisionRequestService(
 
     private fun validateRequest(
         requestedAt: LocalDateTime,
-        confidenceLevel: Int,
+        allocatedAp: Int,
     ) {
-        if (confidenceLevel !in 1..5) {
+        if (allocatedAp < 1) {
             throw BusinessException(ErrorCode.INVALID_REQUEST)
         }
         if (!devBehaviorProperties.weekendMarketEnabled && !DecisionMarketPolicy.isBusinessDay(requestedAt)) {
@@ -161,10 +166,6 @@ class DecisionRequestService(
         return newsCard
     }
 
-    private companion object {
-        /** 예측 등록 시 즉시 차감되는 참가비. 의뢰비(사원 배치 비용)와는 별개의 비용이다. */
-        const val DECISION_ENTRY_FEE_AP = 1_000
-    }
 }
 
 data class DecisionCreatedEvent(

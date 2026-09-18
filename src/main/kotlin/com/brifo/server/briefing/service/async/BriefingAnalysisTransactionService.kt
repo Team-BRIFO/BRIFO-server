@@ -78,7 +78,8 @@ class BriefingAnalysisTransactionService(
                 BriefingAnalysisTask.Context.RecentDecision(
                     stockName = decision.stockName,
                     direction = decision.direction,
-                    confidence = decision.confidence,
+                    // AI 서비스의 confidence(1~5) 계약을 그대로 유지하기 위해 배분 비중(1~40%)을 1~5로 환산한다.
+                    confidence = ((decision.allocationRatePercent - 1) / 8) + 1,
                     isCorrect = decision.isCorrect,
                     actualChange = decision.actualChange,
                 )

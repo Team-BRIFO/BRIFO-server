@@ -86,7 +86,7 @@ class DiaryService(
                 row.briefingDirection,
                 row.briefingConfidenceRate.toInt(),
             ),
-            decision = GetDiaryDetailResponse.DiaryDetailDecision(row.isCorrect, row.confidenceLevel.toInt()),
+            decision = GetDiaryDetailResponse.DiaryDetailDecision(row.isCorrect, row.allocationRatePercent.toInt()),
         )
     }
 
@@ -156,7 +156,7 @@ class DiaryService(
                     ),
                     decision = GetDiaryDayDetailResponse.DayDetailDecision(
                         direction = row.direction,
-                        confidenceLevel = row.confidenceLevel.toInt(),
+                        allocationRatePercent = row.allocationRatePercent.toInt(),
                         isCorrect = row.isCorrect,
                         apDelta = row.apDelta,
                     ),

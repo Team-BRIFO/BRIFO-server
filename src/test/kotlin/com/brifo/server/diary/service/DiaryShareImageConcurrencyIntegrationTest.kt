@@ -110,7 +110,7 @@ class DiaryShareImageConcurrencyIntegrationTest {
                 it.complete(BriefingDirection.UP, 72, "분석", "한줄", "제목", "요약", null)
                 entityManager.persist(it)
             }
-        val decision = Decision.create(briefing, DecisionDirection.UP, 4).also(entityManager::persist)
+        val decision = Decision.create(briefing, DecisionDirection.UP, allocatedAp = 1000, allocationRatePercent = 20).also(entityManager::persist)
         val price =
             DailyStockPrice.create(
                 stock = scenario.stock,

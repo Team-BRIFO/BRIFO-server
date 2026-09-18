@@ -25,10 +25,10 @@ interface DecisionResultRepository : JpaRepository<DecisionResult, Long> {
         direction: DecisionDirection,
     ): Long
 
-    fun countByDecisionBriefingAgentUserIdAndIsCorrectAndDecisionConfidenceLevel(
+    fun countByDecisionBriefingAgentUserIdAndIsCorrectAndDecisionAllocationRatePercentGreaterThanEqual(
         userId: Long,
         isCorrect: Boolean,
-        confidenceLevel: Short,
+        allocationRatePercent: Short,
     ): Long
 
     fun findTop3ByDecisionBriefingAgentUserIdOrderByIdDesc(userId: Long): List<DecisionResult>

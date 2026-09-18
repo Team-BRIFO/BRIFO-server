@@ -17,22 +17,26 @@ class DecisionSettlementCalculatorTest {
     }
 
     @Test
-    fun `상승 하락 적중과 오답 AP를 계산한다`() {
+    fun `방향 적중은 배분금의 2배를 지급하고 오답은 추가 변동이 없다`() {
         assertEquals(
             DecisionSettlementCalculator.ApSettlement(100_000, ApTransactionReason.DECISION_WIN),
-            calculator.apSettlement(DecisionDirection.UP, true, 5),
+            calculator.apSettlement(DecisionDirection.UP, true, 50_000),
         )
         assertEquals(
-            DecisionSettlementCalculator.ApSettlement(-50_000, ApTransactionReason.DECISION_LOSE),
-            calculator.apSettlement(DecisionDirection.DOWN, false, 5),
+            DecisionSettlementCalculator.ApSettlement(0, ApTransactionReason.DECISION_LOSE),
+            calculator.apSettlement(DecisionDirection.DOWN, false, 50_000),
         )
     }
 
     @Test
-    fun `관망 오답도 0원 거래로 계산한다`() {
+    fun `관망 적중은 배분금 원금을 환급하고 오답은 0원 거래로 계산한다`() {
+        assertEquals(
+            DecisionSettlementCalculator.ApSettlement(30_000, ApTransactionReason.NEUTRAL_HIT),
+            calculator.apSettlement(DecisionDirection.NEUTRAL, true, 30_000),
+        )
         assertEquals(
             DecisionSettlementCalculator.ApSettlement(0, ApTransactionReason.DECISION_LOSE),
-            calculator.apSettlement(DecisionDirection.NEUTRAL, false, 3),
+            calculator.apSettlement(DecisionDirection.NEUTRAL, false, 30_000),
         )
     }
 }

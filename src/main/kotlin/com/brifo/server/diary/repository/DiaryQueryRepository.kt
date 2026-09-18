@@ -66,7 +66,7 @@ data class DiaryDetailRow(
     val briefingDirection: BriefingDirection,
     val briefingConfidenceRate: Short,
     val isCorrect: Boolean,
-    val confidenceLevel: Short,
+    val allocationRatePercent: Short,
 )
 
 @QueryProjection
@@ -85,7 +85,7 @@ data class DiaryDayDetailRow(
     val logoUrl: String?,
     val changeRate: BigDecimal,
     val direction: DecisionDirection,
-    val confidenceLevel: Short,
+    val allocationRatePercent: Short,
     val isCorrect: Boolean,
     val apDelta: Int,
     val agentId: UUID,
@@ -99,7 +99,7 @@ data class DiaryStatsRow(
     val settledAt: LocalDateTime,
     val isCorrect: Boolean,
     val direction: DecisionDirection,
-    val confidenceLevel: Short,
+    val allocationRatePercent: Short,
     val agentId: UUID,
     val stockId: UUID,
     val stockName: String,

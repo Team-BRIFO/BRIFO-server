@@ -79,7 +79,7 @@ class DecisionSettlementServiceTest {
 
     @Test
     fun `적중 결정을 정산하면 결과 AP EXP 일기 뱃지 알림을 함께 반영한다`() {
-        val fixture = fixture(direction = DecisionDirection.UP, confidence = 5, leveledUp = true)
+        val fixture = fixture(direction = DecisionDirection.UP, allocatedAp = 50_000, allocationRatePercent = 40, leveledUp = true)
         `when`(resultRepository.countByDecisionBriefingAgentUserIdAndIsCorrect(userId, true)).thenReturn(10L)
         `when`(
             resultRepository.countByDecisionBriefingAgentUserIdAndIsCorrectAndDecisionDirection(
@@ -120,7 +120,7 @@ class DecisionSettlementServiceTest {
 
     @Test
     fun `누적 적중과 연승, 사원 레벨 조건을 넘으면 확장된 정산 뱃지를 함께 지급한다`() {
-        val fixture = fixture(direction = DecisionDirection.UP, confidence = 5, leveledUp = false)
+        val fixture = fixture(direction = DecisionDirection.UP, allocatedAp = 50_000, allocationRatePercent = 40, leveledUp = false)
         `when`(resultRepository.countByDecisionBriefingAgentUserIdAndIsCorrect(userId, true)).thenReturn(300L)
         `when`(
             resultRepository.countByDecisionBriefingAgentUserIdAndIsCorrectAndDecisionDirection(
@@ -130,10 +130,10 @@ class DecisionSettlementServiceTest {
             ),
         ).thenReturn(0L)
         `when`(
-            resultRepository.countByDecisionBriefingAgentUserIdAndIsCorrectAndDecisionConfidenceLevel(
+            resultRepository.countByDecisionBriefingAgentUserIdAndIsCorrectAndDecisionAllocationRatePercentGreaterThanEqual(
                 userId,
                 true,
-                5.toShort(),
+                40.toShort(),
             ),
         ).thenReturn(10L)
         `when`(agentRepository.existsByUserIdAndLevelGreaterThanEqual(userId, 5)).thenReturn(true)
@@ -172,7 +172,8 @@ class DecisionSettlementServiceTest {
 
     private fun fixture(
         direction: DecisionDirection,
-        confidence: Int,
+        allocatedAp: Int,
+        allocationRatePercent: Int,
         leveledUp: Boolean,
     ): Fixture {
         val decision = mock(Decision::class.java)
@@ -187,7 +188,8 @@ class DecisionSettlementServiceTest {
         `when`(decision.id).thenReturn(decisionId)
         `when`(decision.publicId).thenReturn(decisionPublicId)
         `when`(decision.direction).thenReturn(direction)
-        `when`(decision.confidenceLevel).thenReturn(confidence.toShort())
+        `when`(decision.allocatedAp).thenReturn(allocatedAp)
+        `when`(decision.allocationRatePercent).thenReturn(allocationRatePercent.toShort())
         `when`(decision.briefing).thenReturn(briefing)
         `when`(briefing.agent).thenReturn(agent)
         `when`(briefing.newsCards).thenReturn(listOf(card))

@@ -19,20 +19,24 @@ class DecisionSettlementCalculator {
             else -> DecisionDirection.NEUTRAL
         }
 
+    /**
+     * 배분금(allocatedAp)은 등록 시점에 이미 에스크로로 차감된 상태다.
+     * 여기서는 정산 결과에 따른 추가 지급/환급만 계산한다:
+     * 오답이면 이미 잃은 배분금 외 추가 변동 없음(0), 관망 적중이면 원금만 환급,
+     * 방향 적중이면 배분금의 2배를 지급한다(원금 + 순수익 배분금만큼).
+     */
     fun apSettlement(
         predicted: DecisionDirection,
         isCorrect: Boolean,
-        confidenceLevel: Int,
+        allocatedAp: Int,
     ): ApSettlement =
         when {
             predicted == DecisionDirection.NEUTRAL && isCorrect ->
-                ApSettlement(10_000, ApTransactionReason.NEUTRAL_HIT)
-            predicted == DecisionDirection.NEUTRAL ->
+                ApSettlement(allocatedAp, ApTransactionReason.NEUTRAL_HIT)
+            !isCorrect ->
                 ApSettlement(0, ApTransactionReason.DECISION_LOSE)
-            isCorrect ->
-                ApSettlement(confidenceLevel * 20_000, ApTransactionReason.DECISION_WIN)
             else ->
-                ApSettlement(-confidenceLevel * 10_000, ApTransactionReason.DECISION_LOSE)
+                ApSettlement(allocatedAp * PAYOUT_MULTIPLIER, ApTransactionReason.DECISION_WIN)
         }
 
     fun experience(
@@ -47,5 +51,6 @@ class DecisionSettlementCalculator {
 
     private companion object {
         val THRESHOLD = BigDecimal("0.5")
+        const val PAYOUT_MULTIPLIER = 2
     }
 }

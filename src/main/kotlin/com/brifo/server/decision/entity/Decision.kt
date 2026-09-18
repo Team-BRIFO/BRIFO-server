@@ -23,7 +23,8 @@ import java.util.UUID
 class Decision private constructor(
     briefing: Briefing,
     direction: DecisionDirection,
-    confidenceLevel: Short,
+    allocatedAp: Int,
+    allocationRatePercent: Short,
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "decisionIdGenerator")
@@ -47,24 +48,36 @@ class Decision private constructor(
     var direction: DecisionDirection = direction
         protected set
 
-    @Column(name = "confidence_level", nullable = false)
-    var confidenceLevel: Short = confidenceLevel
+    @Column(name = "allocated_ap", nullable = false)
+    var allocatedAp: Int = allocatedAp
+        protected set
+
+    /** 결정 등록 시점 잔액 대비 배분 비율(%). 1~40 범위. */
+    @Column(name = "allocation_rate_percent", nullable = false)
+    var allocationRatePercent: Short = allocationRatePercent
         protected set
 
     companion object {
+        const val MAX_ALLOCATION_RATE_PERCENT = 40
+
         fun create(
             briefing: Briefing,
             direction: DecisionDirection,
-            confidenceLevel: Int,
+            allocatedAp: Int,
+            allocationRatePercent: Int,
         ): Decision {
-            require(confidenceLevel in 1..5) {
-                "confidenceLevel must be between 1 and 5"
+            require(allocatedAp > 0) {
+                "allocatedAp must be positive"
+            }
+            require(allocationRatePercent in 1..MAX_ALLOCATION_RATE_PERCENT) {
+                "allocationRatePercent must be between 1 and $MAX_ALLOCATION_RATE_PERCENT"
             }
 
             return Decision(
                 briefing = briefing,
                 direction = direction,
-                confidenceLevel = confidenceLevel.toShort(),
+                allocatedAp = allocatedAp,
+                allocationRatePercent = allocationRatePercent.toShort(),
             )
         }
     }

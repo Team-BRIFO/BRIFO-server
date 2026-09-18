@@ -33,6 +33,6 @@ data class GetDiaryDetailResponse(
 
     data class DiaryDetailDecision(
         val isCorrect: Boolean,
-        val confidenceLevel: Int,
+        val allocationRatePercent: Int,
     )
 }

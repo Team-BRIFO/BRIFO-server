@@ -47,13 +47,13 @@ class DecisionSettlementService(
 
         decisionResultRepository.save(DecisionResult.create(decision, price, item.isCorrect))
 
-        val ap = calculator.apSettlement(decision.direction, item.isCorrect, decision.confidenceLevel.toInt())
+        val ap = calculator.apSettlement(decision.direction, item.isCorrect, decision.allocatedAp)
         val settleResult = apTransactionService.settleDecision(userPublicId, ap.amount, ap.reason, decisionId)
 
         val leveledUp = agent.addExperience(calculator.experience(decision.direction, item.isCorrect))
         diaryEntryRepository.save(DiaryEntry.create(decision))
 
-        awardSettlementBadges(userId, userPublicId, decision.confidenceLevel.toInt(), item.isCorrect)
+        awardSettlementBadges(userId, userPublicId, decision.allocationRatePercent.toInt(), item.isCorrect)
         badgeAwardService.awardBalanceMilestones(userPublicId, settleResult.balanceAp)
 
         notificationCreationService.create(
@@ -79,11 +79,13 @@ class DecisionSettlementService(
     private fun awardSettlementBadges(
         userId: Long,
         userPublicId: java.util.UUID,
-        confidenceLevel: Int,
+        allocationRatePercent: Int,
         isCorrect: Boolean,
     ) {
         if (isCorrect) badgeAwardService.awardBadge(userPublicId, BadgeCode.B03)
-        if (isCorrect && confidenceLevel == 5) badgeAwardService.awardBadge(userPublicId, BadgeCode.B04)
+        if (isCorrect && allocationRatePercent >= com.brifo.server.decision.entity.Decision.MAX_ALLOCATION_RATE_PERCENT) {
+            badgeAwardService.awardBadge(userPublicId, BadgeCode.B04)
+        }
 
         val correctCount = decisionResultRepository.countByDecisionBriefingAgentUserIdAndIsCorrect(userId, true)
         if (correctCount >= 10) badgeAwardService.awardBadge(userPublicId, BadgeCode.B07)
@@ -102,14 +104,14 @@ class DecisionSettlementService(
         if (neutralHitCount >= 15) badgeAwardService.awardBadge(userPublicId, BadgeCode.B26)
         if (neutralHitCount >= 30) badgeAwardService.awardBadge(userPublicId, BadgeCode.B27)
 
-        val confidence5CorrectCount =
-            decisionResultRepository.countByDecisionBriefingAgentUserIdAndIsCorrectAndDecisionConfidenceLevel(
+        val maxAllocationCorrectCount =
+            decisionResultRepository.countByDecisionBriefingAgentUserIdAndIsCorrectAndDecisionAllocationRatePercentGreaterThanEqual(
                 userId,
                 true,
-                5.toShort(),
+                com.brifo.server.decision.entity.Decision.MAX_ALLOCATION_RATE_PERCENT.toShort(),
             )
-        if (confidence5CorrectCount >= 5) badgeAwardService.awardBadge(userPublicId, BadgeCode.B28)
-        if (confidence5CorrectCount >= 10) badgeAwardService.awardBadge(userPublicId, BadgeCode.B29)
+        if (maxAllocationCorrectCount >= 5) badgeAwardService.awardBadge(userPublicId, BadgeCode.B28)
+        if (maxAllocationCorrectCount >= 10) badgeAwardService.awardBadge(userPublicId, BadgeCode.B29)
 
         if (agentRepository.existsByUserIdAndLevelGreaterThanEqual(userId, 5)) {
             badgeAwardService.awardBadge(userPublicId, BadgeCode.B10)
