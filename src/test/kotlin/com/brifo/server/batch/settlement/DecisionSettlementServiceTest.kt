@@ -89,6 +89,14 @@ class DecisionSettlementServiceTest {
             ),
         ).thenReturn(0L)
         `when`(agentRepository.existsByUserIdAndLevelGreaterThanEqual(userId, 5)).thenReturn(true)
+        `when`(
+            apService.settleDecision(
+                userPublicId,
+                100_000,
+                com.brifo.server.ap.entity.ApTransactionReason.DECISION_WIN,
+                decisionId,
+            ),
+        ).thenReturn(ApTransactionService.ChangeResult(deltaAp = 100_000, balanceAp = 500_000))
 
         service.settle(DecisionSettlementItem(decisionId, priceId, true))
 
@@ -108,6 +116,58 @@ class DecisionSettlementServiceTest {
         assertEquals(listOf(NotificationCode.DECISION_RESULT, NotificationCode.AGENT_LEVEL_UP), codes)
         assertEquals(NotificationTargetType.DECISION, targets[0].type)
         assertEquals(NotificationTargetType.AGENT, targets[1].type)
+    }
+
+    @Test
+    fun `누적 적중과 연승, 사원 레벨 조건을 넘으면 확장된 정산 뱃지를 함께 지급한다`() {
+        val fixture = fixture(direction = DecisionDirection.UP, confidence = 5, leveledUp = false)
+        `when`(resultRepository.countByDecisionBriefingAgentUserIdAndIsCorrect(userId, true)).thenReturn(300L)
+        `when`(
+            resultRepository.countByDecisionBriefingAgentUserIdAndIsCorrectAndDecisionDirection(
+                userId,
+                true,
+                DecisionDirection.NEUTRAL,
+            ),
+        ).thenReturn(0L)
+        `when`(
+            resultRepository.countByDecisionBriefingAgentUserIdAndIsCorrectAndDecisionConfidenceLevel(
+                userId,
+                true,
+                5.toShort(),
+            ),
+        ).thenReturn(10L)
+        `when`(agentRepository.existsByUserIdAndLevelGreaterThanEqual(userId, 5)).thenReturn(true)
+        `when`(agentRepository.existsByUserIdAndLevelGreaterThanEqual(userId, 10)).thenReturn(true)
+        val maxedAgent = mock(Agent::class.java)
+        `when`(maxedAgent.level).thenReturn(10)
+        `when`(agentRepository.findAllByUserId(userId)).thenReturn(listOf(maxedAgent, maxedAgent, maxedAgent))
+        val correctResult = mock(DecisionResult::class.java)
+        `when`(correctResult.isCorrect).thenReturn(true)
+        `when`(resultRepository.findTop3ByDecisionBriefingAgentUserIdOrderByIdDesc(userId))
+            .thenReturn(listOf(correctResult, correctResult, correctResult))
+        `when`(resultRepository.findTop5ByDecisionBriefingAgentUserIdOrderByIdDesc(userId))
+            .thenReturn(listOf(correctResult, correctResult, correctResult, correctResult, correctResult))
+        `when`(
+            apService.settleDecision(
+                userPublicId,
+                100_000,
+                com.brifo.server.ap.entity.ApTransactionReason.DECISION_WIN,
+                decisionId,
+            ),
+        ).thenReturn(ApTransactionService.ChangeResult(deltaAp = 100_000, balanceAp = 1_000))
+
+        service.settle(DecisionSettlementItem(decisionId, priceId, true))
+
+        verify(badgeService).awardBadge(userPublicId, BadgeCode.B23)
+        verify(badgeService).awardBadge(userPublicId, BadgeCode.B24)
+        verify(badgeService).awardBadge(userPublicId, BadgeCode.B25)
+        verify(badgeService).awardBadge(userPublicId, BadgeCode.B28)
+        verify(badgeService).awardBadge(userPublicId, BadgeCode.B29)
+        verify(badgeService).awardBadge(userPublicId, BadgeCode.B30)
+        verify(badgeService).awardBadge(userPublicId, BadgeCode.B31)
+        verify(badgeService).awardBadge(userPublicId, BadgeCode.B32)
+        verify(badgeService).awardBadge(userPublicId, BadgeCode.B49)
+        verify(badgeService).awardBadge(userPublicId, BadgeCode.B50)
     }
 
     private fun fixture(

@@ -48,12 +48,13 @@ class DecisionSettlementService(
         decisionResultRepository.save(DecisionResult.create(decision, price, item.isCorrect))
 
         val ap = calculator.apSettlement(decision.direction, item.isCorrect, decision.confidenceLevel.toInt())
-        apTransactionService.settleDecision(userPublicId, ap.amount, ap.reason, decisionId)
+        val settleResult = apTransactionService.settleDecision(userPublicId, ap.amount, ap.reason, decisionId)
 
         val leveledUp = agent.addExperience(calculator.experience(decision.direction, item.isCorrect))
         diaryEntryRepository.save(DiaryEntry.create(decision))
 
         awardSettlementBadges(userId, userPublicId, decision.confidenceLevel.toInt(), item.isCorrect)
+        badgeAwardService.awardBalanceMilestones(userPublicId, settleResult.balanceAp)
 
         notificationCreationService.create(
             userId = userPublicId,
@@ -87,6 +88,9 @@ class DecisionSettlementService(
         val correctCount = decisionResultRepository.countByDecisionBriefingAgentUserIdAndIsCorrect(userId, true)
         if (correctCount >= 10) badgeAwardService.awardBadge(userPublicId, BadgeCode.B07)
         if (correctCount >= 50) badgeAwardService.awardBadge(userPublicId, BadgeCode.B08)
+        if (correctCount >= 100) badgeAwardService.awardBadge(userPublicId, BadgeCode.B23)
+        if (correctCount >= 200) badgeAwardService.awardBadge(userPublicId, BadgeCode.B24)
+        if (correctCount >= 300) badgeAwardService.awardBadge(userPublicId, BadgeCode.B25)
 
         val neutralHitCount =
             decisionResultRepository.countByDecisionBriefingAgentUserIdAndIsCorrectAndDecisionDirection(
@@ -95,8 +99,39 @@ class DecisionSettlementService(
                 DecisionDirection.NEUTRAL,
             )
         if (neutralHitCount >= 5) badgeAwardService.awardBadge(userPublicId, BadgeCode.B09)
+        if (neutralHitCount >= 15) badgeAwardService.awardBadge(userPublicId, BadgeCode.B26)
+        if (neutralHitCount >= 30) badgeAwardService.awardBadge(userPublicId, BadgeCode.B27)
+
+        val confidence5CorrectCount =
+            decisionResultRepository.countByDecisionBriefingAgentUserIdAndIsCorrectAndDecisionConfidenceLevel(
+                userId,
+                true,
+                5.toShort(),
+            )
+        if (confidence5CorrectCount >= 5) badgeAwardService.awardBadge(userPublicId, BadgeCode.B28)
+        if (confidence5CorrectCount >= 10) badgeAwardService.awardBadge(userPublicId, BadgeCode.B29)
+
         if (agentRepository.existsByUserIdAndLevelGreaterThanEqual(userId, 5)) {
             badgeAwardService.awardBadge(userPublicId, BadgeCode.B10)
+        }
+        if (agentRepository.existsByUserIdAndLevelGreaterThanEqual(userId, 10)) {
+            badgeAwardService.awardBadge(userPublicId, BadgeCode.B30)
+        }
+        val agents = agentRepository.findAllByUserId(userId)
+        if (agents.isNotEmpty() && agents.all { it.level >= 5 }) {
+            badgeAwardService.awardBadge(userPublicId, BadgeCode.B31)
+        }
+        if (agents.isNotEmpty() && agents.all { it.level >= 10 }) {
+            badgeAwardService.awardBadge(userPublicId, BadgeCode.B32)
+        }
+
+        val last3Results = decisionResultRepository.findTop3ByDecisionBriefingAgentUserIdOrderByIdDesc(userId)
+        if (last3Results.size == 3 && last3Results.all { it.isCorrect }) {
+            badgeAwardService.awardBadge(userPublicId, BadgeCode.B49)
+        }
+        val last5Results = decisionResultRepository.findTop5ByDecisionBriefingAgentUserIdOrderByIdDesc(userId)
+        if (last5Results.size == 5 && last5Results.all { it.isCorrect }) {
+            badgeAwardService.awardBadge(userPublicId, BadgeCode.B50)
         }
     }
 }

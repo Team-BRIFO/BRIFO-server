@@ -1,5 +1,7 @@
 package com.brifo.server.diary.service
 
+import com.brifo.server.badge.code.BadgeCode
+import com.brifo.server.badge.service.BadgeAwardService
 import com.brifo.server.diary.dto.response.CreateDiaryShareImageResponse
 import com.brifo.server.diary.exception.DiaryNotFoundException
 import com.brifo.server.diary.exception.DiaryShareImageGenerationFailedException
@@ -18,6 +20,7 @@ class DiaryShareImageService(
     private val renderer: DiaryShareImageRenderer,
     private val storage: ShareImageStorage,
     private val transactionService: DiaryShareImageTransactionService,
+    private val badgeAwardService: BadgeAwardService,
 ) {
     fun create(
         userPublicId: UUID,
@@ -59,6 +62,12 @@ class DiaryShareImageService(
                     throw DiaryShareImageGenerationFailedException()
                 }
             }
+
+        if (!attached.reused) {
+            badgeAwardService.awardBadge(userPublicId, BadgeCode.B12)
+            val sharedCount = diaryEntryRepository.countSharedByUserPublicId(userPublicId)
+            if (sharedCount >= 5) badgeAwardService.awardBadge(userPublicId, BadgeCode.B48)
+        }
 
         return CreateDiaryShareImageResponse(
             diaryPublicId,

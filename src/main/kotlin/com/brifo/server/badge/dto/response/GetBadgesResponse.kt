@@ -9,6 +9,8 @@ data class GetBadgesResponse(
         val badgeId: UUID,
         val code: String,
         val name: String,
+        val description: String?,
+        val rewardAp: Int,
         val isOwned: Boolean,
     )
 }

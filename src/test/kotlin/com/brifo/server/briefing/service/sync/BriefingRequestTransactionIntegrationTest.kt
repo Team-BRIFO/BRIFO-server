@@ -56,7 +56,8 @@ class BriefingRequestTransactionIntegrationTest @Autowired constructor(
         assertEquals(3, dailyBriefings.size)
         assertEquals(listOf(2, 2, 2), dailyBriefings.map { it.newsCards.size })
         assertEquals(3, salaryTransactions.size)
-        assertEquals(40, scenario.user.balanceAp)
+        // +30_000: 첫 의뢰(B41) 배지 보상
+        assertEquals(30_040, scenario.user.balanceAp)
     }
 
     @Test
@@ -94,7 +95,8 @@ class BriefingRequestTransactionIntegrationTest @Autowired constructor(
         assertEquals(1, result.requestedCount)
         assertEquals(10, result.totalSalaryCost)
         assertEquals(3, briefing.newsCards.size)
-        assertEquals(90, scenario.user.balanceAp)
+        // +30_000: 첫 의뢰(B41) 배지 보상
+        assertEquals(30_090, scenario.user.balanceAp)
     }
 
     @Test
@@ -177,7 +179,8 @@ class BriefingRequestTransactionIntegrationTest @Autowired constructor(
         assertEquals(dailyBriefings.last().publicId, result.requestedAgents.single().briefingId)
         assertEquals(2, salaryTransactions.size)
         assertEquals(2, salaryTransactions.map { it.targetId }.distinct().size)
-        assertEquals(80, scenario.user.balanceAp)
+        // +30_000: 첫 의뢰(B41) 배지 보상
+        assertEquals(30_080, scenario.user.balanceAp)
     }
 
     @Test

@@ -85,9 +85,13 @@ class TermService(
             termId = requireNotNull(term.id),
         )
 
-        if (userLearnedTermRepository.countByUserId(userId) >= TERM_LEARNING_BADGE_COUNT) {
+        val learnedCount = userLearnedTermRepository.countByUserId(userId)
+        if (learnedCount >= TERM_LEARNING_BADGE_COUNT) {
             badgeAwardService.awardBadge(userPublicId, BadgeCode.B11)
         }
+        if (learnedCount >= 30) badgeAwardService.awardBadge(userPublicId, BadgeCode.B33)
+        if (learnedCount >= 50) badgeAwardService.awardBadge(userPublicId, BadgeCode.B34)
+        if (learnedCount >= 100) badgeAwardService.awardBadge(userPublicId, BadgeCode.B35)
     }
 
     private fun findUserId(userPublicId: UUID): Long =

@@ -65,6 +65,9 @@ class BadgeAwardService(
                     ),
                 eventId = userBadgeId,
             )
+            if (badgeCode !in COLLECTION_MILESTONE_CODES) {
+                awardCollectionMilestones(userId)
+            }
         }
 
         return AwardBadgeResult(
@@ -72,5 +75,28 @@ class BadgeAwardService(
             rewardAp = badge.rewardAp,
             awarded = awarded,
         )
+    }
+
+    /** 잔액이 특정 금액을 넘기는 순간마다 호출해 자금 마일스톤 배지를 지급한다. */
+    @Transactional
+    fun awardBalanceMilestones(
+        userId: UUID,
+        balanceAp: Int,
+    ) {
+        if (balanceAp >= 500_000) awardBadge(userId, BadgeCode.B36)
+        if (balanceAp >= 1_000_000) awardBadge(userId, BadgeCode.B37)
+        if (balanceAp >= 3_000_000) awardBadge(userId, BadgeCode.B38)
+        if (balanceAp >= 5_000_000) awardBadge(userId, BadgeCode.B39)
+    }
+
+    private fun awardCollectionMilestones(userId: UUID) {
+        val ownedCount = userBadgeRepository.countByUserPublicId(userId)
+        if (ownedCount >= 10) awardBadge(userId, BadgeCode.B45)
+        if (ownedCount >= 25) awardBadge(userId, BadgeCode.B46)
+        if (ownedCount >= 40) awardBadge(userId, BadgeCode.B47)
+    }
+
+    private companion object {
+        val COLLECTION_MILESTONE_CODES = setOf(BadgeCode.B45, BadgeCode.B46, BadgeCode.B47)
     }
 }

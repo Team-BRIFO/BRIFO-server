@@ -2,6 +2,7 @@ package com.brifo.server.payment.service
 
 import com.brifo.server.ap.entity.ApTransactionReason
 import com.brifo.server.ap.service.ApTransactionService
+import com.brifo.server.badge.service.BadgeAwardService
 import com.brifo.server.payment.client.TossPaymentsClient
 import com.brifo.server.payment.config.TossPaymentsProperties
 import com.brifo.server.payment.dto.request.ConfirmPaymentRequest
@@ -32,6 +33,7 @@ class PaymentServiceTest {
     private lateinit var paymentRepository: PaymentRepository
     private lateinit var tossPaymentsClient: TossPaymentsClient
     private lateinit var apTransactionService: ApTransactionService
+    private lateinit var badgeAwardService: BadgeAwardService
     private lateinit var service: PaymentService
     private val properties =
         TossPaymentsProperties(
@@ -49,12 +51,14 @@ class PaymentServiceTest {
         paymentRepository = mock(PaymentRepository::class.java)
         tossPaymentsClient = mock(TossPaymentsClient::class.java)
         apTransactionService = mock(ApTransactionService::class.java)
+        badgeAwardService = mock(BadgeAwardService::class.java)
         service =
             PaymentService(
                 userRepository = userRepository,
                 paymentRepository = paymentRepository,
                 tossPaymentsClient = tossPaymentsClient,
                 apTransactionService = apTransactionService,
+                badgeAwardService = badgeAwardService,
                 properties = properties,
                 clock = clock,
             )
@@ -104,6 +108,8 @@ class PaymentServiceTest {
 
         assertEquals(150_000, response.balanceAp)
         verify(apTransactionService).change(userId, 50_000, ApTransactionReason.CHARGE)
+        verify(badgeAwardService).awardBadge(userId, com.brifo.server.badge.code.BadgeCode.B40)
+        verify(badgeAwardService).awardBalanceMilestones(userId, 150_000)
     }
 
     @Test

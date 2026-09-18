@@ -96,6 +96,20 @@ class TermUnitTest {
     }
 
     @Test
+    fun `학습한 용어가 30 50 100개를 넘으면 상위 용어 뱃지도 함께 지급한다`() {
+        val publicId = UUID.randomUUID()
+        val term = term(id = 31L, publicId = publicId)
+        `when`(glossaryTermRepository.findByPublicId(publicId)).thenReturn(term)
+        `when`(userLearnedTermRepository.countByUserId(7L)).thenReturn(100L)
+
+        termService.saveTerm(userPublicId = userPublicId, termId = publicId)
+
+        verify(badgeAwardService).awardBadge(userPublicId, BadgeCode.B33)
+        verify(badgeAwardService).awardBadge(userPublicId, BadgeCode.B34)
+        verify(badgeAwardService).awardBadge(userPublicId, BadgeCode.B35)
+    }
+
+    @Test
     fun `빈 목록은 전체 개수 0과 다음 페이지 없음으로 반환한다`() {
         val request = GetMyTermsRequest(size = 20)
         `when`(userLearnedTermRepository.findPageByUserId(7L, null, 21)).thenReturn(emptyList())

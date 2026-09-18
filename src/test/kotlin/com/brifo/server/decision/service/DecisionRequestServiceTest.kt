@@ -290,6 +290,33 @@ class DecisionRequestServiceTest {
     }
 
     @Test
+    fun `누적 예측 등록 횟수가 기준을 넘으면 단계별 뱃지를 함께 지급한다`() {
+        val userId = UUID.randomUUID()
+        val briefingId = UUID.randomUUID()
+        val date = LocalDate.of(2026, 7, 21)
+        val context = briefingContext(date)
+        val decision = mock(Decision::class.java)
+        `when`(briefingRepository.findOwnedBriefing(userId, briefingId)).thenReturn(context.briefing)
+        `when`(decisionRepository.existsDailyDecision(userId, context.stockId, date)).thenReturn(false)
+        val user = mockUser(99_000)
+        `when`(user.id).thenReturn(9L)
+        `when`(userRepository.findForUpdateByPublicId(userId)).thenReturn(user)
+        `when`(decision.publicId).thenReturn(UUID.randomUUID())
+        `when`(decision.id).thenReturn(1L)
+        `when`(decision.direction).thenReturn(DecisionDirection.UP)
+        `when`(decision.confidenceLevel).thenReturn(3.toShort())
+        `when`(decisionRepository.saveAndFlush(any(Decision::class.java))).thenReturn(decision)
+        `when`(decisionRepository.countByBriefingAgentUserId(9L)).thenReturn(100L)
+
+        serviceAt("2026-07-21T05:00:00Z").request(userId, briefingId, DecisionDirection.UP, 3)
+
+        verify(badgeAwardService).awardBadge(userId, BadgeCode.B17)
+        verify(badgeAwardService).awardBadge(userId, BadgeCode.B18)
+        verify(badgeAwardService).awardBadge(userId, BadgeCode.B19)
+        verify(badgeAwardService, never()).awardBadge(userId, BadgeCode.B20)
+    }
+
+    @Test
     fun `참가비를 낼 자금이 부족하면 결정을 저장하지 않고 등록을 거절한다`() {
         val userId = UUID.randomUUID()
         val briefingId = UUID.randomUUID()
