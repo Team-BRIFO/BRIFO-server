@@ -74,11 +74,16 @@ class PaymentService(
         val balanceAp =
             apTransactionService.change(
                 userId = userId,
-                deltaAp = payment.amount,
+                deltaAp = payment.amount * CHARGE_EXCHANGE_MULTIPLIER,
                 reason = ApTransactionReason.CHARGE,
             )
         badgeAwardService.awardBadge(userId, BadgeCode.B40)
         badgeAwardService.awardBalanceMilestones(userId, balanceAp)
         return ApBalanceResponse(balanceAp)
+    }
+
+    private companion object {
+        /** 결제 1원당 지급하는 게임 재화 배율. 실제 결제 금액과 게임 내 자금을 분리해 소액 결제로도 충분히 놀 수 있게 한다. */
+        const val CHARGE_EXCHANGE_MULTIPLIER = 50
     }
 }
