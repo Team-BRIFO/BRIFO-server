@@ -26,6 +26,22 @@ import java.util.UUID
 class DecisionQueryRepositoryImpl(
     private val queryFactory: JPAQueryFactory,
 ) : DecisionQueryRepository {
+    /**
+     * 결정 1건에는 등록 시 배분금 차감과 정산 결과, 두 건의 AP 거래가 따로 남는다.
+     * 단순 조인 시 행이 2배로 늘어나므로 합산해 순손익 하나로 계산한다.
+     */
+    private val netApDeltaSubquery = Expressions.numberTemplate(
+        Int::class.javaObjectType,
+        "coalesce({0}, 0)",
+        JPAExpressions
+            .select(Expressions.numberTemplate(Int::class.javaObjectType, "sum({0})", apTransaction.amount))
+            .from(apTransaction)
+            .where(
+                apTransaction.targetType.eq(ApTransactionTargetType.DECISION),
+                apTransaction.targetId.eq(decision.id),
+            ),
+    )
+
     override fun existsDailyDecision(
         userPublicId: UUID,
         stockPublicId: UUID,
@@ -139,7 +155,7 @@ class DecisionQueryRepositoryImpl(
                 Projections.constructor(
                     GetDecisionResultResponse::class.java,
                     decisionResult.isCorrect,
-                    apTransaction.amount,
+                    netApDeltaSubquery,
                     decision.direction,
                     decision.allocatedAp,
                     Projections.constructor(
@@ -157,11 +173,7 @@ class DecisionQueryRepositoryImpl(
                 ),
             ).from(decisionResult)
             .join(decisionResult.decision, decision)
-            .join(apTransaction)
-            .on(
-                apTransaction.targetType.eq(ApTransactionTargetType.DECISION),
-                apTransaction.targetId.eq(decision.id),
-            ).where(
+            .where(
                 decision.publicId.eq(decisionPublicId),
                 decision.briefing.agent.user.publicId.eq(userPublicId),
             ).fetch()
