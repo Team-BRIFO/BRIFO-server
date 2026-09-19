@@ -27,6 +27,7 @@ object ApiErrorCatalog {
         setOf(
             Endpoint(POST, "/api/auth/login/kakao"),
             Endpoint(POST, "/api/auth/login/naver"),
+            Endpoint(POST, "/api/auth/login/guest"),
             Endpoint(POST, "/api/auth/reissue"),
         )
 
@@ -84,6 +85,7 @@ object ApiErrorCatalog {
                         invalidOAuthToken,
                         oauthProviderFailure,
                     ),
+                    OperationSpec(POST, "/api/auth/login/guest"),
                     OperationSpec(
                         POST,
                         "/api/auth/logout",

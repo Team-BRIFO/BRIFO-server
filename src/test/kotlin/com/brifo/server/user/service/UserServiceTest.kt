@@ -4,6 +4,7 @@ import com.brifo.server.agent.entity.Agent
 import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.agent.repository.AgentRepository
 import com.brifo.server.auth.dto.response.TokenInfo
+import com.brifo.server.auth.service.GuestMockDataSeedingService
 import com.brifo.server.auth.service.JwtTokenProvider
 import com.brifo.server.policy.repository.PolicyRepository
 import com.brifo.server.policy.repository.UserPolicyRepository
@@ -50,6 +51,7 @@ class UserServiceTest {
     private val agentRepository = mock(AgentRepository::class.java)
     private val validationService = mock(UserValidationService::class.java)
     private val jwtTokenProvider = mock(JwtTokenProvider::class.java)
+    private val guestMockDataSeedingService = mock(GuestMockDataSeedingService::class.java)
     private val clock = Clock.fixed(Instant.parse("2026-07-21T09:00:00Z"), ZoneId.of("Asia/Seoul"))
     private lateinit var userService: UserService
 
@@ -66,6 +68,7 @@ class UserServiceTest {
                 agentRepository,
                 validationService,
                 jwtTokenProvider,
+                guestMockDataSeedingService,
                 clock,
             )
     }
@@ -235,6 +238,27 @@ class UserServiceTest {
                 AgentSpec(it.agentType, it.modelName, it.nickname, it.description, it.dailySalary)
             },
         )
+        verifyNoInteractions(guestMockDataSeedingService)
+    }
+
+    @Test
+    fun `게스트 계정의 온보딩 완료는 과거 예측 목데이터를 심는다`() {
+        val userId = UUID.randomUUID()
+        val user =
+            User
+                .create(OAuthProvider.GUEST, "social-id", null)
+                .also { it.updateOnboardingProfile("닉네임", null) }
+        `when`(userRepository.findForUpdateByPublicId(userId)).thenReturn(user)
+        `when`(policyRepository.countByIsRequiredTrueAndIsActiveTrue()).thenReturn(0)
+        `when`(userPolicyRepository.countActiveRequiredAgreements(user)).thenReturn(0)
+        `when`(userStockRepository.countByUser(user)).thenReturn(1)
+        `when`(agentRepository.existsByUser(user)).thenReturn(false)
+        `when`(jwtTokenProvider.issueLoginTokens(userId))
+            .thenReturn(TokenInfo("access-token", "refresh-token", 3600, 1209600))
+
+        userService.completeOnboarding(userId)
+
+        verify(guestMockDataSeedingService).seed(user)
     }
 
     @Test
