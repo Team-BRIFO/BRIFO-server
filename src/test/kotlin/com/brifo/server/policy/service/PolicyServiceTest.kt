@@ -1,5 +1,6 @@
 package com.brifo.server.policy.service
 
+import com.brifo.server.policy.dto.response.GetPendingPoliciesResponse
 import com.brifo.server.policy.entity.Policy
 import com.brifo.server.policy.exception.DuplicatedPolicyIdsException
 import com.brifo.server.policy.exception.PolicyNotFoundException
@@ -7,6 +8,7 @@ import com.brifo.server.policy.exception.RequiredPolicyCannotBeRevokedException
 import com.brifo.server.policy.exception.RequiredPolicyMissingException
 import com.brifo.server.policy.repository.PolicyRepository
 import com.brifo.server.policy.repository.UserPolicyRepository
+import com.brifo.server.user.entity.OAuthProvider
 import com.brifo.server.user.entity.User
 import com.brifo.server.user.exception.UserNotFoundException
 import com.brifo.server.user.repository.UserRepository
@@ -193,12 +195,43 @@ class PolicyServiceTest {
         verify(userPolicyRepository).revokeActive(7L, 11L)
     }
 
+    @Test
+    fun `게스트 계정은 재동의가 필요한 약관을 받지 않는다`() {
+        val userId = UUID.randomUUID()
+        givenUser(userId, 7L, OAuthProvider.GUEST)
+
+        val response = policyService.getPendingPolicies(userId)
+
+        assertEquals(emptyList<GetPendingPoliciesResponse.PendingPolicyItem>(), response.items)
+        verify(policyRepository, never()).findPendingRequired(anyLong())
+    }
+
+    @Test
+    fun `일반 계정은 미동의 필수 약관을 재동의 대상으로 받는다`() {
+        val userId = UUID.randomUUID()
+        givenUser(userId, 7L)
+        val pending =
+            GetPendingPoliciesResponse.PendingPolicyItem(
+                policyId = UUID.randomUUID(),
+                title = "서비스 이용약관",
+                isRequired = true,
+                version = BigDecimal("2.0"),
+            )
+        `when`(policyRepository.findPendingRequired(7L)).thenReturn(listOf(pending))
+
+        val response = policyService.getPendingPolicies(userId)
+
+        assertEquals(listOf(pending), response.items)
+    }
+
     private fun givenUser(
         publicId: UUID,
         internalId: Long,
+        provider: OAuthProvider = OAuthProvider.KAKAO,
     ) {
         val user = mock(User::class.java)
         `when`(user.id).thenReturn(internalId)
+        `when`(user.provider).thenReturn(provider)
         `when`(userRepository.findByPublicId(publicId)).thenReturn(user)
     }
 
