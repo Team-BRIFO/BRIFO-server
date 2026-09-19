@@ -33,7 +33,10 @@ import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import org.springframework.test.util.ReflectionTestUtils
 import java.math.BigDecimal
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.util.UUID
 
 class GuestMockDataSeedingServiceTest {
@@ -46,6 +49,7 @@ class GuestMockDataSeedingServiceTest {
     private val badgeAwardService = mock(BadgeAwardService::class.java)
     private val decisionSettlementService = mock(DecisionSettlementService::class.java)
     private val calculator = DecisionSettlementCalculator()
+    private val clock = Clock.fixed(Instant.parse("2026-09-19T00:00:00Z"), ZoneId.of("Asia/Seoul"))
 
     private lateinit var service: GuestMockDataSeedingService
 
@@ -62,18 +66,19 @@ class GuestMockDataSeedingServiceTest {
                 badgeAwardService,
                 decisionSettlementService,
                 calculator,
+                clock,
             )
     }
 
     @Test
-    fun `게스트의 9월 16~18일 뉴스카드와 종가로 3건을 각각 적중 실패 적중으로 정산한다`() {
+    fun `기준일 바로 이전 3일에 데이터가 있으면 그 3일로 채운다`() {
         val user = guestUser()
-        val agents = listOf(agent(), agent(), agent())
-        `when`(agentRepository.findAllByUserId(requireNotNull(user.id))).thenReturn(agents)
+        `when`(agentRepository.findAllByUserId(requireNotNull(user.id))).thenReturn(listOf(agent(), agent(), agent()))
 
-        val day1 = LocalDate.of(2026, 9, 16)
+        // 기준일(2026-09-19)의 하루 전부터 거슬러 올라간다.
+        val day1 = LocalDate.of(2026, 9, 18)
         val day2 = LocalDate.of(2026, 9, 17)
-        val day3 = LocalDate.of(2026, 9, 18)
+        val day3 = LocalDate.of(2026, 9, 16)
         stubDay(day1, stockId = 1L, changeRate = BigDecimal("2.00"), priceId = 101L)
         stubDay(day2, stockId = 2L, changeRate = BigDecimal("-1.50"), priceId = 102L)
         stubDay(day3, stockId = 3L, changeRate = BigDecimal("0.00"), priceId = 103L)
@@ -111,38 +116,39 @@ class GuestMockDataSeedingServiceTest {
     }
 
     @Test
-    fun `해당 날짜에 뉴스카드가 없으면 그 날짜는 건너뛴다`() {
+    fun `중간에 데이터가 없는 날짜는 건너뛰고 더 과거로 거슬러 올라가 3건을 채운다`() {
         val user = guestUser()
         `when`(agentRepository.findAllByUserId(requireNotNull(user.id))).thenReturn(listOf(agent()))
-        stubDay(LocalDate.of(2026, 9, 16), stockId = 1L, changeRate = BigDecimal("2.00"), priceId = 101L)
-        `when`(newsCardRepository.findFirstByDisplayDateOrderByIdAsc(LocalDate.of(2026, 9, 17))).thenReturn(null)
-        stubDay(LocalDate.of(2026, 9, 18), stockId = 3L, changeRate = BigDecimal("0.00"), priceId = 103L)
+
+        // 9/18은 있고, 9/17은 뉴스카드 자체가 없고, 9/16과 9/15는 다시 있다.
+        stubDay(LocalDate.of(2026, 9, 18), stockId = 1L, changeRate = BigDecimal("2.00"), priceId = 101L)
+        stubDay(LocalDate.of(2026, 9, 16), stockId = 3L, changeRate = BigDecimal("-1.50"), priceId = 103L)
+        stubDay(LocalDate.of(2026, 9, 15), stockId = 4L, changeRate = BigDecimal("2.00"), priceId = 104L)
         val decision1 = decisionMock(id = 201L)
-        val decision3 = decisionMock(id = 203L)
-        `when`(decisionRepository.save(any(Decision::class.java))).thenReturn(decision1, decision3)
+        val decision2 = decisionMock(id = 203L)
+        val decision3 = decisionMock(id = 204L)
+        `when`(decisionRepository.save(any(Decision::class.java))).thenReturn(decision1, decision2, decision3)
 
         service.seed(user)
 
-        assertEquals(2, mockingDetails(decisionSettlementService).invocations.size)
+        assertEquals(3, mockingDetails(decisionSettlementService).invocations.size)
+        verify(decisionSettlementService).settle(DecisionSettlementItem(201L, 101L, true))
+        verify(decisionSettlementService).settle(DecisionSettlementItem(203L, 103L, false))
+        verify(decisionSettlementService).settle(DecisionSettlementItem(204L, 104L, true))
     }
 
     @Test
-    fun `해당 날짜에 종가가 없으면 그 날짜는 건너뛴다`() {
+    fun `과거 30일을 뒤져도 데이터가 부족하면 찾은 만큼만 채우고 예외를 던지지 않는다`() {
         val user = guestUser()
         `when`(agentRepository.findAllByUserId(requireNotNull(user.id))).thenReturn(listOf(agent()))
-        stubDay(LocalDate.of(2026, 9, 16), stockId = 1L, changeRate = BigDecimal("2.00"), priceId = 101L)
-        val day2NewsCard = newsCard(stockId = 2L, date = LocalDate.of(2026, 9, 17))
-        `when`(newsCardRepository.findFirstByDisplayDateOrderByIdAsc(LocalDate.of(2026, 9, 17))).thenReturn(day2NewsCard)
-        `when`(dailyStockPriceRepository.findByStockIdAndTradeDateAndIsClosingTrue(2L, LocalDate.of(2026, 9, 17)))
-            .thenReturn(null)
-        stubDay(LocalDate.of(2026, 9, 18), stockId = 3L, changeRate = BigDecimal("0.00"), priceId = 103L)
+        stubDay(LocalDate.of(2026, 9, 18), stockId = 1L, changeRate = BigDecimal("2.00"), priceId = 101L)
         val decision1 = decisionMock(id = 201L)
-        val decision3 = decisionMock(id = 203L)
-        `when`(decisionRepository.save(any(Decision::class.java))).thenReturn(decision1, decision3)
+        `when`(decisionRepository.save(any(Decision::class.java))).thenReturn(decision1)
 
         service.seed(user)
 
-        assertEquals(2, mockingDetails(decisionSettlementService).invocations.size)
+        assertEquals(1, mockingDetails(decisionSettlementService).invocations.size)
+        verify(decisionSettlementService).settle(DecisionSettlementItem(201L, 101L, true))
     }
 
     @Test
