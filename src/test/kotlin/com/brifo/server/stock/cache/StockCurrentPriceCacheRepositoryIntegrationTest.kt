@@ -8,10 +8,19 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory
 import org.springframework.data.redis.core.StringRedisTemplate
+import org.testcontainers.containers.GenericContainer
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
+import org.testcontainers.utility.DockerImageName
 import java.math.BigDecimal
 import java.time.Duration
 import java.time.LocalDateTime
 
+/**
+ * 예전에는 localhost:6379 에 Redis 가 떠 있기를 기대해서, 따로 띄워두지 않은 환경과 CI 에서는
+ * 연결 실패로 깨졌다. Postgres 와 마찬가지로 필요한 컨테이너를 직접 띄운다.
+ */
+@Testcontainers
 class StockCurrentPriceCacheRepositoryIntegrationTest {
     private lateinit var connectionFactory:
         LettuceConnectionFactory
@@ -24,19 +33,10 @@ class StockCurrentPriceCacheRepositoryIntegrationTest {
 
     @BeforeEach
     fun setUp() {
-        val host =
-            System.getenv("REDIS_HOST")
-                ?: "localhost"
-
-        val port =
-            System.getenv("REDIS_PORT")
-                ?.toInt()
-                ?: 6379
-
         connectionFactory =
             LettuceConnectionFactory(
-                host,
-                port,
+                valkey.host,
+                valkey.firstMappedPort,
             ).apply {
                 afterPropertiesSet()
             }
@@ -164,6 +164,13 @@ class StockCurrentPriceCacheRepositoryIntegrationTest {
     }
 
     companion object {
+        @Container
+        @JvmStatic
+        private val valkey =
+            GenericContainer(
+                DockerImageName.parse("valkey/valkey:9.1.1-alpine"),
+            ).withExposedPorts(6379)
+
         private const val STOCK_CODE =
             "TEST-CACHE"
 
