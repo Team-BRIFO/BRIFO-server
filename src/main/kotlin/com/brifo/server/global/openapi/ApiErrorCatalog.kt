@@ -85,7 +85,11 @@ object ApiErrorCatalog {
                         invalidOAuthToken,
                         oauthProviderFailure,
                     ),
-                    OperationSpec(POST, "/api/auth/login/guest"),
+                    OperationSpec(
+                        POST,
+                        "/api/auth/login/guest",
+                        ErrorSpec(AuthErrorCode.GUEST_LOGIN_RATE_LIMITED, "동일 IP에서 짧은 시간 안에 너무 많이 요청한 경우"),
+                    ),
                     OperationSpec(
                         POST,
                         "/api/auth/logout",

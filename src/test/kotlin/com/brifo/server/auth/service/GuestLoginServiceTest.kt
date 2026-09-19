@@ -2,6 +2,7 @@ package com.brifo.server.auth.service
 
 import com.brifo.server.auth.dto.internal.OAuthUserProfile
 import com.brifo.server.auth.dto.response.OAuthLoginResponse
+import com.brifo.server.auth.exception.GuestLoginRateLimitedException
 import com.brifo.server.user.entity.OAuthProvider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -9,12 +10,14 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers
 import org.mockito.Mock
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 
@@ -23,11 +26,14 @@ class GuestLoginServiceTest {
     @Mock
     private lateinit var oauthLoginService: OAuthLoginService
 
+    @Mock
+    private lateinit var rateLimiter: GuestLoginRateLimiter
+
     private lateinit var service: GuestLoginService
 
     @BeforeEach
     fun setUp() {
-        service = GuestLoginService(oauthLoginService)
+        service = GuestLoginService(oauthLoginService, rateLimiter)
     }
 
     @Test
@@ -35,7 +41,7 @@ class GuestLoginServiceTest {
         val expected = OAuthLoginResponse.SignupRequired(signupToken = "signup-token")
         `when`(oauthLoginService.login(anyProfile())).thenReturn(expected)
 
-        val response = service.login()
+        val response = service.login(CLIENT_IP)
 
         assertSame(expected, response)
         val profileCaptor = ArgumentCaptor.forClass(OAuthUserProfile::class.java)
@@ -43,6 +49,7 @@ class GuestLoginServiceTest {
         assertEquals(OAuthProvider.GUEST, profileCaptor.value.provider)
         assertNull(profileCaptor.value.nickname)
         assertNull(profileCaptor.value.email)
+        verify(rateLimiter).checkAndRecord(CLIENT_IP)
     }
 
     @Test
@@ -50,13 +57,24 @@ class GuestLoginServiceTest {
         `when`(oauthLoginService.login(anyProfile()))
             .thenReturn(OAuthLoginResponse.SignupRequired(signupToken = "signup-token"))
 
-        service.login()
-        service.login()
+        service.login(CLIENT_IP)
+        service.login(CLIENT_IP)
 
         val captor = ArgumentCaptor.forClass(OAuthUserProfile::class.java)
         verify(oauthLoginService, times(2)).login(captureProfile(captor))
         val (first, second) = captor.allValues
         assertNotEquals(first.socialId, second.socialId)
+    }
+
+    @Test
+    fun `레이트리밋에 걸리면 계정을 만들지 않고 예외를 그대로 전파한다`() {
+        `when`(rateLimiter.checkAndRecord(CLIENT_IP)).thenThrow(GuestLoginRateLimitedException(60))
+
+        assertThrows<GuestLoginRateLimitedException> {
+            service.login(CLIENT_IP)
+        }
+
+        verifyNoInteractions(oauthLoginService)
     }
 
     /**
@@ -79,4 +97,8 @@ class GuestLoginServiceTest {
 
     @Suppress("UNCHECKED_CAST")
     private fun <T> uninitialized(): T = null as T
+
+    private companion object {
+        const val CLIENT_IP = "127.0.0.1"
+    }
 }

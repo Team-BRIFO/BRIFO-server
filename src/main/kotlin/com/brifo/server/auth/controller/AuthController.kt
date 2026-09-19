@@ -55,8 +55,11 @@ class AuthController(
     }
 
     @PostMapping("/login/guest")
-    fun loginAsGuest(response: HttpServletResponse): ApiResponse<OAuthLoginResponse> {
-        val result = guestLoginService.login()
+    fun loginAsGuest(
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+    ): ApiResponse<OAuthLoginResponse> {
+        val result = guestLoginService.login(resolveClientIp(request))
         updateSignupTokenCookie(result, response)
         return ApiResponse.success(SuccessCode.OK, result)
     }
@@ -106,4 +109,13 @@ class AuthController(
             is OAuthLoginResponse.Login -> signupTokenCookieManager.clear(response)
         }
     }
+
+    /** 리버스 프록시 뒤에서 동작하므로 X-Forwarded-For의 첫 값을 원 클라이언트 IP로 신뢰한다. */
+    private fun resolveClientIp(request: HttpServletRequest): String =
+        request
+            .getHeader("X-Forwarded-For")
+            ?.substringBefore(",")
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: request.remoteAddr
 }

@@ -13,8 +13,10 @@ import java.util.UUID
 @Service
 class GuestLoginService(
     private val oauthLoginService: OAuthLoginService,
+    private val rateLimiter: GuestLoginRateLimiter,
 ) {
-    fun login(): OAuthLoginResponse {
+    fun login(clientIp: String): OAuthLoginResponse {
+        rateLimiter.checkAndRecord(clientIp)
         val profile =
             OAuthUserProfile(
                 provider = OAuthProvider.GUEST,

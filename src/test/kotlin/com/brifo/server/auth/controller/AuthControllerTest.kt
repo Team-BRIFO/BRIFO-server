@@ -146,7 +146,7 @@ class AuthControllerTest {
     @Test
     fun `게스트 로그인도 Signup Token을 응답에서 숨기고 쿠키로 전달한다`() {
         val result = OAuthLoginResponse.SignupRequired(signupToken = "guest-signup-token")
-        `when`(guestLoginService.login()).thenReturn(result)
+        `when`(guestLoginService.login("127.0.0.1")).thenReturn(result)
 
         mockMvc
             .perform(post("/api/auth/login/guest"))
@@ -157,6 +157,20 @@ class AuthControllerTest {
         val cookieInvocation =
             mockingDetails(signupTokenCookieManager).invocations.single { it.method.name == "set" }
         assertEquals("guest-signup-token", cookieInvocation.arguments[1])
+    }
+
+    @Test
+    fun `게스트 로그인은 X-Forwarded-For의 첫 값을 클라이언트 IP로 전달한다`() {
+        val result = OAuthLoginResponse.SignupRequired(signupToken = "guest-signup-token")
+        `when`(guestLoginService.login("203.0.113.10")).thenReturn(result)
+
+        mockMvc
+            .perform(
+                post("/api/auth/login/guest")
+                    .header("X-Forwarded-For", "203.0.113.10, 10.0.0.1"),
+            ).andExpect(status().isOk)
+
+        verify(guestLoginService).login("203.0.113.10")
     }
 
     @Test
