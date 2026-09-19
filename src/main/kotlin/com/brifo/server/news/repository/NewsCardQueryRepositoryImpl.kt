@@ -29,6 +29,20 @@ class NewsCardQueryRepositoryImpl(
             ).orderBy(newsCard.id.desc())
             .fetch()
 
+    override fun findLatestDisplayDateOnOrBefore(
+        stockPublicId: UUID,
+        displayDate: LocalDate,
+    ): LocalDate? =
+        queryFactory
+            .select(newsCard.displayDate.max())
+            .from(newsCard)
+            .join(newsCard.news, news)
+            .join(news.stock, stock)
+            .where(
+                stock.publicId.eq(stockPublicId),
+                newsCard.displayDate.loe(displayDate),
+            ).fetchOne()
+
     override fun findDistinctStockIdsByDisplayDate(displayDate: LocalDate): List<Long> =
         queryFactory
             .select(newsCard.news.stock.id)

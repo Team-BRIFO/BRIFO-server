@@ -38,6 +38,20 @@ class StockNewsKeywordPolicyTest {
     }
 
     @Test
+    fun `종목명이 라틴 문자여도 한글 표기 제목을 같은 종목으로 본다`() {
+        // `stocks.name`이 POSCO홀딩스라 한글 제목과는 절대 매칭되지 않아 뉴스가 항상 0건이었다.
+        assertTrue(StockNewsKeywordPolicy.isRelevant("POSCO홀딩스", "포스코홀딩스, 3분기 영업이익 증가"))
+        assertFalse(StockNewsKeywordPolicy.isRelevant("POSCO홀딩스", "포스코인터내셔널, 신규 수주"))
+    }
+
+    @Test
+    fun `줄여 쓴 표기도 같은 종목으로 본다`() {
+        assertTrue(StockNewsKeywordPolicy.isRelevant("기아", "기아차, 유럽 판매 호조"))
+        assertTrue(StockNewsKeywordPolicy.isRelevant("기아", "기아자동차 노사 임단협 타결"))
+        assertTrue(StockNewsKeywordPolicy.isRelevant("삼성전자", "삼전, 4분기 반도체 흑자 전환"))
+    }
+
+    @Test
     fun `띄어쓰기와 대소문자가 달라도 같은 종목으로 본다`() {
         assertTrue(StockNewsKeywordPolicy.isRelevant("SK하이닉스", "SK 하이닉스, 신고가 경신"))
         assertTrue(StockNewsKeywordPolicy.isRelevant("NAVER", "naver, 신규 서비스 출시"))

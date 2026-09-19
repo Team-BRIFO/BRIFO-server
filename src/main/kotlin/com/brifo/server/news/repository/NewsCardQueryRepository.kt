@@ -16,5 +16,18 @@ interface NewsCardQueryRepository {
         displayDate: LocalDate,
     ): List<NewsCard>
 
+    /**
+     * 그 종목에 카드가 있는 가장 최근 노출일(기준일 포함, 그 이전까지).
+     *
+     * 카드는 전날 뉴스로 하루 한 번 만들어지고 뉴스 1건당 한 장만 만들어지므로, 어제 그 종목에
+     * 새 뉴스가 없었으면 오늘 카드는 0장이 된다. 그때 화면을 비워두는 대신 마지막으로 만들어둔
+     * 카드를 보여주기 위해 쓴다. 카드마다 발행일(publishedDate)을 함께 내려주므로 이용자가
+     * 언제 기사인지 오해하지 않는다.
+     */
+    fun findLatestDisplayDateOnOrBefore(
+        stockPublicId: UUID,
+        displayDate: LocalDate,
+    ): LocalDate?
+
     fun findDistinctStockIdsByDisplayDate(displayDate: LocalDate): List<Long>
 }
