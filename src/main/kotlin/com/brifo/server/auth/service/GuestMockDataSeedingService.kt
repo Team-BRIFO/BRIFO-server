@@ -16,15 +16,20 @@ import com.brifo.server.briefing.repository.BriefingRepository
 import com.brifo.server.decision.entity.Decision
 import com.brifo.server.decision.entity.DecisionDirection
 import com.brifo.server.decision.repository.DecisionRepository
+import com.brifo.server.news.entity.ImportanceBadge
+import com.brifo.server.news.entity.News
 import com.brifo.server.news.entity.NewsCard
+import com.brifo.server.news.entity.NewsSource
 import com.brifo.server.news.repository.NewsCardRepository
+import com.brifo.server.news.repository.NewsRepository
+import com.brifo.server.stock.entity.DailyStockPrice
 import com.brifo.server.stock.entity.Stock
 import com.brifo.server.stock.repository.DailyStockPriceRepository
+import com.brifo.server.stock.repository.UserStockRepository
 import com.brifo.server.user.entity.User
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.Clock
+import java.math.BigDecimal
 import java.time.LocalDate
 
 /**
@@ -33,64 +38,64 @@ import java.time.LocalDate
  * 정산 로직은 실제 배치가 쓰는 DecisionSettlementService를 그대로 재사용해
  * AP 지급·배지·경험치·알림까지 실제 서비스와 동일하게 처리한다.
  *
- * 날짜를 고정해두면 운영 DB에 그 날짜의 뉴스카드·종가가 보존되어 있다는 보장이 없어
- * 온보딩이 끝나도 목데이터가 비는 경우가 생긴다. 그래서 기준일(어제) 이전으로
- * 하루씩 거슬러 올라가며 뉴스카드와 종가가 모두 존재하는 날짜를 찾아 채운다.
+ * 날짜는 운영 DB에 뉴스카드·종가가 실제로 채워져 있는 것이 확인된 2026-09-14~18로 고정하고,
+ * 하루도 비지 않도록 5일 모두에 결정일기를 채운다. 종목은 사용자가 온보딩에서 직접 고른
+ * 관심종목(UserStock) 전부를 매일 채운다 — 관심종목과 무관한 임의 종목(예: 삼성전자)이
+ * 섞여 들어가지 않게 하면서도, 하루에 같은 종목이 두 번 배정되는 일은 없다(existsDailyDecision이
+ * 강제하는 "사용자당 종목당 하루 1건" 규칙과 자연히 맞는다). 관심종목이 여러 개면 하루에도
+ * 종목 수만큼 여러 건이 생긴다 — 제한되는 건 "하루당 같은 종목 중복"뿐이다.
+ *
+ * 관심종목에 그 5일치 실제 뉴스카드·종가가 없을 수도 있다(수집 대상이 아니었던 종목 등).
+ * 이 경우에도 온보딩이 빈 화면으로 끝나지 않도록 `NewsSource.TEST`로 표시된 안내용
+ * 뉴스카드·종가를 즉석에서 만들어 채운다. 결정일기 API는 뉴스카드 본문을 내려주지 않고
+ * 종목명·가격·등락률·적중여부만 보여주므로, 이 안내용 데이터로도 화면 표시에는 문제가 없다.
+ * 또한 실제 뉴스 피드(`NewsService.getNewsCards`)는 항상 오늘 날짜만 조회하므로, 과거로
+ * 고정된 이 안내용 뉴스카드가 실제 사용자에게 노출될 경로는 없다.
  */
 @Service
 class GuestMockDataSeedingService(
+    private val newsRepository: NewsRepository,
     private val newsCardRepository: NewsCardRepository,
     private val dailyStockPriceRepository: DailyStockPriceRepository,
     private val agentRepository: AgentRepository,
+    private val userStockRepository: UserStockRepository,
     private val briefingRepository: BriefingRepository,
     private val decisionRepository: DecisionRepository,
     private val apTransactionService: ApTransactionService,
     private val badgeAwardService: BadgeAwardService,
     private val decisionSettlementService: DecisionSettlementService,
     private val calculator: DecisionSettlementCalculator,
-    private val clock: Clock,
 ) {
     @Transactional
     fun seed(user: User) {
         val agents = agentRepository.findAllByUserId(requireNotNull(user.id))
         if (agents.isEmpty()) return
 
-        var seeded = 0
-        var date = LocalDate.now(clock).minusDays(1)
-        var attempts = 0
-        while (seeded < TARGET_COUNT && attempts < MAX_LOOKBACK_DAYS) {
-            val correct = OUTCOMES[seeded % OUTCOMES.size]
-            if (seedOne(user, agents[seeded % agents.size], date, correct)) {
-                seeded++
-            }
-            date = date.minusDays(1)
-            attempts++
-        }
+        val stocks = userStockRepository.findAllByUser(user).map { it.stock }
+        if (stocks.isEmpty()) return
 
-        if (seeded < TARGET_COUNT) {
-            log.warn(
-                "게스트 목데이터 시딩: {}건 중 {}건만 채워짐(뉴스카드·종가가 있는 과거 날짜 부족). userPublicId={}",
-                TARGET_COUNT,
-                seeded,
-                user.publicId,
-            )
+        var index = 0
+        for (date in FIXED_DATES) {
+            for (stock in stocks) {
+                val agent = agents[index % agents.size]
+                val correct = OUTCOMES[index % OUTCOMES.size]
+                seedOne(user, agent, stock, date, correct, index)
+                index++
+            }
         }
     }
 
-    /** 해당 날짜에 뉴스카드와 종가가 모두 있으면 결정일기 1건을 만들고 true를 반환한다. */
+    /** 해당 날짜·종목의 결정일기 1건을 만든다. 실제 뉴스카드·종가가 없으면 안내용으로 대신 채운다. */
     private fun seedOne(
         user: User,
         agent: Agent,
+        stock: Stock,
         date: LocalDate,
         correct: Boolean,
-    ): Boolean {
-        val newsCard = newsCardRepository.findFirstByDisplayDateOrderByIdAsc(date) ?: return false
-        val stock = newsCard.news.stock
-        val closingPrice =
-            dailyStockPriceRepository.findByStockIdAndTradeDateAndIsClosingTrue(
-                requireNotNull(stock.id),
-                date,
-            ) ?: return false
+        seedIndex: Int,
+    ) {
+        val newsCard = findOrCreatePlaceholderNewsCard(stock, date)
+        val closingPrice = findOrCreatePlaceholderClosingPrice(stock, date, seedIndex)
 
         val actualDirection = calculator.actualDirection(closingPrice.changeRate)
         val predictedDirection = if (correct) actualDirection else wrongDirection(actualDirection)
@@ -135,7 +140,59 @@ class GuestMockDataSeedingService(
                 isCorrect = correct,
             ),
         )
-        return true
+    }
+
+    /** 실제 뉴스카드가 있으면 그걸 쓰고, 없으면 안내용 뉴스카드를 만들어 저장한다. */
+    private fun findOrCreatePlaceholderNewsCard(
+        stock: Stock,
+        date: LocalDate,
+    ): NewsCard {
+        newsCardRepository.findDailyCards(requireNotNull(stock.publicId), date).firstOrNull()?.let { return it }
+
+        val dedupKey = "guest-mock:${stock.id}:$date"
+        val news =
+            newsRepository.save(
+                News.create(
+                    stock = stock,
+                    source = NewsSource.TEST,
+                    sourceUrl = "https://brifo.internal/guest-mock/${stock.id}/$date",
+                    title = "${stock.name} 관련 소식",
+                    summary = null,
+                    importance = null,
+                    dedupKey = dedupKey,
+                    publishedAt = date.atTime(9, 0),
+                ),
+            )
+        return newsCardRepository.save(
+            NewsCard.create(
+                news = news,
+                headline = "${stock.name} 관련 소식",
+                points = listOf("게스트 체험용으로 채워진 안내 카드입니다."),
+                keywords = emptyList(),
+                importanceBadge = ImportanceBadge.LOW,
+                displayDate = date,
+            ),
+        )
+    }
+
+    /** 실제 종가가 있으면 그걸 쓰고, 없으면 방향 판정 임계값을 넘는 안내용 종가를 만들어 저장한다. */
+    private fun findOrCreatePlaceholderClosingPrice(
+        stock: Stock,
+        date: LocalDate,
+        seedIndex: Int,
+    ): DailyStockPrice {
+        dailyStockPriceRepository.findByStockIdAndTradeDateAndIsClosingTrue(requireNotNull(stock.id), date)?.let {
+            return it
+        }
+
+        return dailyStockPriceRepository.save(
+            DailyStockPrice.createClosing(
+                stock = stock,
+                tradeDate = date,
+                price = PLACEHOLDER_PRICES[seedIndex % PLACEHOLDER_PRICES.size],
+                changeRate = PLACEHOLDER_CHANGE_RATES[seedIndex % PLACEHOLDER_CHANGE_RATES.size],
+            ),
+        )
     }
 
     private fun buildContentText(
@@ -164,15 +221,28 @@ class GuestMockDataSeedingService(
         }
 
     private companion object {
-        val log = LoggerFactory.getLogger(GuestMockDataSeedingService::class.java)
-
         const val ALLOCATED_AP = 50_000
         const val ALLOCATION_RATE_PERCENT = 5
         const val CONFIDENCE_RATE: Short = 75
-        const val TARGET_COUNT = 3
-        const val MAX_LOOKBACK_DAYS = 30
 
-        /** 채워지는 순서대로 2적중 1실패가 되도록 한다. */
+        /** 하루도 빠짐없이 결정일기를 채우는 고정 날짜(최신순). */
+        val FIXED_DATES =
+            listOf(
+                LocalDate.of(2026, 9, 18),
+                LocalDate.of(2026, 9, 17),
+                LocalDate.of(2026, 9, 16),
+                LocalDate.of(2026, 9, 15),
+                LocalDate.of(2026, 9, 14),
+            )
+
+        /** 날짜 인덱스 순으로 돌아가며 적용해 대략 2적중 1실패 비율이 되도록 한다. */
         val OUTCOMES = listOf(true, false, true)
+
+        /**
+         * 관심종목에 실제 종가가 없을 때 대신 채우는 안내용 값.
+         * 등락률은 방향 판정 임계값(0.5%)을 뚜렷이 넘겨 보합으로 판정되지 않게 한다.
+         */
+        val PLACEHOLDER_PRICES = listOf(BigDecimal("52000.00"), BigDecimal("135000.00"), BigDecimal("221000.00"))
+        val PLACEHOLDER_CHANGE_RATES = listOf(BigDecimal("1.80"), BigDecimal("-1.20"), BigDecimal("2.30"))
     }
 }
