@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.LocalDate
+import kotlin.random.Random
 
 /**
  * 게스트 체험 계정이 처음부터 빈 화면을 보지 않도록, 이미 종가가 확정된 과거 날짜의
@@ -40,10 +41,11 @@ import java.time.LocalDate
  *
  * 날짜는 운영 DB에 뉴스카드·종가가 실제로 채워져 있는 것이 확인된 2026-09-14~18로 고정하고,
  * 하루도 비지 않도록 5일 모두에 결정일기를 채운다. 종목은 사용자가 온보딩에서 직접 고른
- * 관심종목(UserStock) 전부를 매일 채운다 — 관심종목과 무관한 임의 종목(예: 삼성전자)이
- * 섞여 들어가지 않게 하면서도, 하루에 같은 종목이 두 번 배정되는 일은 없다(existsDailyDecision이
- * 강제하는 "사용자당 종목당 하루 1건" 규칙과 자연히 맞는다). 관심종목이 여러 개면 하루에도
- * 종목 수만큼 여러 건이 생긴다 — 제한되는 건 "하루당 같은 종목 중복"뿐이다.
+ * 관심종목(UserStock) 중에서만 고른다 — 관심종목과 무관한 임의 종목(예: 삼성전자)이 섞여
+ * 들어가지 않게 하면서도, 하루에 같은 종목이 두 번 배정되는 일은 없다(existsDailyDecision이
+ * 강제하는 "사용자당 종목당 하루 1건" 규칙과 자연히 맞는다). 매일 관심종목 전부를 기계적으로
+ * 채우면 부자연스러워 보이므로, 하루에 최소 1개는 보장하면서 몇 개·어느 종목이 들어갈지와
+ * 담당 사원(루키/프로/탱커)을 날짜·종목마다 무작위로 섞는다.
  *
  * 관심종목에 그 5일치 실제 뉴스카드·종가가 없을 수도 있다(수집 대상이 아니었던 종목 등).
  * 이 경우에도 온보딩이 빈 화면으로 끝나지 않도록 `NewsSource.TEST`로 표시된 안내용
@@ -83,8 +85,11 @@ class GuestMockDataSeedingService(
 
         var index = 0
         for (date in FIXED_DATES) {
-            for ((stockIndex, stock) in stocks.withIndex()) {
-                val agent = agents[index % agents.size]
+            // 매일 관심종목 전부를 채우면 기계적으로 반복돼 보이니, 하루에 최소 1개는
+            // 보장하면서 몇 개·어느 종목이 들어갈지를 날짜마다 무작위로 섞는다.
+            val stocksForDay = stocks.shuffled().take(Random.nextInt(1, stocks.size + 1))
+            for ((stockIndex, stock) in stocksForDay.withIndex()) {
+                val agent = agents.random()
                 val correct = OUTCOMES[index % OUTCOMES.size]
                 seedOne(user, agent, stock, date, correct, index, stockIndex)
                 index++
