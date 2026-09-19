@@ -19,18 +19,18 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       # Testcontainers 로 Postgres·Valkey 를 띄운다. ubuntu-latest 러너에는 Docker 가 이미 있다.
       # JWT_SECRET_BASE64 는 build.gradle.kts 가 없으면 랜덤으로 채우므로 시크릿이 필요 없다.
@@ -39,7 +39,7 @@ jobs:
 
       - name: Upload test report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-report
           path: build/reports/tests/test
