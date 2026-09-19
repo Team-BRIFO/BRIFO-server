@@ -1,5 +1,6 @@
 package com.brifo.server.global.error
 
+import com.brifo.server.auth.exception.GuestLoginRateLimitedException
 import com.brifo.server.briefing.exception.BriefingRetryCooldownException
 import com.brifo.server.global.code.ErrorCode
 import com.brifo.server.global.common.ApiResponse
@@ -28,6 +29,15 @@ class GlobalExceptionHandler(
     @ExceptionHandler(BriefingRetryCooldownException::class)
     fun handleBriefingRetryCooldownException(
         exception: BriefingRetryCooldownException,
+    ): ResponseEntity<ApiResponse<Nothing>> =
+        ResponseEntity
+            .status(exception.errorCode.status)
+            .header(HttpHeaders.RETRY_AFTER, exception.retryAfterSeconds.toString())
+            .body(ApiResponse.error(exception.errorCode))
+
+    @ExceptionHandler(GuestLoginRateLimitedException::class)
+    fun handleGuestLoginRateLimitedException(
+        exception: GuestLoginRateLimitedException,
     ): ResponseEntity<ApiResponse<Nothing>> =
         ResponseEntity
             .status(exception.errorCode.status)

@@ -3,6 +3,7 @@ package com.brifo.server.user.service
 import com.brifo.server.agent.entity.Agent
 import com.brifo.server.agent.entity.AgentType
 import com.brifo.server.agent.repository.AgentRepository
+import com.brifo.server.auth.service.GuestMockDataSeedingService
 import com.brifo.server.auth.service.JwtTokenProvider
 import com.brifo.server.global.config.DevBehaviorProperties
 import com.brifo.server.policy.repository.PolicyRepository
@@ -22,6 +23,7 @@ import com.brifo.server.user.exception.OnboardingStocksNotSelectedException
 import com.brifo.server.user.exception.PendingStockChangeNotFoundException
 import com.brifo.server.user.exception.RequiredPoliciesNotAgreedException
 import com.brifo.server.user.exception.UserNotFoundException
+import com.brifo.server.user.entity.OAuthProvider
 import com.brifo.server.user.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -41,6 +43,7 @@ class UserService(
     private val agentRepository: AgentRepository,
     private val userValidationService: UserValidationService,
     private val jwtTokenProvider: JwtTokenProvider,
+    private val guestMockDataSeedingService: GuestMockDataSeedingService,
     private val clock: Clock,
     private val devBehaviorProperties: DevBehaviorProperties = DevBehaviorProperties(),
 ) {
@@ -154,6 +157,10 @@ class UserService(
         check(!agentRepository.existsByUser(user)) { "Onboarding user must not already have agents." }
         user.completeOnboarding(LocalDateTime.now(clock))
         agentRepository.saveAll(DEFAULT_AGENT_PROFILES.map { it.createAgent(user) })
+
+        if (user.provider == OAuthProvider.GUEST) {
+            guestMockDataSeedingService.seed(user)
+        }
     }
 
     companion object {

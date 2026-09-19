@@ -87,6 +87,7 @@ class SecurityConfig(
                         HttpMethod.POST,
                         "/api/auth/login/kakao",
                         "/api/auth/login/naver",
+                        "/api/auth/login/guest",
                         "/api/auth/reissue",
                         "/api/auth/signup/cancel",
                     ).permitAll()

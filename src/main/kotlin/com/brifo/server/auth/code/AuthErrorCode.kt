@@ -20,4 +20,5 @@ enum class AuthErrorCode(
     FORBIDDEN(HttpStatus.FORBIDDEN, "AUTH_403", "접근 권한이 없습니다."),
     AUTH_USER_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH_404_01", "사용자를 찾을 수 없습니다."),
     OAUTH_PROVIDER_SERVER_ERROR(HttpStatus.BAD_GATEWAY, "AUTH_502", "OAuth 서버 오류가 발생했습니다."),
+    GUEST_LOGIN_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "AUTH_429_01", "게스트 로그인 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."),
 }

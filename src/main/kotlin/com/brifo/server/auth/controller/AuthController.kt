@@ -6,6 +6,7 @@ import com.brifo.server.auth.dto.request.RefreshTokenRequest
 import com.brifo.server.auth.dto.response.OAuthLoginResponse
 import com.brifo.server.auth.dto.response.ReissueResponse
 import com.brifo.server.auth.security.SignupTokenCookieManager
+import com.brifo.server.auth.service.GuestLoginService
 import com.brifo.server.auth.service.KakaoLoginService
 import com.brifo.server.auth.service.LogoutService
 import com.brifo.server.auth.service.NaverLoginService
@@ -28,6 +29,7 @@ import java.util.UUID
 class AuthController(
     private val kakaoLoginService: KakaoLoginService,
     private val naverLoginService: NaverLoginService,
+    private val guestLoginService: GuestLoginService,
     private val logoutService: LogoutService,
     private val tokenReissueService: TokenReissueService,
     private val signupTokenCookieManager: SignupTokenCookieManager,
@@ -48,6 +50,16 @@ class AuthController(
         response: HttpServletResponse,
     ): ApiResponse<OAuthLoginResponse> {
         val result = naverLoginService.login(request)
+        updateSignupTokenCookie(result, response)
+        return ApiResponse.success(SuccessCode.OK, result)
+    }
+
+    @PostMapping("/login/guest")
+    fun loginAsGuest(
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+    ): ApiResponse<OAuthLoginResponse> {
+        val result = guestLoginService.login(resolveClientIp(request))
         updateSignupTokenCookie(result, response)
         return ApiResponse.success(SuccessCode.OK, result)
     }
@@ -97,4 +109,13 @@ class AuthController(
             is OAuthLoginResponse.Login -> signupTokenCookieManager.clear(response)
         }
     }
+
+    /** 리버스 프록시 뒤에서 동작하므로 X-Forwarded-For의 첫 값을 원 클라이언트 IP로 신뢰한다. */
+    private fun resolveClientIp(request: HttpServletRequest): String =
+        request
+            .getHeader("X-Forwarded-For")
+            ?.substringBefore(",")
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: request.remoteAddr
 }
