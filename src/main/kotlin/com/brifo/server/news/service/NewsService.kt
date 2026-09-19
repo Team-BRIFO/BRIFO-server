@@ -25,9 +25,15 @@ class NewsService(
 ) {
     @Transactional(readOnly = true)
     fun getNewsCards(stockPublicId: UUID): GetNewsCardsResponse {
-        val displayDate = LocalDate.now(clock)
+        val today = LocalDate.now(clock)
+        // 카드는 전날 뉴스로 하루 한 번, 뉴스 1건당 한 장만 만들어진다. 그래서 어제 그 종목에
+        // 새 뉴스가 없었으면 오늘 카드가 0장이 되고, 주말처럼 뉴스가 드문 날이 이어지면 화면이
+        // 통째로 빈다. 오늘 카드가 없으면 마지막으로 만들어둔 날의 카드로 대신 채운다.
+        // 카드마다 발행일을 함께 내려주므로 언제 기사인지는 화면에서 구분된다.
+        val displayDate =
+            newsCardRepository.findLatestDisplayDateOnOrBefore(stockPublicId, today) ?: today
         val newsCards = newsCardRepository.findDailyCards(stockPublicId, displayDate)
-        // 오늘 카드가 아직 생성되지 않은 것은 정상 상태이므로 404가 아니라 빈 목록으로 응답한다.
+        // 카드가 한 장도 없는 신규 종목은 404가 아니라 빈 목록으로 응답한다.
         // 종목 정보는 카드가 없어도 내려줘야 프론트가 헤더와 빈 상태를 함께 그릴 수 있다.
         val stock = newsCards.firstOrNull()?.news?.stock
             ?: stockRepository.findByPublicId(stockPublicId)
@@ -43,7 +49,8 @@ class NewsService(
                 logoUrl = stock.logoUrl,
                 price = price.currentPrice,
                 changeRate = (price.changeRate ?: BigDecimal.ZERO).setScale(1, RoundingMode.HALF_UP),
-                tradeDate = price.tradeDate ?: displayDate,
+                // 시세는 현재가라 카드 노출일(과거일 수 있다)이 아니라 오늘로 채운다.
+                tradeDate = price.tradeDate ?: today,
             )
 
         val newsCardResponses = newsCards.map { newsCard ->

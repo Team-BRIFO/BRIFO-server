@@ -17,6 +17,7 @@ import com.brifo.server.term.repository.NewsCardTermRepository
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import java.math.BigDecimal
@@ -68,6 +69,39 @@ class NewsServiceUnitTest {
 
         assertEquals(emptyList(), response.newsCards)
         assertEquals("삼성전자", response.stock.name)
+    }
+
+    @Test
+    fun `오늘 카드가 없으면 마지막으로 만들어둔 날의 카드를 보여준다`() {
+        val stockId = UUID.randomUUID()
+        val lastDisplayDate = LocalDate.of(2026, 6, 30)
+        val stock = mock(Stock::class.java)
+
+        `when`(newsCardRepository.findLatestDisplayDateOnOrBefore(stockId, LocalDate.of(2026, 7, 4)))
+            .thenReturn(lastDisplayDate)
+        `when`(newsCardRepository.findDailyCards(stockId, lastDisplayDate)).thenReturn(emptyList())
+        `when`(stockRepository.findByPublicId(stockId)).thenReturn(stock)
+        `when`(stock.id).thenReturn(2L)
+        `when`(stock.code).thenReturn("000270")
+        `when`(stock.publicId).thenReturn(stockId)
+        `when`(stock.name).thenReturn("기아")
+        `when`(stock.sector).thenReturn("자동차")
+        `when`(stockPriceService.getCurrentPrice(2L, "000270")).thenReturn(
+            StockPriceResult(
+                stockCode = "000270",
+                currentPrice = BigDecimal("100000"),
+                priceChange = BigDecimal("500"),
+                changeRate = BigDecimal("0.50"),
+                priceStatus = PriceStatus.DELAYED_CURRENT,
+                tradeDate = LocalDate.of(2026, 7, 4),
+            ),
+        )
+
+        newsService.getNewsCards(stockId)
+
+        // 오늘(7/4)이 아니라 마지막 노출일(6/30) 카드를 조회해야 한다.
+        verify(newsCardRepository).findDailyCards(stockId, lastDisplayDate)
+        verify(newsCardRepository, never()).findDailyCards(stockId, LocalDate.of(2026, 7, 4))
     }
 
     @Test

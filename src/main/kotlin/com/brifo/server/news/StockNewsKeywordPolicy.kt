@@ -18,6 +18,8 @@ object StockNewsKeywordPolicy {
      */
     private val SEARCH_KEYWORDS: Map<String, String> = mapOf(
         "NAVER" to "네이버",
+        // 국내 기사는 라틴 문자 표기(POSCO홀딩스)를 거의 쓰지 않는다.
+        "POSCO홀딩스" to "포스코홀딩스",
     )
 
     /**
@@ -30,8 +32,12 @@ object StockNewsKeywordPolicy {
         "NAVER" to listOf("네이버"),
         "SK하이닉스" to listOf("하이닉스"),
         "현대차" to listOf("현대자동차"),
-        "기아" to listOf("기아자동차"),
+        "기아" to listOf("기아자동차", "기아차"),
         "LG에너지솔루션" to listOf("LG엔솔"),
+        "삼성전자" to listOf("삼전"),
+        // `stocks.name`이 라틴 문자라 한글 제목과 절대 매칭되지 않는다. 한글 표기를 반드시 넣는다.
+        // 다만 `포스코`만 넣으면 포스코인터내셔널 기사가 함께 걸리므로 넣지 않는다.
+        "POSCO홀딩스" to listOf("포스코홀딩스"),
     )
 
     /** 네이버 뉴스 검색에 보낼 검색어. */
