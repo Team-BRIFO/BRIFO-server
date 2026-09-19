@@ -10,6 +10,7 @@ import com.brifo.server.badge.service.BadgeAwardService
 import com.brifo.server.batch.settlement.DecisionSettlementCalculator
 import com.brifo.server.batch.settlement.DecisionSettlementItem
 import com.brifo.server.batch.settlement.DecisionSettlementService
+import com.brifo.server.briefing.entity.Briefing
 import com.brifo.server.briefing.repository.BriefingRepository
 import com.brifo.server.decision.entity.Decision
 import com.brifo.server.decision.repository.DecisionRepository
@@ -82,6 +83,14 @@ class GuestMockDataSeedingServiceTest {
                 decisionSettlementService,
                 calculator,
             )
+        // 실제 DB에서는 저장 시 시퀀스로 id가 채워지지만, mock에서는 그대로 두면 null이라
+        // forceCreatedAtForGuestSeeding(id, ...) 호출에서 requireNotNull이 터진다.
+        val nextBriefingId = AtomicLong(1L)
+        `when`(briefingRepository.save(any(Briefing::class.java))).thenAnswer { invocation ->
+            val briefing = invocation.arguments[0] as Briefing
+            ReflectionTestUtils.setField(briefing, "id", nextBriefingId.getAndIncrement())
+            briefing
+        }
     }
 
     @Test
