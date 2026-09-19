@@ -27,6 +27,7 @@ import com.brifo.server.user.entity.OAuthProvider
 import com.brifo.server.user.entity.User
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.any
@@ -126,9 +127,9 @@ class GuestMockDataSeedingServiceTest {
     }
 
     @Test
-    fun `관심종목이 여러 개면 하루에도 종목 수만큼 여러 건이 생기고 같은 날 같은 종목은 두 번 나오지 않는다`() {
+    fun `관심종목이 여러 개면 날짜·종목 조합이 무작위로 섞이되 같은 날 같은 종목은 두 번 나오지 않는다`() {
         val user = guestUser()
-        `when`(agentRepository.findAllByUserId(requireNotNull(user.id))).thenReturn(listOf(agent()))
+        `when`(agentRepository.findAllByUserId(requireNotNull(user.id))).thenReturn(listOf(agent(), agent(), agent()))
 
         val stockA = stock(stockId = 1L, name = "현대차")
         val stockB = stock(stockId = 2L, name = "네이버")
@@ -147,12 +148,12 @@ class GuestMockDataSeedingServiceTest {
         service.seed(user)
 
         val dedupKeys = mockingDetails(newsRepository).invocations.map { (it.arguments[0] as News).dedupKey }
-        // 날짜 5개 × 종목 2개 = 10개의 (날짜, 종목) 조합이 전부 서로 달라야 한다(중복 없음 = 같은 날 같은 종목 재사용 없음).
-        assertEquals(10, dedupKeys.size)
-        assertEquals(10, dedupKeys.distinct().size)
-        assertEquals(5, dedupKeys.count { it.startsWith("guest-mock:1:") })
-        assertEquals(5, dedupKeys.count { it.startsWith("guest-mock:2:") })
-        assertEquals(10, mockingDetails(decisionSettlementService).invocations.size)
+        // 종목이 무작위로 골라지므로 매일 1~2건, 총 5~10건 사이지만, (날짜, 종목) 조합은 항상 서로 달라야
+        // 한다(= 같은 날 같은 종목이 두 번 나오지 않는다) — 이게 이 테스트가 실제로 지키려는 불변식이다.
+        assertTrue(dedupKeys.size in 5..10)
+        assertEquals(dedupKeys.size, dedupKeys.distinct().size)
+        assertTrue(dedupKeys.all { key -> fixedDates.any { key.endsWith(":$it") } })
+        assertEquals(dedupKeys.size, mockingDetails(decisionSettlementService).invocations.size)
     }
 
     @Test
