@@ -9,6 +9,7 @@ import com.brifo.server.policy.exception.RequiredPolicyCannotBeRevokedException
 import com.brifo.server.policy.exception.RequiredPolicyMissingException
 import com.brifo.server.policy.repository.PolicyRepository
 import com.brifo.server.policy.repository.UserPolicyRepository
+import com.brifo.server.user.entity.OAuthProvider
 import com.brifo.server.user.exception.UserNotFoundException
 import com.brifo.server.user.repository.UserRepository
 import org.springframework.stereotype.Service
@@ -78,9 +79,20 @@ class PolicyService(
         }
     }
 
+    /**
+     * 재동의가 필요한 필수 약관 목록.
+     *
+     * 게스트(체험) 계정은 항상 빈 목록을 돌려준다. 서비스를 둘러보려고 만든 일회성 계정이라
+     * 약관을 개정해 version 을 올릴 때마다 체험 도중 재동의 모달이 뜨는 것은 막아야 한다.
+     * 가입 시 필수 약관 동의 기록 자체는 남으므로(자동 동의) 동의 근거가 사라지지는 않는다.
+     */
     @Transactional(readOnly = true)
     fun getPendingPolicies(userId: UUID): GetPendingPoliciesResponse {
         val user = userRepository.findByPublicId(userId) ?: throw UserNotFoundException()
+
+        if (user.provider == OAuthProvider.GUEST) {
+            return GetPendingPoliciesResponse(items = emptyList())
+        }
 
         return GetPendingPoliciesResponse(
             items = policyRepository.findPendingRequired(requireNotNull(user.id)),
