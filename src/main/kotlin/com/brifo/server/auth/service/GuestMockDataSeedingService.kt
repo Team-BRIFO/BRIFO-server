@@ -51,6 +51,13 @@ import java.time.LocalDate
  * 종목명·가격·등락률·적중여부만 보여주므로, 이 안내용 데이터로도 화면 표시에는 문제가 없다.
  * 또한 실제 뉴스 피드(`NewsService.getNewsCards`)는 항상 오늘 날짜만 조회하므로, 과거로
  * 고정된 이 안내용 뉴스카드가 실제 사용자에게 노출될 경로는 없다.
+ *
+ * 결정일기 캘린더(`DiaryQueryRepositoryImpl.findCalendarRows`/`findDayDetailRows`)는
+ * `news_cards.display_date`도 `daily_stock_prices.trade_date`도 보지 않고 오직
+ * `decisions.created_at`으로만 날짜를 나눈다. `Decision.createdAt`은 `@CreatedDate` +
+ * `updatable = false`라 JPA 저장만으로는 과거로 되돌릴 수 없어서, 저장 직후 네이티브 UPDATE로
+ * 직접 덮어쓴다(`forceCreatedAtForGuestSeeding`). 이걸 빼먹으면 5일치 데이터가 캘린더에는
+ * 전부 온보딩을 실제로 완료한 "오늘" 하루에 몰려 보인다.
  */
 @Service
 class GuestMockDataSeedingService(
@@ -76,10 +83,10 @@ class GuestMockDataSeedingService(
 
         var index = 0
         for (date in FIXED_DATES) {
-            for (stock in stocks) {
+            for ((stockIndex, stock) in stocks.withIndex()) {
                 val agent = agents[index % agents.size]
                 val correct = OUTCOMES[index % OUTCOMES.size]
-                seedOne(user, agent, stock, date, correct, index)
+                seedOne(user, agent, stock, date, correct, index, stockIndex)
                 index++
             }
         }
@@ -93,12 +100,17 @@ class GuestMockDataSeedingService(
         date: LocalDate,
         correct: Boolean,
         seedIndex: Int,
+        stockIndexInDay: Int,
     ) {
         val newsCard = findOrCreatePlaceholderNewsCard(stock, date)
         val closingPrice = findOrCreatePlaceholderClosingPrice(stock, date, seedIndex)
 
         val actualDirection = calculator.actualDirection(closingPrice.changeRate)
         val predictedDirection = if (correct) actualDirection else wrongDirection(actualDirection)
+
+        // 하루에 같은 종목이 아닌 여러 종목이 생길 수 있으니, 캘린더/목록 정렬이 흐트러지지 않도록
+        // 같은 날짜 안에서도 종목 순서대로 시각을 조금씩 벌린다.
+        val backdatedAt = date.atTime(9, 0).plusMinutes(stockIndexInDay * 5L)
 
         val briefing = Briefing.create(listOf(newsCard), agent)
         briefing.startAnalysis()
@@ -112,6 +124,7 @@ class GuestMockDataSeedingService(
             personalComment = null,
         )
         briefingRepository.save(briefing)
+        briefingRepository.forceCreatedAtForGuestSeeding(requireNotNull(briefing.id), backdatedAt)
 
         val decision =
             decisionRepository.save(
@@ -123,6 +136,7 @@ class GuestMockDataSeedingService(
                 ),
             )
         val decisionId = requireNotNull(decision.id)
+        decisionRepository.forceCreatedAtForGuestSeeding(decisionId, backdatedAt)
         val userPublicId = requireNotNull(user.publicId)
 
         apTransactionService.change(
