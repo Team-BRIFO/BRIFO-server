@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      # Testcontainers 로 Postgres·Valkey 를 띄운다. ubuntu-latest 러너에는 Docker 가 이미 있다.
+      # JWT_SECRET_BASE64 는 build.gradle.kts 가 없으면 랜덤으로 채우므로 시크릿이 필요 없다.
+      - name: Test
+        run: ./gradlew test --no-daemon
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-report
+          path: build/reports/tests/test
+          retention-days: 7
+
+# spotlessCheck 는 아직 넣지 않는다.
+# .editorconfig 에 ktlint_code_style 이 없어 ktlint 1.x 기본값인 ktlint_official 이 적용되는데,
+# 레포 코드는 IntelliJ 스타일로 작성되어 있어 dev 기준 231개 파일이 위반 상태다.
+# 지금 넣으면 모든 PR 이 무조건 빨간불이 된다. 코드 스타일을 먼저 정리한 뒤 추가할 것.
