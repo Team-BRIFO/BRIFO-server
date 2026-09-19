@@ -6,6 +6,7 @@ import com.brifo.server.auth.dto.response.OAuthLoginResponse
 import com.brifo.server.auth.dto.response.ReissueResponse
 import com.brifo.server.auth.dto.response.TokenInfo
 import com.brifo.server.auth.security.SignupTokenCookieManager
+import com.brifo.server.auth.service.GuestLoginService
 import com.brifo.server.auth.service.KakaoLoginService
 import com.brifo.server.auth.service.LogoutService
 import com.brifo.server.auth.service.NaverLoginService
@@ -43,6 +44,9 @@ class AuthControllerTest {
     private lateinit var naverLoginService: NaverLoginService
 
     @Mock
+    private lateinit var guestLoginService: GuestLoginService
+
+    @Mock
     private lateinit var logoutService: LogoutService
 
     @Mock
@@ -61,6 +65,7 @@ class AuthControllerTest {
                     AuthController(
                         kakaoLoginService,
                         naverLoginService,
+                        guestLoginService,
                         logoutService,
                         tokenReissueService,
                         signupTokenCookieManager,
@@ -136,6 +141,22 @@ class AuthControllerTest {
         val cookieInvocation =
             mockingDetails(signupTokenCookieManager).invocations.single { it.method.name == "set" }
         assertEquals("signup-token", cookieInvocation.arguments[1])
+    }
+
+    @Test
+    fun `게스트 로그인도 Signup Token을 응답에서 숨기고 쿠키로 전달한다`() {
+        val result = OAuthLoginResponse.SignupRequired(signupToken = "guest-signup-token")
+        `when`(guestLoginService.login()).thenReturn(result)
+
+        mockMvc
+            .perform(post("/api/auth/login/guest"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.result.loginType").value("SIGNUP_REQUIRED"))
+            .andExpect(jsonPath("$.result.signupToken").doesNotExist())
+
+        val cookieInvocation =
+            mockingDetails(signupTokenCookieManager).invocations.single { it.method.name == "set" }
+        assertEquals("guest-signup-token", cookieInvocation.arguments[1])
     }
 
     @Test

@@ -79,6 +79,15 @@ class SecurityConfigIntegrationTest @Autowired constructor(
     }
 
     @Test
+    fun `게스트 체험 로그인 API는 인증 없이 호출할 수 있다`() {
+        mockMvc
+            .perform(post("/api/auth/login/guest"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.code").value("COMMON_200"))
+            .andExpect(jsonPath("$.result.loginType").value("SIGNUP_REQUIRED"))
+    }
+
+    @Test
     fun `구현되지 않은 로그인 경로는 공개하지 않는다`() {
         mockMvc
             .perform(

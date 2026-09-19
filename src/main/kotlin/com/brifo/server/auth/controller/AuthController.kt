@@ -6,6 +6,7 @@ import com.brifo.server.auth.dto.request.RefreshTokenRequest
 import com.brifo.server.auth.dto.response.OAuthLoginResponse
 import com.brifo.server.auth.dto.response.ReissueResponse
 import com.brifo.server.auth.security.SignupTokenCookieManager
+import com.brifo.server.auth.service.GuestLoginService
 import com.brifo.server.auth.service.KakaoLoginService
 import com.brifo.server.auth.service.LogoutService
 import com.brifo.server.auth.service.NaverLoginService
@@ -28,6 +29,7 @@ import java.util.UUID
 class AuthController(
     private val kakaoLoginService: KakaoLoginService,
     private val naverLoginService: NaverLoginService,
+    private val guestLoginService: GuestLoginService,
     private val logoutService: LogoutService,
     private val tokenReissueService: TokenReissueService,
     private val signupTokenCookieManager: SignupTokenCookieManager,
@@ -48,6 +50,13 @@ class AuthController(
         response: HttpServletResponse,
     ): ApiResponse<OAuthLoginResponse> {
         val result = naverLoginService.login(request)
+        updateSignupTokenCookie(result, response)
+        return ApiResponse.success(SuccessCode.OK, result)
+    }
+
+    @PostMapping("/login/guest")
+    fun loginAsGuest(response: HttpServletResponse): ApiResponse<OAuthLoginResponse> {
+        val result = guestLoginService.login()
         updateSignupTokenCookie(result, response)
         return ApiResponse.success(SuccessCode.OK, result)
     }
