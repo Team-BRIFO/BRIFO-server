@@ -100,6 +100,11 @@ spotless {
 tasks.withType<Test> {
     useJUnitPlatform()
 
+    // 운영은 Asia/Seoul 로 돌고(Dockerfile TZ) Clock 빈도 Asia/Seoul 이다. 테스트 JVM 이
+    // 실행 환경 기본값을 쓰면(GitHub Actions 러너는 UTC) LocalDate.now() 로 날짜를 만드는
+    // 테스트가 서비스의 오늘과 어긋나, 15:00 UTC 이후에 돌린 CI 가 날짜 불일치로 깨진다.
+    systemProperty("user.timezone", "Asia/Seoul")
+
     val randomSecret =
         ByteArray(32)
             .also { SecureRandom().nextBytes(it) }
